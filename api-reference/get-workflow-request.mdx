@@ -1,0 +1,34 @@
+---
+title: 'Get Workflow Request'
+openapi: 'GET /workflow-requests/{id}'
+---
+
+Retrieves the status and results of a workflow execution triggered by webhook.
+
+## Usage
+
+Use the `workflow_request_id` returned from the webhook trigger to poll for execution status and results.
+
+## Polling
+
+For long-running workflows, poll this endpoint to check if execution is complete:
+
+```bash
+# Check status every few seconds
+GET /v1/workflow-requests/{workflow_request_id}
+```
+
+## Status Values
+
+- `pending` - Request received, waiting to start
+- `in_progress` - Currently executing
+- `waiting` - Paused, waiting for user input or external event
+- `completed` - Finished successfully
+- `failed` - Execution failed (check output field for error details)
+- `stopped` - Execution was manually stopped
+
+## Output Data
+
+When `status` is `completed`, the `output` field contains the workflow results.
+
+When `status` is `failed`, the `output` field may contain error information.

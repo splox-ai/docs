@@ -1,0 +1,253 @@
+---
+title: "Pricing"
+description: "Simple, transparent pay-as-you-go pricing"
+---
+
+## Overview
+
+Splox uses **pay-as-you-go pricing** with no upfront costs, subscriptions, or hidden fees. You only pay for what you use, when you use it.
+
+<Card title="How Pricing Works" icon="sparkles">
+  **Two simple pricing models:**
+  
+  1. **AI Models & Services** - Pay per usage (tokens, generations, seconds)
+  2. **BYOK (Bring Your Own Key)** - Fixed fee per API request (\$0.005)
+  
+  All pricing is transparent with real-time tracking in your dashboard.
+</Card>
+
+---
+
+## Pricing Models
+
+<Tabs>
+  <Tab title="Splox-Managed Keys">
+    ### Pay-Per-Usage Pricing
+    
+    Use Splox API keys and pay only for what you consume:
+    
+    **Language Models (LLMs)**
+    - Priced per million tokens (input/output)
+    - Examples: \$0.15/M to \$120/M depending on model
+    - [View all LLM pricing →](/providers/openai)
+    
+    **Code Execution (Sandboxes)**
+    - Priced per second of compute time
+    - vCPU: \$0.0000364/sec, Memory: \$0.000013/GiB/sec
+    - Examples: \$0.31 to \$1.42 per hour
+    - [View sandbox pricing →](/providers/sandbox)
+  </Tab>
+
+  <Tab title="BYOK (Your API Keys)">
+    ### Fixed Request Pricing
+    
+    Connect your own API keys from OpenAI, Anthropic, Google, and more.
+    
+    **Pricing:**
+    - **\$0.005 per API request** (half cent)
+    - Pay only for orchestration and infrastructure
+    - API costs charged directly by provider to your account
+    
+    **What You Get:**
+    - Workflow orchestration
+    - Multi-model support
+    - Real-time monitoring
+    - Error handling & retries
+    - Usage analytics
+    - Visual workflow builder
+    
+    **Cost Examples:**
+    | Usage | Cost |
+    |-------|------|
+    | 1,000 requests | \$5.00 |
+    | 10,000 requests | \$50.00 |
+    | 100,000 requests | \$500.00 |
+    | 1,000,000 requests | \$5,000.00 |
+    
+    <Info>
+      BYOK is ideal for teams with existing API credits or volume discounts with providers.
+    </Info>
+  </Tab>
+</Tabs>
+
+---
+
+## Compare Options
+
+<CardGroup cols={2}>
+  <Card title="Splox-Managed Keys" icon="key">
+    **Best for:**
+    - Getting started quickly
+    - Testing multiple models
+    - Teams without existing API accounts
+    
+    **Pros:**
+    - Instant access to 600+ models
+    - One API key for everything
+    - No account setup with providers
+    - Unified billing
+    
+    **Pricing:**
+    - Pay per token/generation/second
+    - No fixed fees
+  </Card>
+  
+  <Card title="BYOK (Your Keys)" icon="link">
+    **Best for:**
+    - Existing API credits/discounts
+    - High-volume usage
+    - Enterprise compliance
+    
+    **Pros:**
+    - Use existing provider credits
+    - Direct provider billing
+    - Full API key control
+    - Transparent costs
+    
+    **Pricing:**
+    - \$0.005 per request
+    - Provider costs separate
+  </Card>
+</CardGroup>
+
+---
+
+## Billing & Usage
+
+### How Billing Works
+
+<Steps>
+  <Step title="Pay-As-You-Go">
+    No upfront costs or subscriptions. You only pay for what you use.
+  </Step>
+  
+  <Step title="Real-Time Tracking">
+    Monitor your usage and costs in real-time through the dashboard.
+  </Step>
+  
+  <Step title="Usage Limits">
+    Set spending limits to control costs and avoid unexpected charges.
+  </Step>
+  
+  <Step title="Detailed Invoicing">
+    Get itemized invoices with breakdowns by model, workflow, and date.
+  </Step>
+</Steps>
+
+### Token Counting
+
+<AccordionGroup>
+  <Accordion title="How are tokens counted?">
+    Tokens are counted using the same tokenization as the model provider:
+    - **GPT models:** ~4 characters = 1 token
+    - **Claude models:** ~4 characters = 1 token
+    - **Gemini models:** ~4 characters = 1 token
+    
+    Use our token calculator in the dashboard to estimate costs before running workflows.
+  </Accordion>
+
+  <Accordion title="What counts as input vs output?">
+    - **Input tokens:** Your prompt + system messages + context + previous conversation
+    - **Output tokens:** The model's generated response
+    
+    Output tokens are typically more expensive than input tokens.
+  </Accordion>
+
+  <Accordion title="How does caching work?">
+    Some models (Claude, GPT) support prompt caching:
+    - **Cache Write:** First time sending repeated content (more expensive)
+    - **Cache Read:** Subsequent uses of cached content (much cheaper)
+    - **Cache TTL:** 5 minutes or 1 hour depending on model
+    
+    Caching can reduce costs by 90% for repeated prompts.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Provider Pricing Pages
+
+View detailed pricing for each provider:
+
+<CardGroup cols={3}>
+  <Card title="OpenAI" icon="brain" href="/providers/openai">
+    GPT-5, GPT-4o, o1, o3, o4-mini
+  </Card>
+  
+  <Card title="Anthropic" icon="a" href="/providers/anthropic">
+    Claude Opus, Sonnet, Haiku
+  </Card>
+  
+  <Card title="Google Gemini" icon="gem" href="/providers/gemini">
+    Gemini 2.5, 2.0, 1.5 series
+  </Card>
+  
+  <Card title="OpenRouter" icon="route" href="/providers/openrouter">
+    200+ models, unified API
+  </Card>
+  
+  <Card title="Perplexity" icon="magnifying-glass" href="/providers/perplexity">
+    Sonar Pro, Sonar Reasoning
+  </Card>
+  
+  <Card title="Sandbox" icon="cube" href="/providers/sandbox">
+    Code execution environments
+  </Card>
+</CardGroup>
+
+---
+
+## FAQ
+
+<AccordionGroup>
+
+  <Accordion title="What payment methods do you accept?">
+    We accept:
+    - Credit cards (Visa, Mastercard, Amex)
+    - Debit cards
+    - ACH transfers (for enterprise)
+    
+    All payments are processed securely through Stripe.
+  </Accordion>
+
+  <Accordion title="Are there volume discounts?">
+    Yes! Enterprise customers with high usage (>\$1,000/month) can contact us for custom pricing:
+    - Volume discounts
+    - Dedicated support
+    - Custom SLAs
+    - Priority access to new models
+    
+    Contact hello@splox.io for enterprise pricing.
+  </Accordion>
+
+
+  <Accordion title="How does BYOK pricing work?"></Accordion>
+
+  <Accordion title="Which option is cheaper?">
+    **It depends on your usage:**
+    
+    **Splox-Managed Keys are cheaper when:**
+    - You're testing/experimenting
+    - Low-medium volume usage
+    - You want simplicity
+    
+    **BYOK is cheaper when:**
+    - You have existing API credits
+    - Very high volume (>100K requests/month)
+    - You have provider volume discounts
+    
+    Use our [cost calculator](https://app.splox.io/pricing) to compare!
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Need Help?
+
+<Card title="Contact Sales" icon="envelope">
+  Have questions about pricing or need a custom plan?
+  
+  **Email:** hello@splox.io
+  
+  **Enterprise inquiries:** We offer custom contracts, volume discounts, and dedicated support for teams.
+</Card>

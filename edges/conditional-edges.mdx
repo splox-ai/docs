@@ -1,0 +1,102 @@
+---
+title: "Conditional Edges"
+description: "Route execution based on switch node conditions with IF/ELIF/ELSE logic"
+---
+
+## Conditional Edges
+
+**Purpose:** Route execution based on switch node conditions
+
+Conditional edges connect switch nodes to different target nodes based on evaluated conditions. Each branch (IF, ELIF, ELSE) has its own edge.
+
+<div className="block dark:hidden">
+  <img
+    src="https://splox-app.s3.amazonaws.com/019a0b7b-6d45-70ea-9bdd-1200071f5480_conditional-edges-light.png"
+    alt="Conditional Edges - Switch Node with IF, ELIF, and ELSE branches to different Template Nodes"
+    style={{ borderRadius: '0.5rem' }}
+  />
+</div>
+
+<div className="hidden dark:block">
+  <img
+    src="https://splox-app.s3.amazonaws.com/019a0b7b-6d44-70ea-98f4-d2d2ae5fd5f7_conditional-edges-dark.png"
+    alt="Conditional Edges - Switch Node with IF, ELIF, and ELSE branches to different Template Nodes"
+    style={{ borderRadius: '0.5rem' }}
+  />
+</div>
+
+**In this example:**
+- **Switch Node** has 4 output handles: IF, ELIF 1, ELSE, ERROR
+- **IF branch** (dashed line) routes to **Template (3)**
+- **ELIF 1 branch** (dashed line) routes to **Template (4)**
+- **ELSE branch** (dashed line) routes to **Template (5)**
+- Each condition evaluates in order, only one path executes
+- Conditional edges shown with dashed lines and equals sign icons
+
+**Branch Types:**
+
+<Tabs>
+  <Tab title="IF Branch">
+    **First condition evaluated**
+    
+    - Primary condition check
+    - Executes if condition is true
+    - Can use AND/OR logic
+    
+    **Handle:** `if` or specific branch ID
+  </Tab>
+  
+  <Tab title="ELIF Branches">
+    **Additional conditions (evaluated in order)**
+    
+    - Checked if previous conditions failed
+    - Support multiple ELIF branches
+    - Each has unique branch ID
+    
+    **Handle:** `elif_1`, `elif_2`, etc.
+  </Tab>
+  
+  <Tab title="ELSE Branch">
+    **Default fallback path**
+    
+    - Executes if no conditions matched
+    - Always exists as fallback
+    - No condition required
+    
+    **Handle:** `else`
+  </Tab>
+</Tabs>
+
+**Multiple Outputs:**
+
+Switch nodes can have many outgoing edges, one for each branch. The switch node evaluates conditions and routes execution to the matching edge.
+
+**Visual Indicator:**
+- Multiple output handles on the switch node
+- Each handle labeled with branch type (IF/ELIF/ELSE)
+- Only one path executes per switch
+
+---
+
+
+---
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card title="Switch Node" icon="code-branch" href="/nodes/switch-node">
+    Master conditional branching logic
+  </Card>
+  
+  <Card title="Merge Node" icon="code-merge" href="/nodes/merge-node">
+    Combine conditional branches
+  </Card>
+  
+  <Card title="Parallel Edges" icon="arrows-split-up-and-left" href="/edges/parallel-edges">
+    Learn about standard execution flow
+  </Card>
+  
+  <Card title="Error Edges" icon="triangle-exclamation" href="/edges/error-edges">
+    Handle failures in conditional paths
+  </Card>
+</CardGroup>

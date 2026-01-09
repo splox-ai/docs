@@ -1,0 +1,211 @@
+---
+title: "Data Processing Nodes"
+description: "Transform and format data with Template nodes"
+---
+
+## Overview
+
+Data processing nodes transform, format, and prepare data as it flows through workflows.
+
+<CardGroup cols={1}>
+  <Card title="Template Node" icon="file-lines">
+    Transform and format data using Pongo2 template expressions
+  </Card>
+</CardGroup>
+
+---
+
+## Template Node
+
+**Purpose:** Transform and format data using template expressions
+
+Template nodes process text templates with dynamic variable substitution, allowing you to format data from previous nodes.
+
+<div className="block dark:hidden">
+  <img
+    src="https://splox-app.s3.amazonaws.com/019a0b71-bc7c-70e5-a497-c5465c07191e_019a0b44-e921-70e5-842a-fb243cfedd71-light.png"
+    alt="Template node visual representation"
+    style={{ maxWidth: '100%', margin: '20px auto', display: 'block', borderRadius: '8px' }}
+  />
+</div>
+
+<div className="hidden dark:block">
+  <img
+    src="https://splox-app.s3.amazonaws.com/019a0b44-e921-70e5-842a-fb243cfedd71.png"
+    alt="Template node visual representation"
+    style={{ maxWidth: '100%', margin: '20px auto', display: 'block', borderRadius: '8px' }}
+  />
+</div>
+
+**Node Handles:**
+
+<Tabs>
+  <Tab title="Input Handle">
+    **Left Side - Template Trigger**
+    
+    Receives trigger to process the template.
+    
+    **Accepts:**
+    - Workflow execution flow
+    - Template variables from variable mappings
+    - Previous node outputs (accessed via template syntax)
+  </Tab>
+  
+  <Tab title="Output Handles">
+    **Right Side Handles:**
+    
+    - **PARALLEL:** Main output with processed template result
+      - Fires after template processing completes
+      - Returns object with `template` field containing the rendered text
+      - Example: `{"template": "Hello John, you have 5 messages"}`
+    
+    - **ERROR:** Error handling path
+      - Activated on template processing errors or invalid variable references
+      - Passes error details
+      - Allows graceful error recovery
+  </Tab>
+</Tabs>
+
+### Template Engine (Pongo2)
+
+Splox uses **Pongo2**, a Django-syntax inspired template engine, for powerful text processing.
+
+<Tabs>
+  <Tab title="Basic Syntax">
+    **Variable Substitution**
+    
+    ```django
+    {{ variable_name }}                    <!-- Insert variable value -->
+    {{ node_output.field }}                <!-- Access object fields -->
+    {{ data.nested.deep }}                 <!-- Access nested fields -->
+    {{ array.0 }}                          <!-- Access array elements -->
+    ```
+    
+    **Example:**
+    ```django
+    Hello {{ user.name }}, you have {{ messages|length }} new messages.
+    ```
+  </Tab>
+  
+  <Tab title="Filters">
+    **Transform Data**
+    
+    ```django
+    {{ text|upper }}                       <!-- Convert to uppercase -->
+    {{ text|lower }}                       <!-- Convert to lowercase -->
+    {{ array|length }}                     <!-- Get array length -->
+    {{ number|int }}                       <!-- Convert to integer -->
+    {{ data|json }}                        <!-- Convert to JSON string -->
+    ```
+    
+    **Example:**
+    ```django
+    User {{ name|upper }} has {{ count|int }} items
+    ```
+  </Tab>
+  
+  <Tab title="Control Flow">
+    **Conditionals & Loops**
+    
+    ```django
+    {% if user.premium %}
+      Premium features enabled
+    {% else %}
+      Upgrade to premium
+    {% endif %}
+    
+    {% for item in items %}
+      - {{ item.name }}
+    {% endfor %}
+    ```
+    
+    **Example:**
+    ```django
+    {% if messages|length > 0 %}
+      You have {{ messages|length }} new messages:
+      {% for msg in messages %}
+        - {{ msg.subject }}
+      {% endfor %}
+    {% endif %}
+    ```
+  </Tab>
+</Tabs>
+
+### Variable Mappings
+
+Template nodes access data through variable mappings that reference previous nodes:
+
+```json
+{
+  "variable_mappings": [
+    {
+      "mapping_name": "user_data",
+      "node_json_schema_id": "abc-123-..."
+    },
+    {
+      "mapping_name": "api_response",
+      "node_json_schema_id": "def-456-..."
+    }
+  ],
+  "template": {
+    "text": "User: {{ user_data.name }}\nStatus: {{ api_response.status }}",
+    "language": {"label": "Text", "value": "text"}
+  }
+}
+```
+
+### Output Format
+
+Template nodes return a structured object:
+
+```json
+{
+  "template": "Processed template text with all variables substituted"
+}
+```
+
+### Use Cases
+
+<CardGroup cols={2}>
+  <Card title="API Response Formatting" icon="code">
+    Format API responses for display or LLM consumption
+  </Card>
+  
+  <Card title="Dynamic Messages" icon="message">
+    Generate personalized messages with user data
+  </Card>
+  
+  <Card title="Email Content" icon="envelope">
+    Build email/notification content from data
+  </Card>
+  
+  <Card title="Data Combination" icon="object-group">
+    Combine data from multiple nodes into formatted output
+  </Card>
+</CardGroup>
+
+<Tip>
+  Template nodes are perfect for preparing data before sending it to LLMs or external APIs. Use filters like `|json` to properly format complex objects.
+</Tip>
+
+---
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card title="Variable Mappings" icon="link" href="/concepts/nodes/variable-mappings">
+    Master Pongo2 template syntax across all nodes
+  </Card>
+  
+  <Card title="AI Nodes" icon="robot" href="/concepts/nodes/ai-nodes">
+    Use templates in LLM system prompts
+  </Card>
+  
+  <Card title="Flow Control" icon="code-branch" href="/concepts/nodes/flow-control-nodes">
+    Combine with Switch nodes for conditional formatting
+  </Card>
+  
+  <Card title="Back to Overview" icon="cube" href="/concepts/nodes">
+    Return to nodes overview
+  </Card>
+</CardGroup>

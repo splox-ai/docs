@@ -1,0 +1,68 @@
+---
+title: "Parallel Edges"
+description: "Standard execution flow for concurrent node processing"
+---
+
+## Parallel Edges (Default)
+
+**Purpose:** Standard execution flow between nodes
+
+Parallel edges are the default connection type. When a node completes, execution flows to all connected nodes simultaneously.
+
+<div className="block dark:hidden">
+  <img
+    src="https://splox-app.s3.amazonaws.com/019a0b71-bc94-70e9-9ddb-ed316d330f45_019a0b6c-2ed7-70e5-8d77-03bb9bf1e3c0-light.png"
+    alt="Parallel Edges - Start node connected to three Template nodes running concurrently"
+    style={{ maxWidth: '100%', margin: '20px auto', display: 'block', borderRadius: '8px' }}
+  />
+</div>
+
+<div className="hidden dark:block">
+  <img
+    src="https://splox-app.s3.amazonaws.com/019a0b6c-2ed7-70e5-8d77-03bb9bf1e3c0.png"
+    alt="Parallel Edges - Start node connected to three Template nodes running concurrently"
+    style={{ maxWidth: '100%', margin: '20px auto', display: 'block', borderRadius: '8px' }}
+  />
+</div>
+
+**In this example:**
+- The **Start Node** has one PARALLEL output handle
+- Three **parallel edges** connect to three different Template nodes
+- All three Template nodes execute **simultaneously** when Start completes
+- Each Template receives a copy of the Start node's output data
+
+**Characteristics:**
+- **Concurrent Execution:** All target nodes run in parallel
+- **No Waiting:** Each node starts as soon as its source completes
+- **Data Cloning:** Source output is copied to all targets
+
+**Use Cases:**
+- Parallel API calls
+- Multi-path workflows
+- Fan-out patterns
+- Independent processing streams
+
+---
+
+
+---
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card title="Tool Edges" icon="wrench" href="/edges/tool-edges">
+    Connect LLMs to tools for AI function calling
+  </Card>
+  
+  <Card title="Conditional Edges" icon="code-branch" href="/edges/conditional-edges">
+    Route execution based on conditions
+  </Card>
+  
+  <Card title="Error Edges" icon="triangle-exclamation" href="/edges/error-edges">
+    Handle node execution failures
+  </Card>
+  
+  <Card title="All Edges" icon="link" href="/concepts/edges">
+    View all edge types overview
+  </Card>
+</CardGroup>

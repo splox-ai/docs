@@ -1,0 +1,148 @@
+---
+title: "Memory Nodes"
+description: "Manage conversation history and context with Chat Memory nodes"
+---
+
+## Overview
+
+Memory nodes enable stateful conversations by storing and retrieving chat history for LLM nodes.
+
+<CardGroup cols={1}>
+  <Card title="Chat Memory Node" icon="comments">
+    Store and retrieve conversation history with automatic trimming and summarization
+  </Card>
+</CardGroup>
+
+---
+
+## Chat Memory Node
+
+**Purpose:** Manage chat history and conversation context
+
+Memory nodes store and retrieve conversation history for LLM nodes, enabling stateful conversations.
+
+<div className="block dark:hidden">
+  <img
+    src="https://splox-app.s3.amazonaws.com/019a0b71-d767-70e9-a6a3-9762df898f3d_019a0b3d-d4f0-70e5-83a1-f5dbff9e3fce-light.png"
+    alt="Memory node visual representation"
+    style={{ maxWidth: '100%', margin: '20px auto', display: 'block', borderRadius: '8px' }}
+  />
+</div>
+
+<div className="hidden dark:block">
+  <img
+    src="https://splox-app.s3.amazonaws.com/019a0b3d-d4f0-70e5-83a1-f5dbff9e3fce.png"
+    alt="Memory node visual representation"
+    style={{ maxWidth: '100%', margin: '20px auto', display: 'block', borderRadius: '8px' }}
+  />
+</div>
+
+**Node Handles:**
+
+<Tabs>
+  <Tab title="Memory Connection">
+    **Top - Memory Handle**
+    
+    Connects to LLM node's MEMORY handle (bottom) for bidirectional communication.
+    
+    **Functionality:**
+    - **Reads:** Retrieves existing conversation history for LLM context
+    - **Writes:** Stores new messages after LLM execution
+    - **Bidirectional:** Both input and output through single connection
+    
+    **Data Flow:**
+    - LLM requests history → Memory provides messages
+    - LLM generates response → Memory stores new message
+  </Tab>
+</Tabs>
+
+<Info>
+  Memory nodes use a special bidirectional connection to the LLM's MEMORY handle. They don't have traditional PARALLEL or ERROR output handles - the memory connection handles all data flow.
+</Info>
+
+### Memory Limit Types
+
+<Tabs>
+  <Tab title="Message Limit">
+    **Keep last N messages**
+    
+    - Simple message-based trimming
+    - Maintains recent context
+    - Predictable memory usage
+    
+    **Example:** Keep last 10 messages
+  </Tab>
+  
+  <Tab title="Token Limit">
+    **Keep messages within token count**
+    
+    - More precise context control
+    - Respects model context windows
+    - Automatic token counting
+    
+    **Example:** Keep last 4000 tokens
+  </Tab>
+  
+  <Tab title="Custom Messages">
+    **Pre-defined conversation history**
+    
+    - Programmatic message injection
+    - Template variable support
+    - Few-shot examples and persona messages
+    
+    **Example:** System persona, example exchanges
+  </Tab>
+</Tabs>
+
+### Summarization
+
+When messages are trimmed, enable summarization to condense old context:
+
+```json
+{
+  "enable_summarization": true,
+  "summarize_prompt": "Summarize the key points from this conversation..."
+}
+```
+
+The summarization runs automatically and replaces trimmed messages with a concise summary, preserving important context while reducing token usage.
+
+### External Chat IDs
+
+Memory nodes use external chat IDs to group conversations:
+
+```typescript
+external_chat_id: "user-{{user_id}}-session-{{session_id}}"
+```
+
+This enables:
+- Multi-user conversations
+- Session management
+- Conversation history across workflow executions
+- Isolated contexts per user/session
+
+<Tip>
+  Use template variables in external_chat_id to dynamically create isolated conversation contexts for each user or session.
+</Tip>
+
+---
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card title="AI Nodes" icon="robot" href="/concepts/nodes/ai-nodes">
+    Learn how LLM nodes use memory for context
+  </Card>
+  
+  <Card title="Variable Mappings" icon="link" href="/concepts/nodes/variable-mappings">
+    Use templates in chat IDs and prompts
+  </Card>
+  
+  <Card title="Chats" icon="messages" href="/chats/overview">
+    Explore the Chats feature for end-user conversations
+  </Card>
+  
+  <Card title="Back to Overview" icon="cube" href="/concepts/nodes">
+    Return to nodes overview
+  </Card>
+</CardGroup>

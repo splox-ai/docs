@@ -1,0 +1,318 @@
+---
+title: "Sandbox"
+description: "Isolated development environments for code execution"
+---
+
+## Overview
+
+Splox Sandbox provides secure, isolated development environments for code execution, testing, and rapid prototyping. With flexible compute resources and pre-configured templates, Sandbox enables safe experimentation without infrastructure setup.
+
+<Card title="Why Use Sandbox?" icon="sparkles">
+  - **Isolated environments** - Secure, sandboxed execution
+  - **Flexible compute** - Scale vCPUs and memory as needed
+  - **Pre-configured templates** - MCP, VS Code, NextJS, React, Browser
+  - **Pay-per-second** - Only pay for actual usage time
+  - **Free storage** - No additional cost for file storage
+  - **AI integration** - Works seamlessly with Splox workflows
+</Card>
+
+---
+
+## Pricing Model
+
+Pay only for the compute resources you use, billed per second.
+
+| Resource | Price | Description |
+|----------|-------|-------------|
+| **vCPU** | **$0.0000364/sec** | Virtual CPU cores |
+| **Memory** | **$0.000013/GiB/sec** | RAM allocation |
+| **Storage** | **FREE** | Persistent file storage |
+
+<Info>
+  **Example:** A sandbox with 4 vCPUs and 8GB RAM costs:
+  - (4 × $0.0000364) + (8 × $0.000013) = **$0.0002496/sec**
+  - 1 minute = **$0.015**
+  - 1 hour = **$0.90**
+  
+  **Cost optimization:** Stop sandboxes when not in use!
+</Info>
+
+---
+
+## Sandbox Templates
+
+Pre-configured environments for common development scenarios.
+
+### MCP Development Environment
+
+Model Context Protocol development setup.
+
+<Card>
+  **Configuration:**
+  - **vCPUs:** 4
+  - **Memory:** 8GB
+  - **Cost:** $0.0002496/sec ($0.015/min, $0.90/hour)
+  
+  **Best For:**
+  - MCP server development
+  - Protocol testing
+  - Integration work
+</Card>
+
+### VS Code Environment
+
+Lightweight VS Code development environment.
+
+<Card>
+  **Configuration:**
+  - **vCPUs:** 4
+  - **Memory:** 4GB
+  - **Cost:** $0.0001976/sec ($0.012/min, $0.71/hour)
+  
+  **Best For:**
+  - Code editing
+  - Small projects
+  - Quick prototyping
+</Card>
+
+### NextJS + FastAPI
+
+Full-stack development environment.
+
+<Card>
+  **Configuration:**
+  - **vCPUs:** 4
+  - **Memory:** 8GB
+  - **Cost:** $0.0002496/sec ($0.015/min, $0.90/hour)
+  
+  **Best For:**
+  - Full-stack development
+  - API + frontend projects
+  - Web applications
+</Card>
+
+### React Fiber + ThreeJS
+
+3D web development environment.
+
+<Card>
+  **Configuration:**
+  - **vCPUs:** 4
+  - **Memory:** 4GB
+  - **Cost:** $0.0001976/sec ($0.012/min, $0.71/hour)
+  
+  **Best For:**
+  - 3D visualization
+  - Interactive graphics
+  - React Three Fiber apps
+</Card>
+
+### Browser (Full Desktop)
+
+Complete desktop browser environment.
+
+<Card>
+  **Configuration:**
+  - **vCPUs:** 8
+  - **Memory:** 8GB
+  - **Cost:** $0.0003952/sec ($0.024/min, $1.42/hour)
+  
+  **Best For:**
+  - Browser automation
+  - Visual testing
+  - Web scraping
+  - UI/UX testing
+</Card>
+
+### Code Interpreter
+
+Lightweight code execution environment.
+
+<Card>
+  **Configuration:**
+  - **vCPUs:** 2
+  - **Memory:** 1GB
+  - **Cost:** $0.0000858/sec ($0.005/min, $0.31/hour)
+  
+  **Best For:**
+  - Code execution
+  - Script testing
+  - Data analysis
+  - Quick computations
+</Card>
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Optimize Costs" icon="dollar-sign">
+    - **Stop when idle** - Pause sandboxes when not in use
+    - **Right-size resources** - Use smallest template that works
+    - **Use Code Interpreter** for simple tasks (cheapest!)
+    - **Batch operations** - Group tasks to minimize uptime
+  </Card>
+  
+  <Card title="Resource Selection" icon="gauge">
+    - **Code Interpreter** - Simple scripts, data analysis ($0.31/hr)
+    - **VS Code/React Fiber** - Standard development ($0.71/hr)
+    - **MCP/NextJS** - Heavy workloads ($0.90/hr)
+    - **Browser** - Intensive automation ($1.42/hr)
+  </Card>
+  
+  <Card title="Integration" icon="puzzle-piece">
+    - Combine with AI models for code generation
+    - Integrate with workflows
+    - Monitor usage in dashboard
+  </Card>
+  
+  <Card title="Security" icon="shield">
+    - All sandboxes are isolated
+    - No network access to internal systems
+    - Files persist in secure storage (free!)
+    - Automatic cleanup after expiration
+  </Card>
+</CardGroup>
+
+---
+
+## Cost Examples
+
+### Scenario: Quick Code Test
+
+<Steps>
+  <Step title="Start Code Interpreter">
+    Cost: $0.0000858/sec
+  </Step>
+  
+  <Step title="Run for 2 minutes">
+    2 min × 60 sec × $0.0000858 = $0.0103
+  </Step>
+  
+  <Step title="Stop sandbox">
+    No additional charges
+  </Step>
+  
+  <Step title="Total Cost">
+    ~$0.01 (1 cent!)
+  </Step>
+</Steps>
+
+### Scenario: Development Session
+
+<Steps>
+  <Step title="Start NextJS + FastAPI">
+    Cost: $0.0002496/sec
+  </Step>
+  
+  <Step title="Work for 30 minutes">
+    30 min × 60 sec × $0.0002496 = $0.449
+  </Step>
+  
+  <Step title="Total Cost">
+    ~$0.45 (45 cents for 30 minutes!)
+  </Step>
+</Steps>
+
+### Scenario: Browser Automation
+
+<Steps>
+  <Step title="Start Browser Desktop">
+    Cost: $0.0003952/sec
+  </Step>
+  
+  <Step title="Run automation (10 minutes)">
+    10 min × 60 sec × $0.0003952 = $0.237
+  </Step>
+  
+  <Step title="Total Cost">
+    ~$0.24 (24 cents for 10 minutes!)
+  </Step>
+</Steps>
+
+<Info>
+  **Sandbox costs are very affordable!**
+  
+  - Code Interpreter: ~$0.31/hour
+  - VS Code: ~$0.71/hour
+  - Full-stack: ~$0.90/hour
+  - Browser: ~$1.42/hour
+  
+  Always stop sandboxes when done to avoid unnecessary charges!
+</Info>
+
+---
+
+## Use Cases
+
+<Tabs>
+  <Tab title="Development">
+    **Code Editing & Testing:**
+    - Use VS Code environment for editing
+    - Test with Code Interpreter
+    
+    **Best Template:** VS Code or Code Interpreter
+    
+    **Cost:** $0.31-0.71 per hour
+  </Tab>
+
+  <Tab title="Web Automation">
+    **Browser Tasks:**
+    - Web scraping
+    - UI testing
+    - Screenshot capture
+    - Form automation
+    
+    **Best Template:** Browser (Full Desktop)
+    
+    **Cost:** $1.42 per hour
+  </Tab>
+
+  <Tab title="Full-Stack Apps">
+    **Application Development:**
+    - Frontend + backend
+    - API development
+    - Database integration
+    - Testing workflows
+    
+    **Best Template:** NextJS + FastAPI
+    
+    **Cost:** $0.90 per hour
+  </Tab>
+
+  <Tab title="Data Analysis">
+    **Quick Computations:**
+    - Script execution
+    - Data processing
+    - Algorithm testing
+    - Prototyping
+    
+    **Best Template:** Code Interpreter
+    
+    **Cost:** $0.31 per hour (cheapest!)
+  </Tab>
+</Tabs>
+
+---
+
+## Support
+
+Need help with Sandbox?
+
+<CardGroup cols={2}>
+  <Card title="E2B Documentation" icon="book" href="https://e2b.dev/docs">
+    Official E2B Sandbox docs
+  </Card>
+  
+  <Card title="E2B Pricing" icon="dollar-sign" href="https://e2b.dev/pricing">
+    Official pricing details
+  </Card>
+  
+  <Card title="Splox Docs" icon="file-text" href="https://docs.splox.io/introduction">
+    Browse our guides
+  </Card>
+  
+  <Card title="Community" icon="users" href="https://community.splox.io">
+    Get help from the community
+  </Card>
+</CardGroup>

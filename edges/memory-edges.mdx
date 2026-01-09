@@ -1,0 +1,84 @@
+---
+title: "Memory Edges"
+description: "Connect memory nodes to LLMs for stateful conversations"
+---
+
+## Memory Edges
+
+**Purpose:** Connect memory nodes to LLM nodes for conversation history
+
+Memory edges are special bottom-facing connections that link memory nodes to LLM nodes, enabling stateful conversations with persistent chat history.
+
+<div className="block dark:hidden">
+  <img
+    src="https://splox-app.s3.amazonaws.com/019a0b78-5416-70ea-a678-b8a7a96758fa_memory-edge-light.png"
+    alt="Memory Edge - LLM Node connected to Chat Memory Node via bottom MEMORY handle"
+    style={{ borderRadius: '0.5rem' }}
+  />
+</div>
+
+<div className="hidden dark:block">
+  <img
+    src="https://splox-app.s3.amazonaws.com/019a0b78-5417-70ea-a007-1fa1a1205b06_memory-edge-dark.png"
+    alt="Memory Edge - LLM Node connected to Chat Memory Node via bottom MEMORY handle"
+    style={{ borderRadius: '0.5rem' }}
+  />
+</div>
+
+**In this example:**
+- The **LLM Node** has a **MEMORY** input handle (bottom center)
+- A **memory edge** (dashed line with database icon) connects from the **Chat Memory Node**
+- The **Chat Memory Node** shows:
+  - Context Window Size configuration
+  - Memory Load status (Empty)
+  - Token count (0 tokens)
+- This provides conversation history to the LLM across multiple turns
+
+**Characteristics:**
+- **Bottom Connection:** Memory edges connect to the bottom handle of LLM nodes
+- **Special Styling:** Dashed line with database icon
+- **One-to-One:** Each LLM can have only one memory node
+- **Optional:** Not all LLMs need memory
+
+**How It Works:**
+
+1. **History Loading:** When the LLM executes, it loads chat history from the memory node
+2. **Context Injection:** Messages are prepended to the LLM's input
+3. **Trimming:** Old messages are removed based on memory limits
+4. **Summarization:** Optionally, trimmed messages are summarized
+5. **New Messages:** LLM responses and tool calls are saved to memory
+
+**Use Cases:**
+- Multi-turn conversations
+- Customer support chat
+- AI assistants with context
+- Personalized interactions
+
+<Info>
+  Memory edges use the `is_memory` flag and connect to a special handle on LLM nodes.
+</Info>
+
+---
+
+
+---
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card title="Memory Node" icon="comments" href="/nodes/memory-node">
+    Understand memory node configuration
+  </Card>
+  
+  <Card title="LLM Node" icon="brain" href="/nodes/llm-node">
+    Learn how LLMs use memory
+  </Card>
+  
+  <Card title="Tool Edges" icon="wrench" href="/edges/tool-edges">
+    Combine memory with tool calling
+  </Card>
+  
+  <Card title="All Edges" icon="link" href="/concepts/edges">
+    View all edge types
+  </Card>
+</CardGroup>

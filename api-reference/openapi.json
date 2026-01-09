@@ -1,94 +1,113 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "OpenAPI Plant Store",
-    "description": "A sample API that uses a plant store as an example to demonstrate features in the OpenAPI specification",
-    "license": {
-      "name": "MIT"
-    },
-    "version": "1.0.0"
+    "title": "Splox Webhook API",
+    "description": "Trigger workflows via webhooks and retrieve execution status",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Splox Support",
+      "email": "support@splox.io",
+      "url": "https://community.splox.io"
+    }
   },
   "servers": [
     {
-      "url": "http://sandbox.mintlify.com"
-    }
-  ],
-  "security": [
-    {
-      "bearerAuth": []
+      "url": "https://app.splox.io/api/v1",
+      "description": "Production API"
     }
   ],
   "paths": {
-    "/plants": {
-      "get": {
-        "description": "Returns all plants from the system that the user has access to",
+    "/webhooks/{id}": {
+      "post": {
+        "summary": "Trigger Workflow via Webhook",
+        "description": "Triggers a workflow execution by sending data to its unique webhook URL. The webhook processes the payload and creates a workflow request.",
+        "operationId": "triggerWebhook",
+        "tags": ["Webhooks"],
         "parameters": [
           {
-            "name": "limit",
-            "in": "query",
-            "description": "The maximum number of results to return",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Unique webhook identifier (UUID format)",
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid",
+              "example": "0199eeeb-d60e-7ffd-9131-4cc5ab040ee7"
             }
           }
         ],
+        "requestBody": {
+          "description": "Webhook payload - any JSON data that will be passed to the workflow",
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "example": {
+                  "user_id": "12345",
+                  "event": "user.signup",
+                  "email": "user@example.com",
+                  "name": "John Doe"
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Plant response",
+            "description": "Webhook processed successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Plant"
+                  "type": "object",
+                  "properties": {
+                    "workflow_request_id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "ID of the created workflow request - use this to check execution status",
+                      "example": "0199f123-d60e-7ffd-9131-4cc5ab040ee8"
+                    },
+                    "note": {
+                      "type": "string",
+                      "description": "Present only if webhook didn't match any event configurations",
+                      "example": "Webhook received but did not match any event configurations"
+                    }
+                  },
+                  "additionalProperties": true,
+                  "description": "Response includes workflow_request_id and echoes back the processed payload"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Invalid webhook ID or payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "invalid_id": {
+                    "value": {
+                      "error": "invalid webhook ID"
+                    }
+                  },
+                  "inactive": {
+                    "value": {
+                      "error": "integration is not active"
+                    }
                   }
                 }
               }
             }
           },
-          "400": {
-            "description": "Unexpected error",
+          "404": {
+            "description": "Webhook not found",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "description": "Creates a new plant in the store",
-        "requestBody": {
-          "description": "Plant to add to the store",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NewPlant"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "plant response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Plant"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "unexpected error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -96,57 +115,55 @@
         }
       }
     },
-    "/plants/{id}": {
-      "delete": {
-        "description": "Deletes a single plant based on the ID supplied",
+    "/workflow-requests/{id}": {
+      "get": {
+        "summary": "Get Workflow Request Status",
+        "description": "Retrieves detailed information about a workflow request, including status, input data, output results, and execution metadata.",
+        "operationId": "getWorkflowRequest",
+        "tags": ["Workflow Requests"],
         "parameters": [
           {
             "name": "id",
             "in": "path",
-            "description": "ID of plant to delete",
             "required": true,
+            "description": "Workflow request ID (UUID format) returned from webhook trigger",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string",
+              "format": "uuid",
+              "example": "0199f123-d60e-7ffd-9131-4cc5ab040ee8"
             }
           }
         ],
         "responses": {
-          "204": {
-            "description": "Plant deleted",
-            "content": {}
-          },
-          "400": {
-            "description": "unexpected error",
+          "200": {
+            "description": "Workflow request details retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/WorkflowRequest"
                 }
               }
             }
-          }
-        }
-      }
-    }
-  },
-  "webhooks": {
-    "/plant/webhook": {
-      "post": {
-        "description": "Information about a new plant added to the store",
-        "requestBody": {
-          "description": "Plant added to the store",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NewPlant"
+          },
+          "400": {
+            "description": "Invalid workflow request ID format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
               }
             }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Return a 200 status to indicate that the data was received successfully"
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -154,64 +171,181 @@
   },
   "components": {
     "schemas": {
-      "Plant": {
-        "required": [
-          "name"
-        ],
+      "WorkflowRequest": {
         "type": "object",
+        "description": "Represents a workflow execution request",
         "properties": {
-          "name": {
-            "description": "The name of the plant",
-            "type": "string"
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique workflow request identifier",
+            "example": "0199f123-d60e-7ffd-9131-4cc5ab040ee8"
           },
-          "tag": {
-            "description": "Tag to specify the type",
-            "type": "string"
-          }
-        }
-      },
-      "NewPlant": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/Plant"
+          "workflow_version_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID of the workflow version being executed",
+            "example": "0199e001-a23b-7c8d-1234-567890abcdef"
           },
-          {
-            "required": [
-              "id"
-            ],
+          "start_node_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID of the starting node in the workflow",
+            "example": "0199e002-b34c-8d9e-2345-678901bcdef0"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID of the user who owns this workflow",
+            "example": "0199d001-c45d-9e0f-3456-789012cdef01"
+          },
+          "parent_node_execution_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "ID of parent node execution (for subflows)",
+            "example": null
+          },
+          "parent_workflow_request_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID of parent workflow request (same as id for root requests)",
+            "example": "0199f123-d60e-7ffd-9131-4cc5ab040ee8"
+          },
+          "query": {
             "type": "object",
-            "properties": {
-              "id": {
-                "description": "Identification number of the plant",
-                "type": "integer",
-                "format": "int64"
-              }
+            "additionalProperties": true,
+            "description": "Input data from webhook payload",
+            "example": {
+              "user_id": "12345",
+              "event": "user.signup",
+              "email": "user@example.com"
             }
+          },
+          "iteration_array": {
+            "type": "array",
+            "nullable": true,
+            "description": "Array data for loop iterations",
+            "items": {},
+            "example": null
+          },
+          "iteration_data": {
+            "type": "object",
+            "nullable": true,
+            "description": "Current iteration context data",
+            "additionalProperties": true,
+            "example": null
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "in_progress", "waiting", "completed", "failed", "stopped"],
+            "description": "Current status of the workflow request",
+            "example": "completed"
+          },
+          "files": {
+            "type": "array",
+            "description": "Files attached to the workflow request",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowRequestFile"
+            },
+            "example": []
+          },
+          "output": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true,
+            "description": "Output data from completed workflow (null if not completed)",
+            "example": {
+              "result": "success",
+              "user_created": true,
+              "welcome_email_sent": true
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true,
+            "description": "Additional metadata for the workflow request",
+            "example": {}
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Timestamp when execution started (null if not started)",
+            "example": "2025-10-22T12:15:32Z"
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Timestamp when execution completed (null if not completed)",
+            "example": "2025-10-22T12:15:47Z"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when request was created",
+            "example": "2025-10-22T12:15:30Z"
           }
-        ]
+        },
+        "required": ["id", "workflow_version_id", "start_node_id", "status", "created_at"]
       },
-      "Error": {
-        "required": [
-          "error",
-          "message"
-        ],
+      "WorkflowRequestFile": {
+        "type": "object",
+        "description": "File attached to a workflow request",
+        "properties": {
+          "content_type": {
+            "type": "string",
+            "description": "MIME type of the file",
+            "example": "image/png"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL to access the file",
+            "example": "https://storage.splox.io/files/abc123.png"
+          },
+          "file_name": {
+            "type": "string",
+            "description": "Original file name",
+            "example": "screenshot.png"
+          },
+          "file_size": {
+            "type": "integer",
+            "format": "int64",
+            "description": "File size in bytes",
+            "example": 245678
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Additional file metadata",
+            "example": {}
+          }
+        },
+        "required": ["url"]
+      },
+      "ErrorResponse": {
         "type": "object",
         "properties": {
           "error": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "message": {
-            "type": "string"
+            "type": "string",
+            "description": "Error message describing what went wrong",
+            "example": "invalid webhook ID"
           }
         }
       }
-    },
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer"
-      }
     }
-  }
+  },
+  "tags": [
+    {
+      "name": "Webhooks",
+      "description": "Trigger workflows via unique webhook URLs"
+    },
+    {
+      "name": "Workflow Requests",
+      "description": "Monitor and retrieve workflow execution status and results"
+    }
+  ]
 }

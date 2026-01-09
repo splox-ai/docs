@@ -1,0 +1,126 @@
+---
+title: "Nodes"
+description: "Building blocks of Splox workflows - individual actions that process data, call AI models, execute tools, and control flow"
+---
+
+## What is a Node?
+
+A **node** is a single unit of execution within a workflow. Each node performs a specific action—calling an AI model, executing a tool, transforming data, or controlling execution flow. Nodes are connected by edges to create complex automation pipelines.
+
+<CardGroup cols={2}>
+  <Card title="Self-Contained" icon="box">
+    Each node has its own configuration, inputs, outputs, and execution logic
+  </Card>
+  <Card title="Visual Interface" icon="eye">
+    Nodes are represented as boxes on the canvas with input/output handles
+  </Card>
+  <Card title="Typed Connections" icon="link">
+    Nodes connect via edges that define data flow and execution order
+  </Card>
+  <Card title="Real-time Status" icon="circle-play">
+    See execution status, outputs, errors, and costs as workflows run
+  </Card>
+</CardGroup>
+
+---
+
+## Node Anatomy
+
+### Handles
+
+Nodes connect to each other through **handles** - connection points that define data flow:
+
+<AccordionGroup>
+  <Accordion title="Input Handles (Left Side)" icon="arrow-right">
+    **Receive data and execution flow**
+    
+    - Located on the **left side** of nodes
+    - Accept connections from previous nodes
+    - Trigger node execution when activated
+    - Pass data from source node to target node
+  </Accordion>
+  
+  <Accordion title="Output Handles (Right Side)" icon="arrow-right">
+    **Send data to next nodes**
+    
+    Common output handle types:
+    - **PARALLEL:** Main execution path (success)
+    - **ERROR:** Error handling path (failures)
+    - **TOOLS:** Tool calling path (LLM → Tool nodes)
+    - **IF/ELIF/ELSE:** Conditional branching (Switch nodes)
+    - **LOOP:** Iteration path (End → Start in subflows)
+  </Accordion>
+  
+  <Accordion title="Special Handles" icon="sparkles">
+    **Bottom/Top handles for specific purposes**
+    
+    - **MEMORY (bottom on LLM):** Bidirectional connection to Memory nodes
+    - **MEMORY (top on Memory):** Connects to LLM's MEMORY handle
+    - These handles enable persistent conversation context
+  </Accordion>
+</AccordionGroup>
+
+### Node Configuration
+
+Every node has configurable properties:
+
+- **Name & Description:** Identify the node's purpose
+- **Variable Mappings:** Reference data from previous nodes
+- **Type-Specific Settings:** Model selection, tool configuration, conditions, etc.
+- **Error Handling:** How the node responds to failures
+
+---
+
+## Detailed Documentation
+
+<CardGroup cols={3}>
+  <Card title="Start Node" icon="play" href="/nodes/start-node">
+    Workflow entry and trigger point
+  </Card>
+  
+  <Card title="Agent Node" icon="brain" href="/nodes/agent-node">
+    Autonomous AI agent with tool calling
+  </Card>
+  
+  <Card title="Tool Node" icon="wrench" href="/nodes/tool-node">
+    Execute operations and actions
+  </Card>
+  
+  <Card title="Switch Node" icon="code-branch" href="/nodes/switch-node">
+    Conditional branching logic
+  </Card>
+  
+  <Card title="Merge Node" icon="code-merge" href="/nodes/merge-node">
+    Combine execution paths
+  </Card>
+  
+  <Card title="Variable Mappings" icon="link" href="/nodes/variable-mappings">
+    Reference data with Pongo2
+  </Card>
+  
+  <Card title="Node Lifecycle" icon="circle-play" href="/nodes/lifecycle">
+    Execution states and behavior
+  </Card>
+</CardGroup>
+
+---
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card title="Edges" icon="link" href="/concepts/edges">
+    Learn how nodes connect and how data flows between them
+  </Card>
+  
+  <Card title="Workflows" icon="diagram-project" href="/concepts/workflows">
+    Understand how nodes combine to create complete workflows
+  </Card>
+  
+  <Card title="Build Your First Workflow" icon="hammer" href="/guides/first-workflow">
+    Follow a step-by-step guide to create a workflow
+  </Card>
+  
+  <Card title="Testing" icon="flask" href="/guides/testing-workflows">
+    Master workflow testing and debugging
+  </Card>
+</CardGroup>

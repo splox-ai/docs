@@ -1,0 +1,99 @@
+---
+title: "Error Edges"
+description: "Handle node execution failures with graceful error recovery paths"
+---
+
+## Error Edges
+
+**Purpose:** Handle errors and failures in workflow execution
+
+Error edges create alternative paths for when nodes fail, enabling graceful error handling and recovery.
+
+<div className="block dark:hidden">
+  <img
+    src="https://splox-app.s3.amazonaws.com/019a0b7f-2560-70eb-973a-4c069528449b_error-edge-light.png"
+    alt="Error Edge - API Call node with ERROR handle connecting to Send Notification handler via red dashed line"
+    style={{ borderRadius: '0.5rem' }}
+  />
+</div>
+
+<div className="hidden dark:block">
+  <img
+    src="https://splox-app.s3.amazonaws.com/019a0b7f-2560-70ea-9e6e-852c05102929_error-edge-dark.png"
+    alt="Error Edge - API Call node with ERROR handle connecting to Send Notification handler via red dashed line"
+    style={{ borderRadius: '0.5rem' }}
+  />
+</div>
+
+**In this example:**
+- **API Call** node has both PARALLEL and ERROR output handles
+- **PARALLEL edge** (gray dashed) routes to success path (shown partially)
+- **ERROR edge** (red dashed line with warning icon) connects to **Send Notification**
+- If API Call fails, execution follows the red error edge
+- Send Notification handles the failure (alerting, logging, recovery)
+
+**Characteristics:**
+- **Visual Style:** Red dashed line with warning icon ⚠️
+- **Failure Routing:** Activates only when source node fails
+- **Separate Path:** Distinct from normal execution flow
+- **Error Data:** Passes error information to handler node
+
+**How It Works:**
+
+<Steps>
+  <Step title="Node Execution">
+    Source node attempts to execute
+  </Step>
+  
+  <Step title="Failure Detected">
+    Node execution fails (API error, timeout, etc.)
+  </Step>
+  
+  <Step title="Error Edge Activated">
+    Instead of normal edges, error edge is followed
+  </Step>
+  
+  <Step title="Handler Execution">
+    Error handler node receives error details
+  </Step>
+  
+  <Step title="Recovery">
+    Handler can retry, alert, or gracefully fail
+  </Step>
+</Steps>
+
+**Use Cases:**
+- API failure handling
+- Retry logic
+- Alerting and notifications
+- Graceful degradation
+- Error logging
+
+<Warning>
+  Error edges are **only** followed when the source node fails. For normal execution flow, use parallel or conditional edges.
+</Warning>
+
+---
+
+
+---
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card title="All Nodes" icon="cube" href="/concepts/nodes">
+    See which nodes support error handles
+  </Card>
+  
+  <Card title="Parallel Edges" icon="arrows-split-up-and-left" href="/edges/parallel-edges">
+    Learn about standard execution flow
+  </Card>
+  
+  <Card title="Conditional Edges" icon="code-branch" href="/edges/conditional-edges">
+    Route based on conditions
+  </Card>
+  
+  <Card title="Best Practices" icon="book" href="/concepts/edges">
+    View all edge patterns and practices
+  </Card>
+</CardGroup>

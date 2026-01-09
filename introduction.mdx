@@ -1,0 +1,180 @@
+---
+title: Introduction
+description: 'Build AI-powered workflows that actually work together'
+---
+
+
+## What is Splox?
+
+Splox is a **visual workflow automation platform** where AI agents work together like a team. Build complex automations by connecting nodes - no coding required, but powerful enough for developers.
+
+<CardGroup cols={2}>
+  <Card title="Start Building" icon="rocket" href="/quickstart">
+    Create your first workflow in 5 minutes
+  </Card>
+  <Card title="View Templates" icon="grid" href="https://app.splox.io/templates">
+    Explore pre-built workflows
+  </Card>
+</CardGroup>
+
+## How it Works
+
+<Steps>
+  <Step title="Design Your Workflow">
+    Drag and drop nodes onto the canvas. Each node is a step: call an AI agent, run code, fetch data, or trigger an integration.
+  </Step>
+  <Step title="Connect the Pieces">
+    Draw edges between nodes to define the flow. Add conditional logic, loops, and parallel execution.
+  </Step>
+  <Step title="Deploy & Monitor">
+    Run workflows manually, on a schedule, or trigger them via webhooks. Watch execution in real-time.
+  </Step>
+</Steps>
+
+## Real Example: Customer Support Automation
+
+Here's a workflow that handles support tickets automatically:
+
+**What happens:**
+1. **Webhook receives** new support ticket
+2. **AI agent classifies** urgency and topic
+3. **If urgent** → Slack alert + Jira ticket
+4. **If normal** → AI generates response, sends email
+5. **Everything logged** to your database
+
+**Before:** 20 minutes per ticket (manual)  
+**After:** 30 seconds (fully automated)
+
+## Why Choose Splox?
+
+<AccordionGroup>
+  <Accordion title="Multi-Agent AI Orchestration" icon="brain">
+    Unlike traditional tools, Splox lets multiple AI agents collaborate. One agent gathers data, another analyzes it, a third makes decisions - all in one workflow.
+    
+    **Example:** Content pipeline where one agent researches, another writes, and a third edits.
+  </Accordion>
+
+  <Accordion title="Code + No-Code Hybrid" icon="code">
+    Visual editor for simplicity. But when you need custom logic, drop into Python or JavaScript - no servers to manage.
+    
+    **Example:** Simple automations stay visual, complex data transformations use code.
+  </Accordion>
+
+  <Accordion title="500+ Tool Connections" icon="plug">
+    Not just API calls - full OAuth flows, dynamic forms, webhooks, and real-time triggers. Connect to Slack, Google, Salesforce, databases, and more.
+    
+    **Example:** Pull data from Airtable, process with AI, push to Salesforce - all native.
+  </Accordion>
+
+
+  <Accordion title="Persistent Memory" icon="database">
+    Agents remember context across conversations. Build chatbots that recall previous interactions and learn from feedback.
+    
+    **Example:** Customer support bot that knows ticket history.
+  </Accordion>
+</AccordionGroup>
+
+## What You Can Build
+
+<CardGroup cols={2}>
+  <Card title="AI Customer Support" icon="headset">
+    Multi-agent systems that classify tickets, generate responses, and escalate complex issues to humans.
+  </Card>
+  
+  <Card title="Data Pipelines" icon="database">
+    Extract, transform, and sync data across systems. Enrich with AI, validate, and route intelligently.
+  </Card>
+  
+  <Card title="Content Generation" icon="pen-fancy">
+    Research topics, generate drafts, fact-check, edit, and publish - with multiple AI agents handling each step.
+  </Card>
+  
+  <Card title="Sales Automation" icon="chart-line">
+    Qualify leads, personalize outreach, schedule follow-ups, and update CRM - all on autopilot.
+  </Card>
+  
+  <Card title="DevOps Workflows" icon="server">
+    Monitor systems, detect anomalies, auto-remediate issues, and notify teams when human intervention is needed.
+  </Card>
+  
+  <Card title="Research Assistant" icon="magnifying-glass">
+    Gather information from multiple sources, synthesize findings, and generate comprehensive reports.
+  </Card>
+</CardGroup>
+
+## Who Uses Splox?
+
+**AI Engineers**  
+Build production multi-agent systems without infrastructure headaches. Focus on agent design, not DevOps.
+
+**Developers**  
+Automate internal tools and workflows faster than building from scratch. Write code when needed, use visual editor for the rest.
+
+**Operations Teams**  
+Connect existing tools without waiting for engineering. Automate repetitive tasks in minutes, not weeks.
+
+**Business Teams**  
+Automate processes that currently require manual work or jumping between tools.
+
+## Splox vs Alternatives
+
+| Feature | Splox | Zapier | n8n | Make |
+|---------|-------|--------|-----|------|
+| Multi-agent AI | ✅ Native | ❌ Limited | ❌ Single | ❌ Limited |
+| Code execution | ✅ Yes | ❌ No | ✅ Limited | ❌ No |
+| Workflow versioning | ✅ Git-like | ❌ No | ⚠️ Basic | ❌ No |
+| Memory management | ✅ Persistent | ❌ No | ❌ No | ❌ No |
+| Self-hosted | ✅ Coming | ❌ No | ✅ Yes | ❌ No |
+| MCP support | ✅ Yes | ❌ No | ❌ No | ❌ No |
+
+## Architecture
+
+Built for scale and reliability:
+
+**Frontend:** Next.js + ReactFlow - Modern React app with visual workflow editor, real-time updates via SSE
+
+**Backend:** Go + PostgreSQL - High-performance API with strong typing, comprehensive validation, and ACID transactions
+
+**Queue System:** Redis + Asynq - Reliable task processing with retries, prioritization, and dead-letter handling
+
+**Tools:** MCP + Platform Adapters - Tool connections via Model Context Protocol and native API clients for 500+ services
+
+## Node Types
+
+Build workflows with these building blocks:
+
+- **Start Node** - Define workflow entry points and triggers
+- **Agent Node** - Autonomous AI agents with LLM + Tools loops
+- **Tool Node** - Execute custom functions or MCP tools
+- **Switch Node** - Conditional branching based on data or AI decisions
+- **Merge Node** - Combine data from multiple sources
+
+## Getting Started
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="play" href="/quickstart">
+    Build your first workflow
+  </Card>
+  <Card title="Core Concepts" icon="book" href="/concepts/workflows">
+    Understand the fundamentals
+  </Card>
+  <Card title="Templates" icon="grid" href="https://app.splox.io/templates">
+    Start from examples
+  </Card>
+  <Card title="Community" icon="users" href="https://community.splox.io/">
+    Get help and share ideas
+  </Card>
+</CardGroup>
+
+<Note>
+**Beta Access:** Splox is currently in beta. [Sign up](https://app.splox.io) to get early access and help shape the product.
+</Note>
+
+## Next Steps
+
+Ready to build?
+
+1. **[Quickstart Guide](/quickstart)** - Create your first workflow
+2. **[Workflows](/concepts/workflows)** - Learn workflow fundamentals  
+3. **[Nodes](/concepts/nodes)** - Understand node types
+4. **[Tools](/concepts/tools)** - Connect your tools

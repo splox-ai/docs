@@ -1,0 +1,235 @@
+---
+title: "Variable Mappings"
+description: "Reference data across nodes using Pongo2 template syntax - a universal feature in Splox"
+---
+
+## Overview
+
+Variable mappings are a fundamental feature in Splox that allow nodes to access and reference data from previous nodes in the workflow. **All node types support variable mappings.**
+
+<div className="block dark:hidden">
+  <img
+    src="https://splox-app.s3.amazonaws.com/019a0b71-bc82-70e9-9edf-cec96f34e9f2_019a0b48-c2a8-70e5-843c-bd1a8ce78cb1-light.png"
+    alt="Variable Mapping interface in node editor"
+    style={{ maxWidth: '100%', margin: '20px auto', display: 'block', borderRadius: '8px' }}
+  />
+</div>
+
+<div className="hidden dark:block">
+  <img
+    src="https://splox-app.s3.amazonaws.com/019a0b48-c2a8-70e5-843c-bd1a8ce78cb1.png"
+    alt="Variable Mapping interface in node editor"
+    style={{ maxWidth: '100%', margin: '20px auto', display: 'block', borderRadius: '8px' }}
+  />
+</div>
+
+---
+
+## How Variable Mappings Work
+
+<Steps>
+  <Step title="Select Source Node">
+    Choose which previous node's output you want to access
+    
+    **Available nodes:** Any node that has already executed in the workflow
+  </Step>
+  
+  <Step title="Define Mapping Name">
+    Give the mapping a name to reference in templates
+    
+    **Example:** `user_data`, `api_response`, `search_results`
+  </Step>
+  
+  <Step title="Use in Templates">
+    Reference the mapped data using Pongo2 template syntax
+    
+    **Syntax:** `{{ mapping_name.field }}`
+  </Step>
+</Steps>
+
+---
+
+## Configuration Structure
+
+Variable mappings are stored in the node configuration:
+
+```json
+{
+  "variable_mappings": [
+    {
+      "node_json_schema_id": "abc-123-456",
+      "mapping_name": "user_data"
+    },
+    {
+      "node_json_schema_id": "def-789-012",
+      "mapping_name": "api_response"
+    }
+  ]
+}
+```
+
+---
+
+## Template Syntax (Pongo2)
+
+Once mapped, use Pongo2 syntax to access the data:
+
+<Tabs>
+  <Tab title="Basic Access">
+    **Reference mapped variables**
+    
+    ```django
+    {{ user_data }}                     <!-- Entire output -->
+    {{ user_data.name }}                <!-- Specific field -->
+    {{ user_data.profile.email }}       <!-- Nested field -->
+    {{ api_response.items.0 }}          <!-- Array element -->
+    ```
+  </Tab>
+  
+  <Tab title="Filters">
+    **Transform data inline**
+    
+    ```django
+    {{ user_data.name|upper }}          <!-- Convert to uppercase -->
+    {{ user_data.name|lower }}          <!-- Convert to lowercase -->
+    {{ api_response.items|length }}     <!-- Get array length -->
+    {{ data|json }}                     <!-- Convert to JSON string -->
+    {{ number|int }}                    <!-- Convert to integer -->
+    ```
+  </Tab>
+  
+  <Tab title="Conditionals">
+    **Dynamic logic**
+    
+    ```django
+    {% if user_data.role == "admin" %}
+      Admin access granted
+    {% else %}
+      User access only
+    {% endif %}
+    
+    {% if api_response.items|length > 0 %}
+      Found {{ api_response.items|length }} items
+    {% endif %}
+    ```
+  </Tab>
+  
+  <Tab title="Loops">
+    **Iterate over collections**
+    
+    ```django
+    {% for item in api_response.items %}
+      - {{ item.name }}: {{ item.value }}
+    {% endfor %}
+    
+    {% for key, value in user_data %}
+      {{ key }}: {{ value }}
+    {% endfor %}
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Nodes That Support Variable Mappings
+
+**All node types support variable mappings**, allowing you to reference data from previous nodes throughout your entire workflow.
+
+<AccordionGroup>
+  <Accordion title="Core Execution Nodes" icon="play">
+    - **Start Node:** Access trigger data and workflow inputs
+    - **End Node:** Format final output data
+    - **Stop Node:** Access data before force-terminating subflows
+  </Accordion>
+  
+  <Accordion title="AI & Tool Nodes" icon="robot">
+    - **LLM Node:** Include context in system prompts and user messages
+    - **Tool Node:** Pass data as tool parameters and inputs
+  </Accordion>
+  
+  <Accordion title="Memory Nodes" icon="database">
+    - **Chat Memory Node:** Dynamic chat ID generation and context
+    - **Add Memory Node:** Access data to store in conversation history
+    - **Delete Memory Node:** Reference data for selective deletion
+    - **Get Memory Data Node:** Build query parameters dynamically
+  </Accordion>
+  
+  <Accordion title="Flow Control Nodes" icon="code-branch">
+    - **Switch Node:** Use in condition evaluation and branching logic
+    - **Merge Node:** Access merged data for processing
+    - **Subflow Node:** Pass data to nested workflows
+  </Accordion>
+  
+  <Accordion title="Data Processing Nodes" icon="gear">
+    - **Template Node:** Access data for text formatting and generation
+    - **Transform Node:** Reference data for transformation operations
+  </Accordion>
+</AccordionGroup>
+
+<Info>
+  Variable mappings are a universal feature in Splox. Every node can access outputs from any previously executed node in the workflow.
+</Info>
+
+---
+
+## Common Use Cases
+
+<CardGroup cols={2}>
+  <Card title="API Response Formatting" icon="code">
+    Map API node output and format for LLM consumption
+    
+    ```django
+    {{ api_data.results|json }}
+    ```
+  </Card>
+  
+  <Card title="User Context" icon="user">
+    Pass user information between nodes
+    
+    ```django
+    User {{ user.name }} ({{ user.email }})
+    ```
+  </Card>
+  
+  <Card title="Conditional Logic" icon="code-branch">
+    Make decisions based on previous outputs
+    
+    ```django
+    {% if result.status == "success" %}
+    ```
+  </Card>
+  
+  <Card title="Data Transformation" icon="rotate">
+    Transform data formats between nodes
+    
+    ```django
+    {{ data.items|length }} items found
+    ```
+  </Card>
+</CardGroup>
+
+<Info>
+  **Pongo2 Documentation:** Splox uses the Pongo2 template engine. Full syntax reference: [https://github.com/flosch/pongo2](https://github.com/flosch/pongo2)
+</Info>
+
+---
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card title="Data Nodes" icon="gear" href="/concepts/nodes/data-nodes">
+    See Template nodes in action
+  </Card>
+  
+  <Card title="AI Nodes" icon="robot" href="/concepts/nodes/ai-nodes">
+    Use variable mappings in LLM prompts
+  </Card>
+  
+  <Card title="Flow Control" icon="code-branch" href="/concepts/nodes/flow-control-nodes">
+    Reference data in Switch node conditions
+  </Card>
+  
+  <Card title="Back to Overview" icon="cube" href="/concepts/nodes">
+    Return to nodes overview
+  </Card>
+</CardGroup>

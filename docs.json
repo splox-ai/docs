@@ -1,68 +1,160 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
-  "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+  "theme": "almond",
+  "appearance": {
+    "default": "dark"
   },
-  "favicon": "/favicon.svg",
+  "name": "Splox",
+  "colors": {
+    "primary": "#171717",
+    "light": "#f5f5f5",
+    "dark": "#252526"
+  },
+  "favicon": "/favicon.ico",
+  "logo": {
+    "light": "/logo/light.png",
+    "dark": "/logo/dark.png"
+  },
+  "metadata": {
+    "og:image": "https://splox-app.s3.amazonaws.com/019abf80-40d6-7814-b75c-5c4262df54b7.png",
+    "og:site_name": "Splox Documentation",
+    "twitter:card": "summary_large_image"
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Getting Started",
+            "icon": "book-open",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "introduction",
+              "quickstart"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Core Concepts",
+            "icon": "lightbulb",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "concepts/workflows",
+              "concepts/nodes",
+              "concepts/edges",
+              "concepts/tools",
+              "concepts/skills"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Nodes",
+            "icon": "cube",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "nodes/variable-mappings",
+              "nodes/lifecycle",
+              "nodes/start-node",
+              "nodes/agent-node",
+              "nodes/tool-node",
+              "nodes/switch-node",
+              "nodes/merge-node"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "Edges",
+            "icon": "link",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "edges/parallel-edges",
+              "edges/tool-edges",
+              "edges/memory-edges",
+              "edges/conditional-edges",
+              "edges/error-edges"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "Tutorials",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Beginner",
+            "icon": "seedling",
+            "pages": [
+              "tutorials/first-ai-agent",
+              "tutorials/connect-real-data",
+              "tutorials/control-computer-with-ai"
+            ]
+          },
+          {
+            "group": "Intermediate",
+            "icon": "fire",
+            "pages": [
+              "tutorials/deploy-app-to-production",
+              "tutorials/ai-research-assistant",
+              "tutorials/automate-customer-support"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "icon": "rocket",
+            "pages": [
+              "tutorials/multi-agent-team",
+              "tutorials/parallel-agents",
+              "tutorials/ai-crypto-trader"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "icon": "book-open",
             "pages": [
               "api-reference/introduction"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Endpoints",
+            "icon": "code",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api-reference/trigger-webhook",
+              "api-reference/get-workflow-request"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Pricing",
+        "groups": [
+          {
+            "group": "Overview",
+            "icon": "dollar-sign",
+            "pages": [
+              "pricing"
+            ]
+          },
+          {
+            "group": "Providers",
+            "icon": "server",
+            "pages": [
+              "providers/openai",
+              "providers/anthropic",
+              "providers/gemini",
+              "providers/openrouter",
+              "providers/perplexity",
+              "providers/morph",
+              "providers/sandbox"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Changelog",
+        "groups": [
+          {
+            "group": "Updates",
+            "icon": "clock-rotate-left",
+            "pages": [
+              "changelog"
             ]
           }
         ]
@@ -71,52 +163,63 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
+          "anchor": "Dashboard",
+          "href": "https://app.splox.io",
+          "icon": "grid-2"
         },
         {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
+          "anchor": "Community",
+          "href": "https://community.splox.io/",
+          "icon": "comments"
+        },
+        {
+          "anchor": "GitHub",
+          "href": "https://github.com/splox-ai",
+          "icon": "github"
+        },
+        {
+          "anchor": "Telegram",
+          "href": "https://t.me/splox_ai",
+          "icon": "telegram"
+        },
+        {
+          "anchor": "X",
+          "href": "https://x.com/splox_io",
+          "icon": "x-twitter"
         }
       ]
     }
   },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
   "navbar": {
     "links": [
       {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "label": "Sign In",
+        "href": "https://app.splox.io/login"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+      "label": "Get Started",
+      "href": "https://app.splox.io"
     }
   },
   "contextual": {
     "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity",
+      "mcp",
+      "cursor",
+      "vscode"
+    ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "x": "https://x.com/splox_io",
+      "github": "https://github.com/splox-ai",
+      "telegram": "https://t.me/splox_ai"
     }
   }
 }

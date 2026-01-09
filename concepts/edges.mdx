@@ -1,0 +1,406 @@
+---
+title: "Edges"
+description: "Connections between nodes that define execution flow and data transfer in Splox workflows"
+---
+
+## What is an Edge?
+
+An **edge** is a connection between two nodes that defines how data flows and when nodes execute. Edges are the arrows you see on the canvas connecting one node to another.
+
+<CardGroup cols={2}>
+  <Card title="Execution Flow" icon="arrow-right">
+    Edges determine the order in which nodes execute
+  </Card>
+  <Card title="Data Transfer" icon="database">
+    Output from one node becomes input to the next
+  </Card>
+  <Card title="Conditional Routing" icon="code-branch">
+    Switch nodes use edges to route to different paths
+  </Card>
+  <Card title="Special Connections" icon="plug">
+    Tool and memory edges create specialized relationships
+  </Card>
+</CardGroup>
+
+---
+
+## Edge Types
+
+<CardGroup cols={2}>
+  <Card title="Parallel Edges" icon="arrows-split-up-and-left" href="/edges/parallel-edges">
+    **Default execution flow**
+    
+    Standard connections for concurrent node processing
+  </Card>
+  
+  <Card title="Tool Edges" icon="wrench" href="/edges/tool-edges">
+    **LLM-to-Tool connections**
+    
+    Enable AI function calling and tool use
+  </Card>
+  
+  <Card title="Memory Edges" icon="comments" href="/edges/memory-edges">
+    **Stateful conversations**
+    
+    Connect memory nodes to LLMs for chat history
+  </Card>
+  
+  <Card title="Conditional Edges" icon="code-branch" href="/edges/conditional-edges">
+    **IF/ELIF/ELSE branching**
+    
+    Route execution based on switch node conditions
+  </Card>
+  
+  <Card title="Error Edges" icon="triangle-exclamation" href="/edges/error-edges">
+    **Failure handling**
+    
+    Gracefully handle node execution errors
+  </Card>
+</CardGroup>
+
+---
+
+## Edge Anatomy
+
+### Handles
+
+Nodes connect through **handles** - connection points that define how edges attach:
+
+<Tabs>
+  <Tab title="Input Handles">
+    **Left side of nodes**
+    
+    - Receive incoming execution flow
+    - Accept data from previous nodes
+    - Trigger node execution when activated
+  </Tab>
+  
+  <Tab title="Output Handles">
+    **Right side of nodes**
+    
+    Common types:
+    - **PARALLEL:** Main execution path
+    - **ERROR:** Error handling path
+    - **TOOLS:** Tool calling path (LLM nodes)
+    - **IF/ELIF/ELSE:** Conditional branches (Switch nodes)
+  </Tab>
+  
+  <Tab title="Special Handles">
+    **Bottom/top handles**
+    
+    - **MEMORY (bottom):** On LLM nodes for memory connection
+    - **MEMORY (top):** On Memory nodes to connect upward
+    - Used exclusively for memory relationships
+  </Tab>
+</Tabs>
+
+### Edge Properties
+
+Each edge has:
+- **Source Node + Handle:** Where the edge starts
+- **Target Node + Handle:** Where the edge ends
+- **Edge Type:** Parallel, tool, memory, conditional, or error
+- **Visual Style:** Different colors/patterns for different types
+
+---
+
+## How Edges Work
+
+<Steps>
+  <Step title="Execution Order">
+    Edges define which nodes run first and what runs next
+  </Step>
+  
+  <Step title="Data Flow">
+    Output from source node is passed as input to target node
+  </Step>
+  
+  <Step title="Parallel Processing">
+    Multiple edges from one node trigger concurrent execution
+  </Step>
+  
+  <Step title="Conditional Routing">
+    Switch nodes evaluate conditions and activate specific edges
+  </Step>
+  
+  <Step title="Error Handling">
+    Failed nodes can route to error edges instead of parallel paths
+  </Step>
+</Steps>
+
+---
+
+## Creating Edges
+
+<AccordionGroup>
+  <Accordion title="Via Canvas" icon="mouse-pointer">
+    **Drag from output handle to input handle**
+    
+    1. Click and drag from a source node's output handle
+    2. Drag to the target node's input handle
+    3. Release to create the connection
+    
+    The edge type is determined by the handles you connect.
+  </Accordion>
+  
+  <Accordion title="Special Edges" icon="sparkles">
+    **Tool and memory edges require specific nodes**
+    
+    - **Tool Edges:** Connect LLM's TOOLS handle to Tool node input
+    - **Memory Edges:** Connect Memory node (top) to LLM's MEMORY handle (bottom)
+    
+    These connections have unique visual styling.
+  </Accordion>
+  
+  <Accordion title="Validation" icon="shield-check">
+    **Splox prevents invalid connections**
+    
+    - Can't create cycles (except in subflows)
+    - Can't connect incompatible handle types
+    - Some nodes have handle restrictions
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Parallel When Possible" icon="bolt">
+    Use parallel edges for concurrent execution to improve speed
+  </Card>
+  
+  <Card title="Always Handle Errors" icon="shield">
+    Connect error edges to prevent silent failures
+  </Card>
+  
+  <Card title="Keep Flows Simple" icon="diagram-simple">
+    Avoid overly complex branching - use subflows instead
+  </Card>
+  
+  <Card title="Use Merge Nodes" icon="code-merge">
+    Combine parallel paths before continuing workflow
+  </Card>
+</CardGroup>
+
+---
+
+## Common Patterns
+
+<Tabs>
+  <Tab title="Fan-Out, Fan-In">
+    **Split execution, then recombine**
+    
+    <div className="block dark:hidden">
+    ```mermaid
+    %%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#f5f5f5','primaryTextColor':'#171717','primaryBorderColor':'#171717','lineColor':'#171717','secondaryColor':'#ffffff','tertiaryColor':'#f5f5f5','background':'#ffffff','mainBkg':'#f5f5f5','secondBkg':'#ffffff','textColor':'#171717','nodeTextColor':'#171717','nodeBorder':'#171717','edgeLabelBackground':'#ffffff'}}}%%
+    graph LR
+      Start --> ProcessA[Process A]
+      Start --> ProcessB[Process B]
+      Start --> ProcessC[Process C]
+      ProcessA --> Merge
+      ProcessB --> Merge
+      ProcessC --> Merge
+      Merge --> End
+      
+      style Start fill:#ffffff,stroke:#171717
+      style ProcessA fill:#ffffff,stroke:#171717
+      style ProcessB fill:#ffffff,stroke:#171717
+      style ProcessC fill:#ffffff,stroke:#171717
+      style Merge fill:#ffffff,stroke:#171717
+      style End fill:#ffffff,stroke:#171717
+    ```
+    </div>
+
+    <div className="hidden dark:block">
+    ```mermaid
+    %%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#252526','primaryTextColor':'#fafafa','primaryBorderColor':'#fafafa','lineColor':'#fafafa','secondaryColor':'#1e1e1e','tertiaryColor':'#252526','background':'#1e1e1e','mainBkg':'#252526','secondBkg':'#1e1e1e','textColor':'#fafafa','nodeTextColor':'#fafafa','nodeBorder':'#fafafa','edgeLabelBackground':'#252526'}}}%%
+    graph LR
+      Start --> ProcessA[Process A]
+      Start --> ProcessB[Process B]
+      Start --> ProcessC[Process C]
+      ProcessA --> Merge
+      ProcessB --> Merge
+      ProcessC --> Merge
+      Merge --> End
+      
+      style Start fill:#1e1e1e,stroke:#fafafa
+      style ProcessA fill:#1e1e1e,stroke:#fafafa
+      style ProcessB fill:#1e1e1e,stroke:#fafafa
+      style ProcessC fill:#1e1e1e,stroke:#fafafa
+      style Merge fill:#1e1e1e,stroke:#fafafa
+      style End fill:#1e1e1e,stroke:#fafafa
+    ```
+    </div>
+    
+    Use parallel edges to fan out, merge node to fan in.
+  </Tab>
+  
+  <Tab title="Conditional Processing">
+    **Route based on data evaluation**
+    
+    <div className="block dark:hidden">
+    ```mermaid
+    %%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#f5f5f5','primaryTextColor':'#171717','primaryBorderColor':'#171717','lineColor':'#171717','secondaryColor':'#ffffff','tertiaryColor':'#f5f5f5','background':'#ffffff','mainBkg':'#f5f5f5','secondBkg':'#ffffff','textColor':'#171717','nodeTextColor':'#171717','nodeBorder':'#171717','edgeLabelBackground':'#ffffff'}}}%%
+    graph LR
+      Start --> Switch{Switch}
+      Switch -->|true| PathA[Path A]
+      Switch -->|false| PathB[Path B]
+      PathA --> End
+      PathB --> End
+      
+      style Start fill:#ffffff,stroke:#171717
+      style Switch fill:#ffffff,stroke:#171717
+      style PathA fill:#ffffff,stroke:#171717
+      style PathB fill:#ffffff,stroke:#171717
+      style End fill:#ffffff,stroke:#171717
+    ```
+    </div>
+
+    <div className="hidden dark:block">
+    ```mermaid
+    %%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#252526','primaryTextColor':'#fafafa','primaryBorderColor':'#fafafa','lineColor':'#fafafa','secondaryColor':'#1e1e1e','tertiaryColor':'#252526','background':'#1e1e1e','mainBkg':'#252526','secondBkg':'#1e1e1e','textColor':'#fafafa','nodeTextColor':'#fafafa','nodeBorder':'#fafafa','edgeLabelBackground':'#252526'}}}%%
+    graph LR
+      Start --> Switch{Switch}
+      Switch -->|true| PathA[Path A]
+      Switch -->|false| PathB[Path B]
+      PathA --> End
+      PathB --> End
+      
+      style Start fill:#1e1e1e,stroke:#fafafa
+      style Switch fill:#1e1e1e,stroke:#fafafa
+      style PathA fill:#1e1e1e,stroke:#fafafa
+      style PathB fill:#1e1e1e,stroke:#fafafa
+      style End fill:#1e1e1e,stroke:#fafafa
+    ```
+    </div>
+    
+    Use conditional edges with IF/ELSE branches.
+  </Tab>
+  
+  <Tab title="AI Agent with Tools">
+    **LLM with multiple tools in a loop**
+    
+    <div className="block dark:hidden">
+    ```mermaid
+    %%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#f5f5f5','primaryTextColor':'#171717','primaryBorderColor':'#171717','lineColor':'#171717','secondaryColor':'#ffffff','tertiaryColor':'#f5f5f5','background':'#ffffff','mainBkg':'#f5f5f5','secondBkg':'#ffffff','textColor':'#171717','nodeTextColor':'#171717','nodeBorder':'#171717','edgeLabelBackground':'#ffffff'}}}%%
+    graph LR
+      LLM --> ToolA[Tool A]
+      LLM --> ToolB[Tool B]
+      LLM --> ToolC[Tool C]
+      ToolA --> End
+      ToolB --> End
+      ToolC --> End
+      End -.loop back.-> LLM
+      
+      style LLM fill:#ffffff,stroke:#171717
+      style ToolA fill:#ffffff,stroke:#171717
+      style ToolB fill:#ffffff,stroke:#171717
+      style ToolC fill:#ffffff,stroke:#171717
+      style End fill:#ffffff,stroke:#171717
+    ```
+    </div>
+
+    <div className="hidden dark:block">
+    ```mermaid
+    %%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#252526','primaryTextColor':'#fafafa','primaryBorderColor':'#fafafa','lineColor':'#fafafa','secondaryColor':'#1e1e1e','tertiaryColor':'#252526','background':'#1e1e1e','mainBkg':'#252526','secondBkg':'#1e1e1e','textColor':'#fafafa','nodeTextColor':'#fafafa','nodeBorder':'#fafafa','edgeLabelBackground':'#252526'}}}%%
+    graph LR
+      LLM --> ToolA[Tool A]
+      LLM --> ToolB[Tool B]
+      LLM --> ToolC[Tool C]
+      ToolA --> End
+      ToolB --> End
+      ToolC --> End
+      End -.loop back.-> LLM
+      
+      style LLM fill:#1e1e1e,stroke:#fafafa
+      style ToolA fill:#1e1e1e,stroke:#fafafa
+      style ToolB fill:#1e1e1e,stroke:#fafafa
+      style ToolC fill:#1e1e1e,stroke:#fafafa
+      style End fill:#1e1e1e,stroke:#fafafa
+    ```
+    </div>
+    
+    Use tool edges in a subflow for agent patterns.
+  </Tab>
+  
+  <Tab title="Error Recovery">
+    **Graceful failure handling**
+    
+    <div className="block dark:hidden">
+    ```mermaid
+    %%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#f5f5f5','primaryTextColor':'#171717','primaryBorderColor':'#171717','lineColor':'#171717','secondaryColor':'#ffffff','tertiaryColor':'#f5f5f5','background':'#ffffff','mainBkg':'#f5f5f5','secondBkg':'#ffffff','textColor':'#171717','nodeTextColor':'#171717','nodeBorder':'#171717','edgeLabelBackground':'#ffffff'}}}%%
+    graph LR
+      RiskyNode[Risky Node] -->|success| Success[Success Path]
+      RiskyNode -->|error| Fallback[Fallback/Retry Logic]
+      
+      style RiskyNode fill:#ffffff,stroke:#171717
+      style Success fill:#ffffff,stroke:#171717
+      style Fallback fill:#ffffff,stroke:#171717
+    ```
+    </div>
+
+    <div className="hidden dark:block">
+    ```mermaid
+    %%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#252526','primaryTextColor':'#fafafa','primaryBorderColor':'#fafafa','lineColor':'#fafafa','secondaryColor':'#1e1e1e','tertiaryColor':'#252526','background':'#1e1e1e','mainBkg':'#252526','secondBkg':'#1e1e1e','textColor':'#fafafa','nodeTextColor':'#fafafa','nodeBorder':'#fafafa','edgeLabelBackground':'#252526'}}}%%
+    graph LR
+      RiskyNode[Risky Node] -->|success| Success[Success Path]
+      RiskyNode -->|error| Fallback[Fallback/Retry Logic]
+      
+      style RiskyNode fill:#1e1e1e,stroke:#fafafa
+      style Success fill:#1e1e1e,stroke:#fafafa
+      style Fallback fill:#1e1e1e,stroke:#fafafa
+    ```
+    </div>
+    
+    Use error edges to handle failures.
+  </Tab>
+</Tabs>
+
+---
+
+## Detailed Documentation
+
+<CardGroup cols={2}>
+  <Card title="Parallel Edges" icon="arrows-split-up-and-left" href="/edges/parallel-edges">
+    Standard execution flow for concurrent processing
+  </Card>
+  
+  <Card title="Tool Edges" icon="wrench" href="/edges/tool-edges">
+    Connect LLMs to tools for function calling
+  </Card>
+  
+  <Card title="Memory Edges" icon="comments" href="/edges/memory-edges">
+    Enable stateful conversations with chat history
+  </Card>
+  
+  <Card title="Conditional Edges" icon="code-branch" href="/edges/conditional-edges">
+    Route execution based on conditions
+  </Card>
+  
+  <Card title="Error Edges" icon="triangle-exclamation" href="/edges/error-edges">
+    Handle node execution failures gracefully
+  </Card>
+</CardGroup>
+
+---
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card title="Nodes" icon="cube" href="/concepts/nodes">
+    Learn about the building blocks edges connect
+  </Card>
+  
+  <Card title="Workflows" icon="diagram-project" href="/concepts/workflows">
+    Understand how edges and nodes create workflows
+  </Card>
+  
+  <Card title="Build a Workflow" icon="hammer" href="/guides/first-workflow">
+    Create your first workflow with edges
+  </Card>
+  
+  <Card title="Testing" icon="flask" href="/guides/testing-workflows">
+    Test and debug edge connections
+  </Card>
+</CardGroup>

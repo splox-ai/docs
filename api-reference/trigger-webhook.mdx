@@ -1,0 +1,28 @@
+---
+title: 'Trigger Workflow via Webhook'
+openapi: 'POST /webhooks/{id}'
+---
+
+Triggers a workflow execution by sending data to its unique webhook URL.
+
+## Usage
+
+Each workflow has a unique webhook URL that can be called from any external service:
+
+```
+https://app.splox.io/api/v1/webhooks/{webhook_id}
+```
+
+## Authentication
+
+Webhooks can be configured as:
+- **Public**: No authentication required
+- **Authenticated**: Requires Bearer token or webhook secret
+
+## Payload
+
+Send any JSON data - it will be available as input variables in your workflow.
+
+## Response
+
+Returns a `workflow_request_id` that can be used to check execution status.

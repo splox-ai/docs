@@ -1,0 +1,174 @@
+---
+title: "OpenRouter"
+description: "Unified API for 200+ AI models"
+---
+
+<Card>
+  **OpenRouter** provides unified access to 200+ AI models:
+  - **Single API** - Access models from multiple providers
+  - **Automatic fallbacks** - Switch to similar models if unavailable
+  - **Competitive pricing** - Transparent passthrough costs
+  - **No vendor lock-in** - Switch models instantly
+  - **Model discovery** - Find the best model for your task
+</Card>
+
+---
+
+## Pricing Model
+
+### Dynamic Passthrough Pricing
+
+OpenRouter uses **passthrough pricing** where you pay the vendor's cost plus OpenRouter fee, then Splox platform fee.
+
+<Info>
+  **Pricing Formula:**
+  
+  `Final Price = (Vendor Cost + OpenRouter Fee) + Splox Platform Fee`
+  
+  Pricing updates automatically when vendors change rates.
+</Info>
+
+### How It Works
+
+1. **Select a model** (e.g., `openai/gpt-4`, `anthropic/claude-3-opus`)
+2. **OpenRouter routes** your request to the vendor
+3. **You're charged** vendor cost + OpenRouter fee + Splox fee
+4. **Pricing updates** automatically in real-time
+
+### Example Pricing
+
+Approximate costs (vendor + OpenRouter + Splox fees):
+
+| Provider | Model | Input | Output |
+|----------|-------|-------|--------|
+| OpenAI | GPT-4o | ~\$3.25/M | ~\$13.00/M |
+| Anthropic | Claude Opus 4.1 | ~\$19.50/M | ~\$97.50/M |
+| Google | Gemini 2.5 Pro | ~\$1.62/M | ~\$13.00/M |
+| Meta | Llama 3.3 70B | ~\$0.52/M | ~\$0.52/M |
+
+<Warning>
+  Prices are **estimates** and may vary. Check [OpenRouter Model Directory](https://openrouter.ai/models) for current vendor costs.
+</Warning>
+
+---
+
+## Available Models
+
+OpenRouter provides access to **200+ models** across categories:
+
+<Tabs>
+  <Tab title="Top Models">
+    Popular models across providers:
+    
+    - **OpenAI:** GPT-5, GPT-4o, o1, o1-mini
+    - **Anthropic:** Claude Opus 4.1, Sonnet 4, Haiku 4
+    - **Google:** Gemini 2.5 Pro, Gemini 2.0 Flash
+    - **Meta:** Llama 3.3 70B, Llama 3.1 405B
+    - **xAI:** Grok 2, Grok 3
+    - **Cohere:** Command R+
+    - **Mistral:** Large, Medium
+  </Tab>
+
+  <Tab title="By Category">
+    **Reasoning Models:**
+    - OpenAI o1, o3
+    - DeepSeek R1
+    - Gemini 2.0 Flash Thinking
+    
+    **Vision Models:**
+    - GPT-4o, GPT-4V
+    - Claude Opus 4.1, Sonnet 4
+    - Gemini 2.5 Pro
+    
+    **Code Models:**
+    - GPT-5
+    - Claude Opus 4.1
+    - Qwen Coder
+    
+    **Fast & Cheap:**
+    - Gemini Flash 8B
+    - Llama 3.3 70B
+    - Mistral Nemo
+  </Tab>
+
+  <Tab title="Specialized">
+    **Long Context:**
+    - Gemini 2.5 Pro (2M tokens)
+    - Claude Opus 4.1 (200K)
+    - GPT-4 Turbo (128K)
+    
+    **Multilingual:**
+    - Qwen 2.5
+    - Command R+
+    - Gemini Pro
+    
+    **Open Source:**
+    - Llama 3.3
+    - Mistral
+    - Qwen
+  </Tab>
+</Tabs>
+
+<Card title="Find Models" icon="search">
+  Browse the full model directory at [openrouter.ai/models](https://openrouter.ai/models) to see all available models, pricing, and capabilities.
+</Card>
+
+---
+
+## Best Practices
+
+### Model Selection
+
+<CardGroup cols={2}>
+  <Card title="Use Auto-Routing" icon="route">
+    - Automatic fallbacks
+    - Cost optimization
+    - Performance balancing
+    - Availability handling
+  </Card>
+  
+  <Card title="Compare Models" icon="chart-line">
+    - Different providers
+    - Various price points
+    - Speed vs quality tradeoffs
+    - Context window needs
+  </Card>
+  
+  <Card title="Monitor Costs" icon="dollar-sign">
+    - Check current rates before high-volume use
+    - Set spending limits in dashboard
+    - Use cheaper models for testing
+    - Monitor usage in real-time
+  </Card>
+  
+  <Card title="Leverage Fallbacks" icon="shield">
+    - Primary model unavailable → fallback
+    - Rate limit hit → alternative model
+    - Cost threshold → cheaper option
+    - Quality requirements met
+  </Card>
+</CardGroup>
+
+---
+
+## Support
+
+Need help with OpenRouter integration?
+
+<CardGroup cols={2}>
+  <Card title="OpenRouter Documentation" icon="book" href="https://openrouter.ai/docs">
+    Official OpenRouter documentation
+  </Card>
+  
+  <Card title="OpenRouter Models" icon="dollar-sign" href="https://openrouter.ai/models">
+    Browse models and pricing
+  </Card>
+  
+  <Card title="Splox Docs" icon="file-text" href="https://docs.splox.io/introduction">
+    Browse our guides
+  </Card>
+  
+  <Card title="Community" icon="users" href="https://community.splox.io">
+    Get help from the community
+  </Card>
+</CardGroup>

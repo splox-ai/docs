@@ -1,0 +1,103 @@
+---
+title: "Merge Node"
+description: "Combine multiple execution paths into a single workflow"
+---
+
+## Merge Node
+
+**Purpose:** Combine data from multiple parallel paths
+
+Merge nodes wait for all incoming connections to complete, then combine their outputs.
+
+<div className="block dark:hidden">
+  <img
+    src="https://splox-app.s3.amazonaws.com/019a0b71-d75e-70e9-8a47-674a0bfaf953_019a0b41-60a7-70e5-8d8e-367b980621ba-light.png"
+    alt="Merge node visual representation"
+    style={{ maxWidth: '100%', margin: '20px auto', display: 'block', borderRadius: '8px' }}
+  />
+</div>
+
+<div className="hidden dark:block">
+  <img
+    src="https://splox-app.s3.amazonaws.com/019a0b41-60a7-70e5-8d8e-367b980621ba.png"
+    alt="Merge node visual representation"
+    style={{ maxWidth: '100%', margin: '20px auto', display: 'block', borderRadius: '8px' }}
+  />
+</div>
+
+**Node Handles:**
+
+<Tabs>
+  <Tab title="Input Handle">
+    **Left Side - Multiple Inputs**
+    
+    Accepts multiple incoming connections from parallel paths.
+    
+    **Functionality:**
+    - Waits for all connected inputs to complete
+    - Receives data from each parallel branch
+    - Synchronizes parallel execution
+    
+    **Accepts:**
+    - Multiple node outputs
+    - Parallel branch results
+    - Any data to merge
+  </Tab>
+  
+  <Tab title="Output Handles">
+    **Right Side Handles:**
+    
+    - **PARALLEL:** Main output with merged data
+      - Fires after all inputs complete
+      - Contains combined/merged output based on strategy
+      - Continues workflow with unified data
+    
+    - **ERROR:** Error handling path
+      - Activated if any input fails or merge operation errors
+      - Passes error details
+      - Allows graceful error recovery
+  </Tab>
+</Tabs>
+
+<Info>
+  Merge nodes act as synchronization points in workflows. They wait for ALL incoming connections to complete before executing the merge operation and continuing.
+</Info>
+
+**Merge Strategies:**
+
+<Tabs>
+  <Tab title="Object Merge">
+    **Combine objects into single object**
+    
+    ```json
+    // Input 1: {name: "John"}
+    // Input 2: {age: 30}
+    // Output: {name: "John", age: 30}
+    ```
+  </Tab>
+  
+  <Tab title="Array Merge">
+    **Collect outputs into array**
+    
+    ```json
+    // Input 1: "result1"
+    // Input 2: "result2"
+    // Output: ["result1", "result2"]
+    ```
+  </Tab>
+  
+  <Tab title="First Complete">
+    **Use first completed input**
+    
+    Race condition - fastest path wins
+  </Tab>
+</Tabs>
+
+**Use Cases:**
+- Parallel API calls with combined results
+- Multi-agent responses aggregation
+- Redundant path execution (use fastest)
+- Batch processing collection
+
+---
+

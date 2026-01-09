@@ -1,0 +1,189 @@
+---
+title: "Google Gemini"
+description: "Access Google's Gemini models through Splox with transparent pricing"
+---
+
+<Card>
+  **Google Gemini** provides multimodal AI capabilities:
+  - **Advanced reasoning** with Gemini 2.5 and 3.0
+  - **Multimodal understanding** (text, image, video, audio)
+  - **Video generation** with Veo models
+  - **Text-to-speech** synthesis
+  - **Cost-effective** options with Flash variants
+</Card>
+
+---
+
+## Available Models
+
+### Gemini 3 Pro
+
+Next-generation model with enhanced capabilities and prompt caching.
+
+| Model | Input | Output | Cache Read | Best For |
+|-------|-------|--------|------------|----------|
+| **Gemini 3 Pro Preview** | \$2.60/M | \$15.60/M | \$0.26/M | Cutting-edge performance |
+
+<Info>
+  Gemini 3 Pro supports **prompt caching** - reuse context at 90% discount.
+</Info>
+
+### Gemini 2.5 Pro
+
+Most capable current-gen models for complex tasks.
+
+| Model | Input | Output | Best For |
+|-------|-------|--------|----------|
+| **Gemini 2.5 Pro** | \$1.62/M | \$13.00/M | Production apps, complex reasoning |
+| **Gemini 2.5 Pro Preview (06-05)** | \$1.62/M | \$13.00/M | Latest preview features |
+| **Gemini 2.5 Pro Preview (05-06)** | \$1.62/M | \$13.00/M | Stable preview |
+| **Gemini 2.5 Pro Preview (03-25)** | \$1.62/M | \$13.00/M | Earlier preview |
+| **Gemini 2.5 Pro Exp (03-25)** | \$1.62/M | \$13.00/M | Experimental features |
+
+### Gemini 2.5 Flash
+
+Fast, cost-efficient models for high-volume tasks.
+
+| Model | Input | Output | Best For |
+|-------|-------|--------|----------|
+| **Gemini 2.5 Flash** | \$0.20/M | \$3.25/M | Fast inference, production |
+| **Gemini 2.5 Flash Preview (05-20)** | \$0.20/M | \$0.78/M | Latest features |
+| **Gemini 2.5 Flash Preview (04-17)** | \$0.20/M | \$0.78/M | Standard preview |
+| **Gemini 2.5 Flash Preview (04-17 Thinking)** | \$0.20/M | \$4.55/M | Extended reasoning mode |
+| **Gemini 2.5 Flash Lite Preview (06-17)** | \$0.13/M | \$0.52/M | Ultra-lightweight |
+
+---
+
+## Text-to-Speech
+
+Gemini-powered voice synthesis models.
+
+| Model | Input | Output | Best For |
+|-------|-------|--------|----------|
+| **Text-to-Speech 2.5 Pro** | \$1.30/M | \$26.00/M | High-quality voice synthesis |
+| **Gemini 2.5 Pro Preview TTS** | \$1.30/M | \$26.00/M | Preview TTS features |
+| **Text-to-Speech 2.5 Flash** | \$0.65/M | \$13.00/M | Fast, cost-effective TTS |
+| **Gemini 2.5 Flash Preview TTS** | \$0.65/M | \$13.00/M | Preview Flash TTS |
+
+<Info>
+  **Pricing is per million characters** of text input and audio output tokens.
+</Info>
+
+---
+
+## Image Generation
+
+Generate and understand images with Gemini.
+
+| Model | Input | Output (Text) | Output (Image) | Best For |
+|-------|-------|---------------|----------------|----------|
+| **Gemini 3 Pro Image** | \$2.00/M | \$12.00/M | \$120.00/M | High-quality image understanding & generation |
+| **Gemini 2.5 Flash Image** | \$0.30/M | - | \$30.00/M | Fast, cost-effective image generation |
+
+<Info>
+  **Image pricing is per million tokens.**
+  - Image input: ~560 tokens (~\$0.0011 per image with Gemini 3 Pro)
+  - Image output 1K-2K: ~1120 tokens (~\$0.134 per image with Gemini 3 Pro)
+  - Image output 4K: ~2000 tokens (~\$0.24 per image with Gemini 3 Pro)
+  - Flash image output: ~1290 tokens (~\$0.039 per image)
+</Info>
+
+---
+
+## Video Generation (Veo)
+
+Google's text-to-video models for creating dynamic video content.
+
+| Model | Price | Per Minute | Best For |
+|-------|-------|------------|----------|
+| **Veo 3.1 Generate Preview** | \$0.52/sec | \$31.20/min | Latest video generation |
+| **Veo 3.1 Fast Generate Preview** | \$0.20/sec | \$11.70/min | Fast video creation |
+| **Veo 3.0 Generate** | \$0.52/sec | \$31.20/min | High-quality video |
+| **Veo 3.0 Fast Generate** | \$0.20/sec | \$11.70/min | Balanced speed/quality |
+| **Veo 2.0 Generate** | \$0.46/sec | \$27.30/min | Standard video generation |
+
+<Info>
+  **Pricing is per second of video output.** Example: A 30-second video with Veo 3.1 = 30 × \$0.52 = **\$15.60**
+</Info>
+
+---
+
+## Best Practices
+
+### Model Selection
+
+<CardGroup cols={2}>
+  <Card title="Use Gemini 3 for" icon="sparkles">
+    - Cutting-edge features
+    - Latest capabilities
+    - Prompt caching needs
+    - Advanced reasoning
+  </Card>
+  
+  <Card title="Use 2.5 Pro for" icon="crown">
+    - Complex reasoning tasks
+    - Production applications
+    - High-quality outputs
+    - When accuracy matters
+  </Card>
+  
+  <Card title="Use Flash for" icon="zap">
+    - High-volume tasks
+    - Fast responses needed
+    - Cost-sensitive workloads
+    - Simple queries
+  </Card>
+  
+  <Card title="Use Veo for" icon="video">
+    - Video generation
+    - Marketing content
+    - Creative projects
+    - Dynamic visuals
+  </Card>
+</CardGroup>
+
+### Prompt Caching (Gemini 3)
+
+<Card>
+  **Optimize costs with prompt caching on Gemini 3 Pro:**
+  
+  - **Cache Read**: \$0.26/M (90% cheaper than input)
+  - **Use case**: Repeated system prompts, documentation, knowledge bases
+  - **Strategy**: Place cacheable content at the start of your prompt
+  
+  **Example savings:**
+  - 100K context without cache: \$260/1M requests
+  - With cache: \$26/1M requests = **90% savings**
+</Card>
+
+### Context Windows
+
+Gemini models support large context:
+
+- **Gemini 3 Pro**: Up to **2M tokens**
+- **Gemini 2.5 Pro**: Up to **2M tokens**
+- **Gemini 2.5 Flash**: Up to **1M tokens**
+
+---
+
+## Support
+
+Need help with Gemini integration?
+
+<CardGroup cols={2}>
+  <Card title="Google AI Documentation" icon="book" href="https://ai.google.dev/gemini-api/docs">
+    Official Gemini documentation
+  </Card>
+  
+  <Card title="Google AI Pricing" icon="dollar-sign" href="https://ai.google.dev/pricing">
+    Official pricing details
+  </Card>
+  
+  <Card title="Splox Docs" icon="file-text" href="https://docs.splox.io/introduction">
+    Browse our guides
+  </Card>
+  
+  <Card title="Community" icon="users" href="https://community.splox.io">
+    Get help from the community
+  </Card>
+</CardGroup>

@@ -1,0 +1,184 @@
+---
+title: "Changelog"
+description: "Product updates and announcements"
+rss: true
+---
+
+<Update label="December 8" tags={["New Features", "Improvements"]}>
+
+## Public Workflow Sharing & UI Enhancements
+
+This release introduces public workflow sharing capabilities and significant UI/UX improvements across the platform.
+
+## Public Workflows
+
+- **Public Sharing** - Share workflows publicly with anyone via unique links
+- **Read-Only Viewer** - Public workflow viewer with full read-only access
+- **Share Management** - Easy workflow sharing and retrieval endpoints
+
+## UI/UX Improvements
+
+- **Theme System** - Migrated to next-themes for improved SSR and eliminated theme flash on page load
+- **Loading States** - Added skeleton loaders throughout the app for smoother loading experience
+- **Welcome Experience** - New welcome screen for first-time users with onboarding guide
+- **Workflow Editor** - Optimized node rendering performance and improved workflow selection
+- **Mobile Experience** - Enhanced mobile chat with better scrolling and touch interactions
+
+## Bug Fixes
+
+- **Race Conditions** - Fixed race condition in workflow message handling
+- **Sandbox Search** - Resolved sandbox search query issues
+- **User Context** - Improved billing user identification in workflows and integrations
+- **Error Handling** - Enhanced error messages and user feedback across the platform
+
+</Update>
+
+<Update label="December 5" tags={["New releases", "Improvements"]}>
+
+## Desktop Agent & Enhanced Workflow Management (v0.9.3-beta)
+
+This release introduces powerful desktop integration capabilities and enhanced workflow management features.
+
+## Desktop Agent
+
+- **Local Machine Integration** - Full desktop agent with automatic provisioning
+- **Credential Management** - Secure credential requests from desktop agent via global connection manager
+- **Agent Events** - New webhook system for agent events (renamed from `desktop_agent` to `agent_event`)
+- **Desktop Workflow** - Automatic desktop workflow creation from templates during setup
+
+## Authentication & Security
+
+- **OAuth Improvements** - Google login callback now supports redirect paths via OAuth state
+- **Token Authentication** - Desktop agent setup uses secure token-based authentication
+- **Credential Cleanup** - Clear existing credentials before new credential requests
+
+## Workflow Management
+
+- **Template Downloads** - Fixed template download counter to track all uses (not just unique users)
+- **Workflow Import** - Enhanced workflow import with integration resolution and auto-creation
+- **Chat History** - Added pagination for workflow chat history
+
+## API & Backend
+
+- **LLM Operations** - Streamlined LLM operation names and input parameter structure
+- **Integration Management** - Always create new integrations with empty credentials
+- **Tool Results** - Fixed double JSON marshaling in LLM tool results
+
+## Distribution
+
+- **Download Infrastructure** - Updated to use download.splox.io and AWS S3 URLs
+- **Release Manifests** - Comprehensive release notes and download URLs for all platforms
+
+</Update>
+
+<Update label="November 6" tags={["Improvements"]}>
+
+## Remote Integration, Public Chat, and Light Theme
+
+This release brings powerful new capabilities to your workflows, including remote server integration, public chats, persistent memories, and a complete UI redesign.
+
+## Remote & Local Integration
+
+- Full SSH/SFTP support for remote command execution and file management
+- Local machine actions: screenshots, audio playback, desktop notifications, and webhooks
+
+## Public Chat System
+
+- Real-time public chat with unique shareable links
+- Live workflow status updates and collaborative chat interface
+
+## Memories
+
+- New memory system for persistent context and recall
+
+## UI/UX Overhaul
+
+- Clean, modern light theme
+- Complete redesign across integrations, workflows, and templates
+- Smoother modals, sidebar, and workflow organization
+
+## Documentation & Pricing
+
+- Extensive documentation: [Introduction](/introduction)
+- New flat-fee pricing model with sandbox markup support
+
+## Under the Hood
+
+- Refactored chat system, agent types, and auth handling
+- Improved stability, speed, and error handling
+- Dozens of bug fixes and performance optimizations
+
+## Cleanups
+
+- Removed legacy SSH and deprecated authentication code
+- Simplified internal chat architecture
+
+</Update>
+
+<Update label="October 2" tags={["Improvements"]}>
+
+## Improved Builder Logic & Chat
+
+## New Features
+
+### Agents & Builder
+
+- Introduced a new `browser_agent` type in Splox Builder, enabling direct browser-driven automation for advanced and interactive workflows. This expands automation capabilities and supports complex web-based use cases.
+
+### Chat
+
+- Added the ability to create public shared chats, allowing users to share and collaborate on conversations seamlessly across teams or communities.
+
+## Fixes & Improvements
+
+### Design
+
+- Improved overall UI design for a cleaner, more consistent, and modern appearance across the platform.
+- Updated the chat interface with refined visuals and smoother interactions for a better user experience.
+
+### Nodes & Edges
+
+- Fixed multiple issues with node and edge creation and updates performed by agents, ensuring graph consistency, smoother editing, and more stable execution in Builder.
+
+### Integrations
+
+- Resolved an issue where integrations were not being properly indexed or searchable, significantly improving discoverability and integration management within the platform.
+
+### Builder Logic & Multi-Agent Systems
+
+- Enhanced the Splox Builder Agent's logic, resulting in more accurate generation and coordination of complex multi-agent systems, improved reliability, and better performance across dynamic workflows.
+
+</Update>
+
+<Update label="September 15" tags={["New releases"]}>
+
+## Splox V1.0.0
+
+## Launch
+
+- Official launch of Splox - the visual AI workflow builder
+- Build, deploy, and manage AI agents with a drag-and-drop interface
+
+## Core Features
+
+- **Visual Workflow Builder** - Create complex AI workflows without code
+- **Multi-Agent Systems** - Orchestrate multiple AI agents working together
+- **Node-Based Architecture** - Agent, Tool, Switch, Merge, and more
+- **Tool Connections** - Connect to external services, APIs, and data sources
+- **Real-Time Execution** - Watch your workflows run in real-time
+
+## Supported Providers
+
+- OpenAI (GPT-4, GPT-4o, GPT-3.5)
+- Anthropic (Claude 4, Claude 3.5)
+- Google (Gemini Pro, Gemini Flash)
+- OpenRouter (access to 100+ models)
+- Perplexity (search-augmented AI)
+
+## Documentation
+
+- Comprehensive getting started guides
+- API reference documentation
+- Tutorials for beginners to advanced users
+
+</Update>

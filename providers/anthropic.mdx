@@ -1,0 +1,145 @@
+---
+title: "Anthropic"
+description: "Access Claude models through Splox with transparent pricing"
+---
+
+<Card>
+  **Anthropic Claude** delivers state-of-the-art language models with:
+  - **Advanced reasoning** and analysis
+  - **Extended context windows** up to 200K tokens
+  - **Prompt caching** for cost optimization
+  - **Safety-focused** design and outputs
+</Card>
+
+---
+
+## Available Models
+
+### Claude 4.5 Series
+
+Latest Claude models with enhanced capabilities and prompt caching.
+
+| Model | Input | Output | Cache Read | Cache Write | Best For |
+|-------|-------|--------|------------|-------------|----------|
+| **Claude Opus 4.5 (20251101)** | \$6.50/M | \$32.50/M | \$0.65/M | \$8.12/M (5m)<br/>\$13.00/M (1h) | Most advanced reasoning and analysis |
+| **Claude Sonnet 4.5 (20250929)** | \$3.90/M | \$19.50/M | \$0.39/M | \$4.88/M (5m)<br/>\$7.80/M (1h) | Balanced performance for production |
+| **Claude Haiku 4.5 (20251001)** | \$1.30/M | \$6.50/M | \$0.13/M | \$1.62/M (5m)<br/>\$2.60/M (1h) | Fast, cost-efficient, high-volume |
+
+### Claude 4 Series
+
+Previous generation with strong capabilities and caching support.
+
+| Model | Input | Output | Cache Read | Cache Write | Best For |
+|-------|-------|--------|------------|-------------|----------|
+| **Claude Opus 4.1 (20250805)** | \$19.50/M | \$97.50/M | \$1.95/M | \$24.38/M (5m)<br/>\$39.00/M (1h) | Complex reasoning, deep analysis |
+| **Claude Opus 4 (20250514)** | \$19.50/M | \$97.50/M | \$1.95/M | \$24.38/M (5m)<br/>\$39.00/M (1h) | Research and creative tasks |
+| **Claude Sonnet 4 (20250514)** | \$3.90/M | \$19.50/M | \$0.39/M | \$4.88/M (5m)<br/>\$7.80/M (1h) | General purpose production |
+
+### Claude 3.7 Series
+
+Enhanced 3-series with prompt caching support.
+
+| Model | Input | Output | Cache Read | Cache Write | Best For |
+|-------|-------|--------|------------|-------------|----------|
+| **Claude 3.7 Sonnet (20250219)** | \$3.90/M | \$19.50/M | \$0.39/M | \$4.88/M (5m)<br/>\$7.80/M (1h) | Enhanced Sonnet capabilities |
+
+### Claude 3.5 Series
+
+Production-ready models with strong performance.
+
+| Model | Input | Output | Best For |
+|-------|-------|--------|----------|
+| **Claude 3.5 Sonnet (20241022)** | \$3.90/M | \$19.50/M | Latest 3.5 Sonnet |
+| **Claude 3.5 Sonnet (20240620)** | \$3.90/M | \$19.50/M | Stable production |
+| **Claude 3.5 Haiku (20241022)** | \$1.04/M | \$5.20/M | Fast, lightweight tasks |
+
+<Info>
+  **Prompt caching** significantly reduces costs for repeated content:
+  - **Cache Read**: 90% cheaper than standard input
+  - **Cache Write (5m)**: Stores content for 5 minutes
+  - **Cache Write (1h)**: Stores content for 1 hour
+</Info>
+
+---
+
+## Best Practices
+
+### Model Selection
+
+<CardGroup cols={2}>
+  <Card title="Use Opus for" icon="crown">
+    - Complex research tasks
+    - Deep code analysis
+    - Creative writing
+    - Multi-step reasoning
+    - When quality matters most
+  </Card>
+  
+  <Card title="Use Sonnet for" icon="balance-scale">
+    - Production applications
+    - Chatbots and assistants
+    - Content generation
+    - Code generation
+    - Balanced speed/quality
+  </Card>
+  
+  <Card title="Use Haiku for" icon="zap">
+    - High-volume tasks
+    - Fast responses
+    - Simple classification
+    - Data extraction
+    - Cost-sensitive workloads
+  </Card>
+  
+  <Card title="Latest Models" icon="sparkles">
+    - **Claude 4.5**: Best overall performance
+    - **Claude 3.7**: Enhanced 3-series
+    - **Dated models**: Stable versions
+  </Card>
+</CardGroup>
+
+### Prompt Caching
+
+<Card>
+  **Optimize costs with prompt caching:**
+  
+  - **Use 1-hour caching** for frequently repeated context (e.g., system prompts, documentation)
+  - **Use 5-minute caching** for short-lived conversational context
+  - **Cache large contexts** (documentation, code repositories) to maximize savings
+  - **Structure prompts** with cacheable content first
+  
+  **Example savings:**
+  - Repeated 50K token system prompt without cache: \$195/1M requests
+  - With 1-hour cache: \$32.50/1M requests = **83% savings**
+</Card>
+
+### Context Windows
+
+All Claude models support extended context:
+
+- **Claude 4/4.5**: Up to **200K tokens**
+- **Claude 3.5/3.7**: Up to **200K tokens**
+
+---
+
+## Support
+
+Need help with Anthropic integration?
+
+<CardGroup cols={2}>
+  <Card title="Anthropic Documentation" icon="book" href="https://docs.anthropic.com">
+    Official Claude documentation
+  </Card>
+  
+  <Card title="Anthropic Pricing" icon="dollar-sign" href="https://www.anthropic.com/pricing">
+    Official pricing details
+  </Card>
+  
+  <Card title="Splox Docs" icon="file-text" href="https://docs.splox.io/introduction">
+    Browse our guides
+  </Card>
+  
+  <Card title="Community" icon="users" href="https://community.splox.io">
+    Get help from the community
+  </Card>
+</CardGroup>

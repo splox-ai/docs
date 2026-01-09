@@ -1,80 +1,371 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: 'Quickstart'
+description: 'Build your first AI workflow in 5 minutes'
 ---
 
-## Get started in three steps
+## Welcome to Splox
 
-Get your documentation site running locally and make your first customization.
-
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+Get started fast by using one of our pre-built templates. Choose the workflow that best fits your needs, customize it, and deploy in minutes.
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+**No coding required!** All templates work out of the box. You can customize them later as you learn the platform.
 </Note>
+
+---
+
+## Step 1: Choose Your Starting Point
+
+Pick a template that matches what you want to build:
+
+<CardGroup cols={2}>
+  <Card 
+    title="Splox Builder" 
+    icon="wand-magic-sparkles"
+    href="https://app.splox.io/templates/019959dc-d703-74af-bd48-f5afc286ab24">
+    **Meta-agent that creates agents for you**
+    
+    Describe what you want to build, and this AI will design and create the workflow automatically.
+    
+    **Best for:** Beginners, rapid prototyping
+    
+    **Time:** 2 minutes to first workflow
+  </Card>
+
+  <Card 
+    title="Browser Agent" 
+    icon="globe"
+    href="https://app.splox.io/templates/01990ff5-334e-7778-9978-05dc29ac6212">
+    **AI that browses the web for you**
+    
+    Scrape websites, fill forms, click buttons - all automated with AI vision and control.
+    
+    **Best for:** Web automation, data extraction
+    
+    **Time:** 5 minutes to configure
+  </Card>
+
+  <Card 
+    title="Telegram Chatbot" 
+    icon="telegram"
+    href="https://app.splox.io/templates/0198765c-542b-719a-9578-89a2e5c2d610">
+    **Build a smart Telegram bot**
+    
+    Multi-agent chatbot with memory, tools, and custom commands. Responds intelligently to user messages.
+    
+    **Best for:** Customer support, community management
+    
+    **Time:** 5 minutes + Telegram setup
+  </Card>
+
+  <Card 
+    title="DevOps Agent" 
+    icon="server"
+    href="https://app.splox.io/templates/01987643-c8fb-73bc-9da5-b28908134155">
+    **Automate server operations**
+    
+    Monitor systems, detect issues, run commands, and notify teams. Handles incidents automatically.
+    
+    **Best for:** System monitoring, auto-remediation
+    
+    **Time:** 5 minutes + SSH setup
+  </Card>
+
+  <Card 
+    title="Multimodal LLM" 
+    icon="brain"
+    href="https://app.splox.io/templates/019879d2-22dd-7d06-b2e1-0294266e6f45">
+    **Simple AI chat with vision**
+    
+    Text + image understanding in one workflow. Perfect starting point for learning Splox.
+    
+    **Best for:** Learning, experimentation
+    
+    **Time:** 2 minutes to deploy
+  </Card>
+
+  <Card 
+    title="Start from Scratch" 
+    icon="plus"
+    href="https://app.splox.io/">
+    **Build your own workflow**
+    
+    Start with a blank canvas and design your workflow from the ground up.
+    
+    **Best for:** Custom use cases, experienced users
+    
+    **Time:** 10+ minutes
+  </Card>
+</CardGroup>
+
+---
+
+## Step 2: Set Up Your AI Provider
+
+Most templates need an AI provider to work. Choose one option:
+
+<Tabs>
+  <Tab title="Use Splox Services (Fastest)">
+    **No API keys needed!** Splox handles everything.
+    
+    1. Go to Settings in Splox
+    2. Select your AI provider (OpenAI, Anthropic, etc.)
+    3. Leave BYOK disabled (default)
+    4. Start building immediately
+    
+    You'll be charged usage + commission through Splox.
+    
+    **Recommended for beginners**
+  </Tab>
+
+  <Tab title="BYOK (Bring Your Own Key)">
+    **Bring your own OpenAI/Anthropic key** for direct billing.
+    
+    1. Get an API key from [OpenAI](https://platform.openai.com/api-keys) or [Anthropic](https://console.anthropic.com/)
+    2. Go to Settings in Splox
+    3. Enable BYOK and enter your API key
+    4. Select it in your workflow
+    
+    **Note:** Splox still charges a small commission for platform features.
+  </Tab>
+</Tabs>
+
+<Info>
+**Which should I choose?**  
+- **First time?** → Use Splox Services (default)
+- **Have API keys?** → BYOK  
+- **Not sure?** → Use Splox Services (you can switch later)
+</Info>
+
+---
+
+## Step 3: Customize Your Workflow
+
+Once you've opened a template, here's what to do:
+
+<Steps>
+  <Step title="Explore the Canvas">
+    Look at the nodes (boxes) and edges (arrows). Each node is a step in your workflow.
+    
+    - **Agent Nodes** = AI agents that think, plan, and use tools
+    - **Tool Nodes** = Actions like sending emails, querying databases
+    - **Switch Nodes** = Conditional logic ("if this, then that")
+  </Step>
+
+  <Step title="Click on a Node">
+    View and edit its configuration:
+    - Change the AI model
+    - Adjust the prompt/instructions
+    - Modify input variables
+    - Add tools
+  </Step>
+
+  <Step title="Test Individual Nodes">
+    Click on any node to open its configuration panel on the right side. Click the **"Run"** button at the bottom to test that node individually and see its output before running the full workflow.
+  </Step>
+
+  <Step title="Connect Your Tools">
+    If a template uses Slack, Telegram, or databases, connect them in the Tool Node configuration.
+  </Step>
+</Steps>
+
+<Tip>
+**Pro tip:** Hover over any node or edge to see tooltips explaining what it does.
+</Tip>
+
+---
+
+## Step 4: Run Your Workflow
+
+Time to see it in action!
+
+<Tabs>
+  <Tab title="Manual Trigger">
+    **Test your workflow interactively**
+    
+    The fastest way to test your workflow:
+    
+    <img className="block dark:hidden" src="https://splox-app.s3.amazonaws.com/019a0c59-309a-70eb-889e-b6b05fa5af27_chat-mode-light.png" alt="Chat Mode Interface" />
+    <img className="hidden dark:block" src="https://splox-app.s3.amazonaws.com/019a0c59-3098-70eb-9df5-0511cd844503_chat-mode-dark.png" alt="Chat Mode Interface" />
+    
+    1. Click the **Chat icon** (speech bubble) in the toolbar
+    2. Select your **Start node** from the dropdown
+    3. Start typing and chatting with your workflow
+    4. See responses in real-time as nodes execute
+    
+    **Best for:** Testing, debugging, and interactive conversations
+  </Tab>
+
+  <Tab title="Webhook Trigger">
+    **Call your workflow from anywhere**
+    
+    1. Copy the webhook URL from your workflow settings
+    2. Send a POST request with your data:
+       ```bash
+       curl -X POST https://app.splox.io/api/v1/webhooks/{webhook_id} \
+         -H "Content-Type: application/json" \
+         -d '{"event": "user.signup", "email": "user@example.com"}'
+       ```
+    3. Get back a `workflow_request_id` to track execution
+    4. View results in Executions tab
+    
+    **Best for:** Production automations, external integrations
+  </Tab>
+</Tabs>
+
+---
+
+## Step 5: Monitor & Debug
+
+Keep an eye on your workflow executions:
+
+<img className="block dark:hidden" src="https://splox-app.s3.amazonaws.com/019a0c59-30ae-70eb-821c-7582b15fe9b9_debug-panel-light.png" alt="Debug Panel" />
+<img className="hidden dark:block" src="https://splox-app.s3.amazonaws.com/019a0c59-30ac-70eb-9dc2-6ef9733a2fa7_debug-panel-dark.png" alt="Debug Panel" />
+
+**Debug Panel** - Shows real-time execution status:
+- View all nodes in your workflow
+- See which nodes are running, completed, or blocked
+- Monitor execution time and status
+- Click any node to inspect its input/output
+
+<CardGroup cols={2}>
+  <Card title="Execution History" icon="clock">
+    View all past runs, see which nodes succeeded/failed, and inspect outputs.
+    
+    **Location:** Workflow → Executions tab
+  </Card>
+
+  <Card title="Real-Time Monitoring" icon="terminal">
+    Watch your workflow run in real-time. The Debug Panel shows node-by-node progress with status indicators (Running, Completed, Blocked).
+    
+    **Location:** Debug Panel (sidebar during execution)
+  </Card>
+
+  <Card title="Error Handling" icon="triangle-exclamation">
+    If a node fails, the workflow stops. Click the failed node to see the error message.
+    
+    **Fix:** Update configuration and re-run
+  </Card>
+
+  <Card title="Node Outputs" icon="file-export">
+    Every node stores its output. Reference it in later nodes using `{{ node_id.output }}` syntax.
+    
+    **Example:** `{{ llm_1.content }}`
+  </Card>
+</CardGroup>
+
+---
+
+## Common First Workflows
+
+Here's what people typically build first:
+
+<AccordionGroup>
+  <Accordion title="AI Chatbot with Memory" icon="comments">
+    **What it does:** Responds to user messages, remembers conversation history
+    
+    **Template:** [Telegram Chatbot](https://app.splox.io/templates/0198765c-542b-719a-9578-89a2e5c2d610)
+    
+    **Customize:**
+    - Change personality/instructions in LLM node
+    - Add tools (search, calculator, weather)
+    - Connect to Slack instead of Telegram
+  </Accordion>
+
+  <Accordion title="Data Extraction Pipeline" icon="database">
+    **What it does:** Scrapes website → AI extracts data → Saves to database
+    
+    **Template:** [Browser Agent](https://app.splox.io/templates/01990ff5-334e-7778-9978-05dc29ac6212)
+    
+    **Customize:**
+    - Change target URL
+    - Modify extraction prompt
+    - Add Google Sheets export
+  </Accordion>
+
+  <Accordion title="Content Generator" icon="pen">
+    **What it does:** Researches topic → Generates article → Posts to CMS
+    
+    **Start from:** [Multimodal LLM](https://app.splox.io/templates/019879d2-22dd-7d06-b2e1-0294266e6f45) + add tools
+    
+    **Customize:**
+    - Add web search for research
+    - Chain multiple LLM nodes (outline → draft → edit)
+    - Connect WordPress/Ghost publishing
+  </Accordion>
+
+  <Accordion title="Alert System" icon="bell">
+    **What it does:** Monitors system → Detects anomaly → Sends alert
+    
+    **Template:** [DevOps Agent](https://app.splox.io/templates/01987643-c8fb-73bc-9da5-b28908134155)
+    
+    **Customize:**
+    - Change monitoring checks
+    - Add auto-remediation logic
+    - Send to PagerDuty/Slack/Email
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+Now that you've built your first workflow, dive deeper:
+
+<CardGroup cols={2}>
+  <Card title="Learn Core Concepts" icon="book" href="/concepts/workflows">
+    Understand workflows, nodes, edges, and execution flow
+  </Card>
+
+  <Card title="Explore Nodes" icon="sitemap" href="/nodes/variable-mappings">
+    Master Agent nodes, Tool nodes, Switch logic, and more
+  </Card>
+
+  <Card title="Connect Tools" icon="plug" href="/concepts/tools">
+    Connect 500+ tools: Slack, Google, Salesforce, databases, APIs
+  </Card>
+
+  <Card title="View API Reference" icon="code-branch" href="/api-reference/introduction">
+    Trigger workflows programmatically via REST API
+  </Card>
+</CardGroup>
+
+---
+
+## Need Help?
+
+<CardGroup cols={3}>
+  <Card title="Community Forum" icon="comments" href="https://community.splox.io">
+    Ask questions, share workflows
+  </Card>
+
+  <Card title="Telegram Group" icon="telegram" href="https://t.me/splox_ai">
+    Chat with the team and users
+  </Card>
+
+  <Card title="Examples" icon="grid" href="https://app.splox.io/templates">
+    Browse 50+ workflow templates
+  </Card>
+</CardGroup>
+
+<Tip>
+**Stuck on something?** Most questions are answered in our [Core Concepts](/concepts/workflows) guide. If you're still stuck, reach out on [Telegram](https://t.me/splox_ai)!
+</Tip>
+
+---
+
+## Quickstart Checklist
+
+Make sure you've completed these steps:
+
+- [ ] Signed up at [app.splox.io](https://app.splox.io)
+- [ ] Chose a template (or started from scratch)
+- [ ] Set up your AI provider
+- [ ] Ran your first workflow manually
+- [ ] Checked execution history and node outputs
+- [ ] (Optional) Set up a webhook trigger
+
+**All done?** You're ready to build production workflows!
+
+<Card title="Share Your Creation" icon="share" href="https://community.splox.io">
+  Built something cool? Share it in the community and help others learn!
+</Card>
