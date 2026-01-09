@@ -224,12 +224,12 @@ Integration: Splox Webhook
 **Setup:**
 1. Go to **[Integrations](https://app.splox.io/integrations?tab=browse)** page and create a Splox integration (if not exists)
 2. Configure this start node with Splox platform
-3. Get webhook URL: `https://app.splox.io/v1/webhooks/{webhook_id}`
+3. Get webhook URL: `https://app.splox.io/api/v1/workflow-webhooks/{webhook_id}`
 4. Make POST requests from your app to trigger the workflow
 
 **How to Trigger:**
 ```bash
-POST https://app.splox.io/v1/webhooks/{webhook_id}
+POST https://app.splox.io/api/v1/workflow-webhooks/{webhook_id}
 Content-Type: application/json
 
 {
@@ -270,7 +270,7 @@ Integration: Company Workspace
 **Setup:**
 1. Go to **[Integrations](https://app.splox.io/integrations?tab=browse)** page and connect your Slack workspace
 2. Configure this start node with Slack platform and your workspace integration
-3. Splox generates webhook URL: `https://app.splox.io/v1/webhooks/{webhook_id}`
+3. Splox generates webhook URL: `https://app.splox.io/api/v1/workflow-webhooks/{webhook_id}`
 4. Add this URL to your Slack app's Event Subscriptions settings
 
 **Triggered By:** External Slack events (slash commands, messages, interactions)

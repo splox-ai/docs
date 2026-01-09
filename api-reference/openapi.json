@@ -17,7 +17,7 @@
     }
   ],
   "paths": {
-    "/webhooks/{id}": {
+    "/workflow-webhooks/{id}": {
       "post": {
         "summary": "Trigger Workflow via Webhook",
         "description": "Triggers a workflow execution by sending data to its unique webhook URL. The webhook processes the payload and creates a workflow request.",

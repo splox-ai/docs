@@ -1,6 +1,6 @@
 ---
 title: 'Trigger Workflow via Webhook'
-openapi: 'POST /webhooks/{id}'
+openapi: 'POST /workflow-webhooks/{id}'
 ---
 
 Triggers a workflow execution by sending data to its unique webhook URL.
@@ -10,7 +10,7 @@ Triggers a workflow execution by sending data to its unique webhook URL.
 Each workflow has a unique webhook URL that can be called from any external service:
 
 ```
-https://app.splox.io/api/v1/webhooks/{webhook_id}
+https://app.splox.io/api/v1/workflow-webhooks/{webhook_id}
 ```
 
 ## Authentication
