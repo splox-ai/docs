@@ -1,0 +1,39 @@
+---
+title: 'Get Chat'
+openapi: 'GET /chats/{id}'
+---
+
+Retrieves a chat session by ID.
+
+## Usage
+
+```bash
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  https://app.splox.io/api/v1/chats/{chat_id}
+```
+
+## Response
+
+```json
+{
+  "id": "0199f200-a11b-7c8d-4444-888890abcdef",
+  "user_id": "0199d001-c45d-9e0f-3456-789012cdef01",
+  "resource_type": "workflow",
+  "resource_id": "0199e001-a23b-7c8d-1234-567890abcdef",
+  "title": "Customer Support Chat",
+  "created_at": "2025-10-22T10:00:00Z",
+  "updated_at": "2025-10-22T12:15:47Z"
+}
+```
+
+## Use Cases
+
+- **Chat history** - Retrieve conversation details
+- **UI state** - Load chat metadata for display
+- **Integration** - Access chat data programmatically
+
+## Notes
+
+<Info>
+**Authentication required:** Users can only access their own chats
+</Info>

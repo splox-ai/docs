@@ -1,0 +1,77 @@
+---
+title: 'Get Workflow Execution Tree'
+openapi: 'GET /workflow-requests/{id}/execution-tree'
+---
+
+Retrieves the complete execution tree showing all nodes, their status, and hierarchy.
+
+## Usage
+
+```bash
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  https://app.splox.io/api/v1/workflow-requests/{workflow_request_id}/execution-tree
+```
+
+## Response
+
+```json
+{
+  "execution_tree": {
+    "workflow_request_id": "0199f123-d60e-7ffd-9131-4cc5ab040ee8",
+    "status": "completed",
+    "created_at": "2025-10-22T12:15:30Z",
+    "completed_at": "2025-10-22T12:15:47Z",
+    "nodes": [
+      {
+        "node_execution_id": "0199f124-e70f-8gge-2242-5dd6bc151ff9",
+        "node_id": "0199e002-b34c-8d9e-2345-678901bcdef0",
+        "node_name": "Start",
+        "node_type": "start",
+        "status": "completed",
+        "output": { "user_id": "12345" },
+        "created_at": "2025-10-22T12:15:32Z",
+        "completed_at": "2025-10-22T12:15:33Z",
+        "children": [
+          {
+            "node_execution_id": "0199f125-f81g-9hhf-3353-6ee7cd262gg0",
+            "node_id": "0199e003-c45d-9e0f-3456-789012cdef01",
+            "node_name": "Process Data",
+            "node_type": "agent",
+            "status": "completed",
+            "output": { "result": "processed" },
+            "created_at": "2025-10-22T12:15:34Z",
+            "completed_at": "2025-10-22T12:15:45Z",
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+## Node Status Values
+
+- `pending` - Queued for execution
+- `running` - Currently executing
+- `completed` - Finished successfully
+- `failed` - Execution failed
+- `blocked` - Waiting for dependencies
+- `stopped` - Manually stopped
+
+## Use Cases
+
+- **Debugging** - Visualize complete execution flow
+- **Analytics** - Analyze workflow performance
+- **Audit logs** - Track what executed and when
+- **Error analysis** - Find where execution failed
+
+## Notes
+
+<Info>
+**Authentication required:** Include Bearer token in Authorization header
+</Info>
+
+<Tip>
+Use this endpoint to build execution visualizations or debug complex multi-agent workflows.
+</Tip>

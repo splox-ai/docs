@@ -38,10 +38,13 @@ You can generate API tokens from your [Splox Dashboard](https://app.splox.io/set
 
 ## Endpoints
 
-The Splox API provides two main endpoints:
+The Splox API provides these main endpoints:
 
 1. **Trigger Workflow** - Send data to webhook to execute workflow
-2. **Get Workflow Request** - Check execution status and retrieve results
+2. **Listen to Execution** - Stream real-time updates via SSE
+3. **Get Execution Tree** - Retrieve complete execution hierarchy
+4. **Get History** - View past executions
+5. **Manage Chats** - Create and retrieve chat sessions
 
 ## Response Format
 
@@ -50,13 +53,13 @@ API responses return JSON data directly:
 **Webhook trigger response:**
 ```json
 {
-  "workflow_request_id": "0199f123-d60e-7ffd-9131-4cc5ab040ee8",
-  "event": "user.signup",
-  "email": "user@example.com"
+  "workflow_request_id": "0199f123-d60e-7ffd-9131-4cc5ab040ee8"
 }
 ```
 
-**Workflow request response:**
+**Use this ID** to listen to execution, get the tree, or view history.
+
+**Execution tree response:**
 ```json
 {
   "id": "0199f123-d60e-7ffd-9131-4cc5ab040ee8",

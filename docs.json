@@ -116,7 +116,11 @@
             "icon": "code",
             "pages": [
               "api-reference/trigger-webhook",
-              "api-reference/get-workflow-request"
+              "api-reference/listen-workflow-execution",
+              "api-reference/get-execution-tree",
+              "api-reference/get-workflow-history",
+              "api-reference/get-chat",
+              "api-reference/create-chat"
             ]
           }
         ]

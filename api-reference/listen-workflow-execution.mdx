@@ -1,0 +1,69 @@
+---
+title: 'Listen to Workflow Execution (SSE)'
+openapi: 'GET /workflow-requests/{id}/listen'
+---
+
+Streams real-time execution updates via Server-Sent Events (SSE) as the workflow runs.
+
+## Usage
+
+This endpoint provides a persistent connection that streams execution events as they happen:
+
+```bash
+curl -N -H "Authorization: Bearer YOUR_TOKEN" \
+  https://app.splox.io/api/v1/workflow-requests/{workflow_request_id}/listen
+```
+
+## Response Format
+
+Server-Sent Events (SSE) stream with each event containing:
+
+```json
+{
+  "workflow_request": {
+    "id": "0199f123-d60e-7ffd-9131-4cc5ab040ee8",
+    "status": "in_progress",
+    "workflow_version_id": "0199e001-a23b-7c8d-1234-567890abcdef"
+  },
+  "node_execution": {
+    "id": "0199f124-e70f-8gge-2242-5dd6bc151ff9",
+    "node_id": "0199e002-b34c-8d9e-2345-678901bcdef0",
+    "status": "completed",
+    "output": { "result": "success" }
+  }
+}
+```
+
+## Status Values
+
+**Workflow Request:**
+- `pending` - Request received, waiting to start
+- `in_progress` - Currently executing
+- `waiting` - Paused, waiting for input
+- `completed` - Finished successfully
+- `failed` - Execution failed
+- `stopped` - Manually stopped
+
+**Node Execution:**
+- `pending` - Queued
+- `running` - Currently executing
+- `completed` - Finished successfully
+- `failed` - Execution failed
+- `blocked` - Waiting for dependencies
+
+## Use Cases
+
+- **Real-time UI updates** - Update workflow execution UI as nodes complete
+- **Progress tracking** - Show live progress to users
+- **Debugging** - Monitor execution flow in real-time
+- **Webhooks** - Trigger actions based on specific execution events
+
+## Notes
+
+<Info>
+**Authentication required:** Include Bearer token in Authorization header
+</Info>
+
+<Warning>
+**Connection timeout:** SSE connections timeout after 30 minutes. Reconnect if needed.
+</Warning>
