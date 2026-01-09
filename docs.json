@@ -120,7 +120,8 @@
               "api-reference/get-execution-tree",
               "api-reference/get-workflow-history",
               "api-reference/get-chat",
-              "api-reference/create-chat"
+              "api-reference/create-chat",
+              "api-reference/listen-chat-messages"
             ]
           }
         ]

@@ -115,6 +115,254 @@
         }
       }
     },
+    "/workflow-requests/{id}/listen": {
+      "get": {
+        "summary": "Listen to Workflow Execution (SSE)",
+        "description": "Streams real-time execution updates via Server-Sent Events as the workflow runs",
+        "operationId": "listenWorkflowExecution",
+        "tags": ["Workflow Requests"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Workflow request ID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSE stream of execution events",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workflow-requests/{id}/execution-tree": {
+      "get": {
+        "summary": "Get Workflow Execution Tree",
+        "description": "Retrieves the complete execution tree showing all nodes, their status, and hierarchy",
+        "operationId": "getExecutionTree",
+        "tags": ["Workflow Requests"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Workflow request ID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Execution tree retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "execution_tree": {
+                      "$ref": "#/components/schemas/ExecutionTree"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workflow-requests/{id}/history": {
+      "get": {
+        "summary": "Get Workflow Request History",
+        "description": "Retrieves paginated execution history for a workflow request",
+        "operationId": "getWorkflowHistory",
+        "tags": ["Workflow Requests"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Workflow request ID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Items per page",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "History retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "history": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/WorkflowRequest"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chats/{id}": {
+      "get": {
+        "summary": "Get Chat",
+        "description": "Retrieves a chat session by ID",
+        "operationId": "getChat",
+        "tags": ["Chats"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Chat ID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chat retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Chat"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chats": {
+      "post": {
+        "summary": "Create Chat",
+        "description": "Creates a new chat session for a workflow or other resource",
+        "operationId": "createChat",
+        "tags": ["Chats"],
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["resource_type", "resource_id"],
+                "properties": {
+                  "resource_type": {
+                    "type": "string",
+                    "enum": ["workflow", "gui", "api"],
+                    "description": "Type of resource"
+                  },
+                  "resource_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "ID of the resource"
+                  },
+                  "title": {
+                    "type": "string",
+                    "description": "Chat title"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Chat created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Chat"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat-internal-messages/{chatId}/listen": {
+      "get": {
+        "summary": "Listen to Chat Messages (SSE)",
+        "description": "Streams real-time chat messages via Server-Sent Events",
+        "operationId": "listenChatMessages",
+        "tags": ["Chats"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "description": "Chat ID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSE stream of chat messages",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/workflow-requests/{id}": {
       "get": {
         "summary": "Get Workflow Request Status",
@@ -291,6 +539,169 @@
         },
         "required": ["id", "workflow_version_id", "start_node_id", "status", "created_at"]
       },
+      "ExecutionTree": {
+        "type": "object",
+        "properties": {
+          "workflow_request_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExecutionNode"
+            }
+          }
+        }
+      },
+      "ExecutionNode": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "node_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "node_label": {
+            "type": "string"
+          },
+          "node_type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "input_data": {
+            "type": "object"
+          },
+          "output_data": {
+            "type": "object"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "failed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "attempt_count": {
+            "type": "integer"
+          },
+          "child_executions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChildExecution"
+            }
+          }
+        }
+      },
+      "ChildExecution": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer"
+          },
+          "workflow_request_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "target_node_label": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExecutionNode"
+            }
+          }
+        }
+      },
+      "Chat": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "resource_type": {
+            "type": "string",
+            "enum": ["workflow", "gui", "api"]
+          },
+          "resource_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Pagination": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "total_pages": {
+            "type": "integer"
+          }
+        }
+      },
       "WorkflowRequestFile": {
         "type": "object",
         "description": "File attached to a workflow request",
@@ -338,6 +749,13 @@
       }
     }
   },
+  "securitySchemes": {
+    "bearerAuth": {
+      "type": "http",
+      "scheme": "bearer",
+      "description": "JWT token from Splox account"
+    }
+  },
   "tags": [
     {
       "name": "Webhooks",
@@ -346,6 +764,10 @@
     {
       "name": "Workflow Requests",
       "description": "Monitor and retrieve workflow execution status and results"
+    },
+    {
+      "name": "Chats",
+      "description": "Manage chat sessions and messages"
     }
   ]
 }
