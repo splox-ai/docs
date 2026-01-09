@@ -23,27 +23,47 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
     "completed_at": "2025-10-22T12:15:47Z",
     "nodes": [
       {
-        "node_execution_id": "0199f124-e70f-8gge-2242-5dd6bc151ff9",
+        "id": "0199f124-e70f-8gge-2242-5dd6bc151ff9",
         "node_id": "0199e002-b34c-8d9e-2345-678901bcdef0",
-        "node_name": "Start",
+        "node_label": "Start",
         "node_type": "start",
         "status": "completed",
-        "output": { "user_id": "12345" },
+        "input_data": {},
+        "output_data": { "user_id": "12345" },
         "created_at": "2025-10-22T12:15:32Z",
         "completed_at": "2025-10-22T12:15:33Z",
-        "children": [
+        "failed_at": null,
+        "attempt_count": 1,
+        "child_executions": [],
+        "total_children": 0,
+        "has_more_children": false
+      },
+      {
+        "id": "0199f125-f81g-9hhf-3353-6ee7cd262gg0",
+        "node_id": "0199e003-c45d-9e0f-3456-789012cdef01",
+        "node_label": "Process Data",
+        "node_type": "agent",
+        "status": "completed",
+        "input_data": { "user_id": "12345" },
+        "output_data": { "result": "processed" },
+        "created_at": "2025-10-22T12:15:34Z",
+        "completed_at": "2025-10-22T12:15:45Z",
+        "failed_at": null,
+        "attempt_count": 1,
+        "child_executions": [
           {
-            "node_execution_id": "0199f125-f81g-9hhf-3353-6ee7cd262gg0",
-            "node_id": "0199e003-c45d-9e0f-3456-789012cdef01",
-            "node_name": "Process Data",
-            "node_type": "agent",
+            "index": 0,
+            "workflow_request_id": "0199f126-g92h-0iig-4464-7ff8de373hh1",
             "status": "completed",
-            "output": { "result": "processed" },
-            "created_at": "2025-10-22T12:15:34Z",
-            "completed_at": "2025-10-22T12:15:45Z",
-            "children": []
+            "label": "→ Agent B",
+            "target_node_label": "Agent B",
+            "created_at": "2025-10-22T12:15:35Z",
+            "completed_at": "2025-10-22T12:15:44Z",
+            "nodes": []
           }
-        ]
+        ],
+        "total_children": 1,
+        "has_more_children": false
       }
     ]
   }
