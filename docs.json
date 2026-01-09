@@ -63,7 +63,6 @@
             "pages": [
               "edges/parallel-edges",
               "edges/tool-edges",
-              "edges/memory-edges",
               "edges/conditional-edges",
               "edges/error-edges"
             ]

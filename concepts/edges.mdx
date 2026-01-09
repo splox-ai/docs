@@ -18,7 +18,7 @@ An **edge** is a connection between two nodes that defines how data flows and wh
     Switch nodes use edges to route to different paths
   </Card>
   <Card title="Special Connections" icon="plug">
-    Tool and memory edges create specialized relationships
+    Tool edges create specialized relationships
   </Card>
 </CardGroup>
 
@@ -37,12 +37,6 @@ An **edge** is a connection between two nodes that defines how data flows and wh
     **LLM-to-Tool connections**
     
     Enable AI function calling and tool use
-  </Card>
-  
-  <Card title="Memory Edges" icon="comments" href="/edges/memory-edges">
-    **Stateful conversations**
-    
-    Connect memory nodes to LLMs for chat history
   </Card>
   
   <Card title="Conditional Edges" icon="code-branch" href="/edges/conditional-edges">
@@ -144,10 +138,9 @@ Each edge has:
   </Accordion>
   
   <Accordion title="Special Edges" icon="sparkles">
-    **Tool and memory edges require specific nodes**
+    **Tool edges require specific nodes**
     
     - **Tool Edges:** Connect LLM's TOOLS handle to Tool node input
-    - **Memory Edges:** Connect Memory node (top) to LLM's MEMORY handle (bottom)
     
     These connections have unique visual styling.
   </Accordion>
@@ -368,10 +361,6 @@ Each edge has:
   
   <Card title="Tool Edges" icon="wrench" href="/edges/tool-edges">
     Connect LLMs to tools for function calling
-  </Card>
-  
-  <Card title="Memory Edges" icon="comments" href="/edges/memory-edges">
-    Enable stateful conversations with chat history
   </Card>
   
   <Card title="Conditional Edges" icon="code-branch" href="/edges/conditional-edges">
