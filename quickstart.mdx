@@ -185,77 +185,25 @@ Keep an eye on your workflow executions:
 
 ---
 
-## Common First Workflows
-
-Here's what people typically build first:
-
-<AccordionGroup>
-  <Accordion title="AI Chatbot with Memory" icon="comments">
-    **What it does:** Responds to user messages, remembers conversation history
-    
-    **Template:** [Telegram Chatbot](https://app.splox.io/templates/0198765c-542b-719a-9578-89a2e5c2d610)
-    
-    **Customize:**
-    - Change personality/instructions in LLM node
-    - Add tools (search, calculator, weather)
-    - Connect to Slack instead of Telegram
-  </Accordion>
-
-  <Accordion title="Data Extraction Pipeline" icon="database">
-    **What it does:** Scrapes website → AI extracts data → Saves to database
-    
-    **Template:** [Browser Agent](https://app.splox.io/templates/01990ff5-334e-7778-9978-05dc29ac6212)
-    
-    **Customize:**
-    - Change target URL
-    - Modify extraction prompt
-    - Add Google Sheets export
-  </Accordion>
-
-  <Accordion title="Content Generator" icon="pen">
-    **What it does:** Researches topic → Generates article → Posts to CMS
-    
-    **Start from:** [Multimodal LLM](https://app.splox.io/templates/019879d2-22dd-7d06-b2e1-0294266e6f45) + add tools
-    
-    **Customize:**
-    - Add web search for research
-    - Chain multiple LLM nodes (outline → draft → edit)
-    - Connect WordPress/Ghost publishing
-  </Accordion>
-
-  <Accordion title="Alert System" icon="bell">
-    **What it does:** Monitors system → Detects anomaly → Sends alert
-    
-    **Template:** [DevOps Agent](https://app.splox.io/templates/01987643-c8fb-73bc-9da5-b28908134155)
-    
-    **Customize:**
-    - Change monitoring checks
-    - Add auto-remediation logic
-    - Send to PagerDuty/Slack/Email
-  </Accordion>
-</AccordionGroup>
-
----
-
 ## Next Steps
 
-Now that you've built your first workflow, dive deeper:
+Now that you've chatted with your first agent, here's what to explore:
 
 <CardGroup cols={2}>
-  <Card title="Learn Core Concepts" icon="book" href="/concepts/workflows">
-    Understand workflows, nodes, edges, and execution flow
+  <Card title="Add More Tools" icon="wrench" href="/concepts/tools">
+    Connect from 10,000+ MCP tools and skills to make your agent domain-specific
   </Card>
 
-  <Card title="Explore Nodes" icon="sitemap" href="/nodes/variable-mappings">
+  <Card title="Build Multi-Agent Workflows" icon="sitemap" href="/concepts/workflows">
+    Connect multiple agents where each handles a specialized task
+  </Card>
+
+  <Card title="Learn Node Types" icon="cube" href="/nodes/variable-mappings">
     Master Agent nodes, Tool nodes, Switch logic, and more
   </Card>
 
-  <Card title="Connect Tools" icon="plug" href="/concepts/tools">
-    Connect 500+ tools: Slack, Google, Salesforce, databases, APIs
-  </Card>
-
-  <Card title="View API Reference" icon="code-branch" href="/api-reference/introduction">
-    Trigger workflows programmatically via REST API
+  <Card title="Voice Integration" icon="microphone" href="https://splox.io/download">
+    Download the desktop app for voice interaction with your workflows
   </Card>
 </CardGroup>
 
@@ -263,17 +211,13 @@ Now that you've built your first workflow, dive deeper:
 
 ## Need Help?
 
-<CardGroup cols={3}>
-  <Card title="Community Forum" icon="comments" href="https://community.splox.io">
-    Ask questions, share workflows
+<CardGroup cols={2}>
+  <Card title="Telegram Community" icon="telegram" href="https://t.me/splox_ai">
+    Chat with the team and other users
   </Card>
 
-  <Card title="Telegram Group" icon="telegram" href="https://t.me/splox_ai">
-    Chat with the team and users
-  </Card>
-
-  <Card title="Examples" icon="grid" href="https://app.splox.io/templates">
-    Browse 50+ workflow templates
+  <Card title="Download Desktop App" icon="desktop" href="https://splox.io/download">
+    Get the native app for voice interaction
   </Card>
 </CardGroup>
 
@@ -287,15 +231,10 @@ Now that you've built your first workflow, dive deeper:
 
 Make sure you've completed these steps:
 
-- [ ] Signed up at [app.splox.io](https://app.splox.io)
-- [ ] Chose a template (or started from scratch)
-- [ ] Set up your AI provider
-- [ ] Ran your first workflow manually
-- [ ] Checked execution history and node outputs
-- [ ] (Optional) Set up a webhook trigger
+- [ ] Opened the [starter template](https://app.splox.io/templates/019b36e4-f41b-7d9f-9b4d-fb87d550f21f)
+- [ ] Chatted with your agent (voice or text)
+- [ ] Explored the workflow graph (Start → Agent → Tools)
+- [ ] (Optional) Downloaded the [desktop app](https://splox.io/download)
+- [ ] (Optional) Added your own API keys via BYOK
 
-**All done?** You're ready to build production workflows!
-
-<Card title="Share Your Creation" icon="share" href="https://community.splox.io">
-  Built something cool? Share it in the community and help others learn!
-</Card>
+**All done?** You're ready to customize and build your own workflows!
