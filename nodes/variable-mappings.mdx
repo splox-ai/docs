@@ -1,6 +1,6 @@
 ---
 title: "Variable Mappings"
-description: "Reference data across nodes using Pongo2 template syntax - a universal feature in Splox"
+description: "Reference data across nodes using Jinja2 template syntax - a universal feature in Splox"
 ---
 
 ## Overview
@@ -41,7 +41,7 @@ Variable mappings are a fundamental feature in Splox that allow nodes to access 
   </Step>
   
   <Step title="Use in Templates">
-    Reference the mapped data using Pongo2 template syntax
+    Reference the mapped data using Jinja2 template syntax
     
     **Syntax:** `{{ mapping_name.field }}`
   </Step>
@@ -70,9 +70,9 @@ Variable mappings are stored in the node configuration:
 
 ---
 
-## Template Syntax (Pongo2)
+## Template Syntax (Jinja2)
 
-Once mapped, use Pongo2 syntax to access the data:
+Once mapped, use Jinja2 syntax to access the data:
 
 <Tabs>
   <Tab title="Basic Access">
@@ -209,7 +209,7 @@ Once mapped, use Pongo2 syntax to access the data:
 </CardGroup>
 
 <Info>
-  **Pongo2 Documentation:** Splox uses the Pongo2 template engine. Full syntax reference: [https://github.com/flosch/pongo2](https://github.com/flosch/pongo2)
+  **Jinja2 Documentation:** Splox uses the Gonja template engine (Jinja2 for Go). Full syntax reference: [https://github.com/NikolaLohworkarinski/gonja](https://github.com/nikolalohinski/gonja)
 </Info>
 
 ---

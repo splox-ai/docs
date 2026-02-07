@@ -393,8 +393,7 @@ graph LR
   <Step title="Iteration">
     The Agent loops back to the LLM with tool results. The LLM can call more tools or produce a final response. This continues until:
     - The LLM responds without tool calls (task complete)
-    - The **max iterations** limit is reached (configurable, default: 10, max: 50)
-    - A stop condition is triggered
+    - The **max iterations** limit is reached (configurable, default: 50, max: 50)
   </Step>
   
   <Step title="Output">
@@ -416,8 +415,8 @@ graph LR
   </Tab>
   
   <Tab title="LLM Configuration">
-    - **Provider & Model:** Choose from Anthropic, OpenAI, Gemini, OpenRouter, Perplexity, and more
-    - **System Prompt:** Pongo2 template with variable mapping support
+    - **Provider & Model:** Choose from Anthropic, OpenAI, Gemini, OpenRouter, and more
+    - **System Prompt:** Jinja2 template with variable mapping support
     - **Tool Choice:** `auto`, `required`, `none`, or specific tool name
     - **Thinking Tokens:** Enable extended thinking for complex reasoning
     - **Streaming:** Real-time token-by-token output
@@ -425,8 +424,7 @@ graph LR
   </Tab>
   
   <Tab title="Iteration Control">
-    - **Max Iterations:** 1–50 (default: 10). Limits how many tool-call rounds the agent can perform.
-    - **Stop Condition:** Pongo2 template that evaluates to true/false for early exit
+    - **Max Iterations:** 1–50 (default: 50). Limits how many tool-call rounds the agent can perform.
     - **On Tool Error:** `continue` (skip failed tools) or `fail` (stop the agent)
   </Tab>
   

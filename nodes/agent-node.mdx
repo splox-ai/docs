@@ -26,7 +26,7 @@ The **Agent Node** is the core building block of Splox workflows. It's an autono
     Conversation context is managed automatically — no separate memory node needed
   </Card>
   <Card title="Configurable Limits" icon="gauge">
-    Set max iterations, stop conditions, and timeouts to control behavior
+    Set max iterations and timeouts to control behavior
   </Card>
   <Card title="Real-time Streaming" icon="bolt">
     Token-by-token output streaming with session-based chat support
@@ -59,7 +59,6 @@ The Agent node runs an **autonomous loop** that alternates between LLM reasoning
     The Agent loops back to the LLM with tool results. The loop continues until:
     - The LLM responds **without tool calls** (task complete)
     - The **max iterations** limit is reached
-    - A **stop condition** template evaluates to true
   </Step>
   
   <Step title="Output">
@@ -79,7 +78,7 @@ The Agent node runs an **autonomous loop** that alternates between LLM reasoning
     
     | Field | Description | Default |
     |-------|-------------|---------|
-    | **Text LLM Provider** | Provider slug (`anthropic`, `openai`, `gemini`, `openrouter`, `perplexity`, etc.) | `anthropic` |
+    | **Text LLM Provider** | Provider slug (`anthropic`, `openai`, `gemini`, `openrouter`, etc.) | `anthropic` |
     | **Text LLM Model** | Model identifier (e.g., `claude-sonnet-4-5-20250929`) | `claude-sonnet-4-5-20250929` |
     | **Credential** | Optional custom API key credential | Account default |
     
@@ -89,7 +88,7 @@ The Agent node runs an **autonomous loop** that alternates between LLM reasoning
   </Accordion>
   
   <Accordion title="System Prompt" icon="message">
-    The system prompt instructs the agent on its role, behavior, and constraints. It supports **Pongo2 templates** for dynamic content.
+    The system prompt instructs the agent on its role, behavior, and constraints. It supports **Jinja2 templates** for dynamic content.
     
     ```
     You are a helpful research assistant. 
@@ -151,13 +150,12 @@ The Agent node runs an **autonomous loop** that alternates between LLM reasoning
 
 | Field | Description | Default | Range |
 |-------|-------------|---------|-------|
-| **Max Iterations** | Maximum number of LLM → Tool → LLM cycles | `10` | 1–50 |
-| **Stop Condition** | Pongo2 template that evaluates to true/false for early exit | None | — |
+| **Max Iterations** | Maximum number of LLM → Tool → LLM cycles | `50` | 1–50 |
 | **Timeout** | Maximum execution time in minutes | 525,600 (1 year) | — |
 | **Max Retries** | Retries on transient failures | `3` | 0–10 |
 
 <Warning>
-  Setting max iterations too high can lead to excessive credit usage. Start with 10 and increase as needed.
+  Setting max iterations too high can lead to excessive credit usage. Start with a lower value and increase as needed.
 </Warning>
 
 ### Context Memory

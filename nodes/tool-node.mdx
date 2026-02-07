@@ -119,7 +119,7 @@ These fields appear when the Tool node is **not** connected via a tool edge (man
 
     **Required:** Depends on tool
 
-    The input form is generated from the tool's JSON schema. Each field maps to a tool parameter. Supports **Pongo2 template variables** for dynamic values:
+    The input form is generated from the tool's JSON schema. Each field maps to a tool parameter. Supports **Jinja2 template variables** for dynamic values:
 
     ```
     {{ start.user_id }}
@@ -230,7 +230,7 @@ These fields are available in both modes:
   </Accordion>
 
   <Accordion title="Variable Mappings" icon="link">
-    **Description:** Reference data from other nodes using Pongo2 templates.
+    **Description:** Reference data from other nodes using Jinja2 templates.
 
     **Type:** Variable mapping list
 
@@ -406,7 +406,7 @@ Connect your own MCP servers via the **Tools** page:
     Set output storage to S3 for tools that produce large files or binary data
   </Card>
   <Card title="Template Arguments" icon="code">
-    Use Pongo2 templates in manual-mode arguments to pass dynamic data from upstream nodes
+    Use Jinja2 templates in manual-mode arguments to pass dynamic data from upstream nodes
   </Card>
 </CardGroup>
 
@@ -424,7 +424,7 @@ Connect your own MCP servers via the **Tools** page:
   </Card>
 
   <Card title="Variable Mappings" icon="link" href="/nodes/variable-mappings">
-    Reference data between nodes with Pongo2 templates
+    Reference data between nodes with Jinja2 templates
   </Card>
 
   <Card title="Node Lifecycle" icon="circle-play" href="/nodes/lifecycle">
