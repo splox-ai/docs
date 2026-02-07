@@ -110,55 +110,29 @@ The starter template shows you the basics:
 
 ## Step 4: Chat with Your Workflow
 
-Interact with your agent via voice or text:
+Once your workflow is ready, chat with it directly from the builder:
 
-<Tabs>
-  <Tab title="Agent Chat (chat.splox.io)">
-    **Chat with agents in your browser**
-    
-    <img src="https://splox-app.s3.amazonaws.com/019ba342-53d7-7f4a-8050-978de73c1236.png" alt="Chat Mode Interface" style={{borderRadius: "8px"}} />
-    
-    1. Go to [chat.splox.io](https://chat.splox.io)
-    2. Browse the **agent marketplace** and select an agent
-    3. Type or speak your message
-    4. See the agent respond in real-time
-    
-    **Supports:** Text and voice input
-  </Tab>
+<img src="https://splox-app.s3.amazonaws.com/019ba342-53d7-7f4a-8050-978de73c1236.png" alt="Chat Mode Interface" style={{borderRadius: "8px"}} />
 
-  <Tab title="Desktop App">
-    **Native agent chat on your OS**
-    
-    1. Download from [splox.io/download](https://splox.io/download)
-    2. Install on Windows, macOS, or Linux
-    3. Login with your Splox account
-    4. Browse agents and start chatting
-    
-    **Best for:** Voice interaction, always-available agent chat
-  </Tab>
+1. Click the **Chat icon** (speech bubble) in the toolbar on [app.splox.io](https://app.splox.io)
+2. Select your **Start node** from the dropdown
+3. Type or speak your message
+4. See the agent respond in real-time — watch nodes execute in the workflow as it runs
 
-  <Tab title="Workflow Builder (app.splox.io)">
-    **Chat with your own workflows**
-    
-    1. Open your workflow on [app.splox.io](https://app.splox.io)
-    2. Click the **Chat icon** (speech bubble) in the toolbar
-    3. Select your **Start node** from the dropdown
-    4. This opens a chat on [chat.splox.io](https://chat.splox.io) connected to your workflow
-  </Tab>
+**Supports:** Text and voice input
 
-  <Tab title="API">
-    **Trigger programmatically**
-    
-    ```bash
-    curl -X POST https://app.splox.io/api/v1/workflow-requests/run \
-      -H "Authorization: Bearer YOUR_TOKEN" \
-      -H "Content-Type: application/json" \
-      -d '{"workflow_version_id": "...", "chat_id": "...", "start_node_id": "...", "query": "Process this data"}'
-    ```
-    
-    **Best for:** Production automations, external integrations. See [API docs](/api-reference/introduction).
-  </Tab>
-</Tabs>
+<Accordion title="Other ways to run your workflow" icon="bolt">
+  **API** — Trigger programmatically:
+  
+  ```bash
+  curl -X POST https://app.splox.io/api/v1/workflow-requests/run \
+    -H "Authorization: Bearer YOUR_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"workflow_version_id": "...", "chat_id": "...", "start_node_id": "...", "query": "Process this data"}'
+  ```
+  
+  See the full [API docs](/api-reference/introduction) for details.
+</Accordion>
 
 ---
 
