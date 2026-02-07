@@ -1,18 +1,18 @@
 ---
 title: "Tool Edges"
-description: "Connect LLM nodes to tools for AI-powered function calling"
+description: "Connect Agent nodes to tools for AI-powered function calling"
 ---
 
 ## Tool Edges
 
-**Purpose:** Connect LLM nodes to tool nodes for AI tool calling
+**Purpose:** Connect Agent nodes to Tool nodes for AI tool calling
 
-Tool edges are special connections that make tools available to LLM nodes. When an LLM is connected to tool nodes via tool edges, those tools become part of the LLM's available function set.
+Tool edges are special connections that make tools available to Agent nodes. When an Agent is connected to Tool nodes via tool edges, those tools become part of the Agent's available function set.
 
 <div className="block dark:hidden">
   <img
     src="https://splox-app.s3.amazonaws.com/019a0b71-bc8b-70e9-a975-f0d3642a84e4_019a0b6f-07b8-70e5-978e-a74eea74c511-light.png"
-    alt="Tool Edges - LLM node connected to Tool node via TOOLS handle"
+    alt="Tool Edges - Agent node connected to Tool node via TOOLS handle"
     style={{ maxWidth: '100%', margin: '20px auto', display: 'block', borderRadius: '8px' }}
   />
 </div>
@@ -20,59 +20,62 @@ Tool edges are special connections that make tools available to LLM nodes. When 
 <div className="hidden dark:block">
   <img
     src="https://splox-app.s3.amazonaws.com/019a0b6f-07b8-70e5-978e-a74eea74c511.png"
-    alt="Tool Edges - LLM node connected to Tool node via TOOLS handle"
+    alt="Tool Edges - Agent node connected to Tool node via TOOLS handle"
     style={{ maxWidth: '100%', margin: '20px auto', display: 'block', borderRadius: '8px' }}
   />
 </div>
 
 **In this example:**
-- The **LLM Node** has a **TOOLS** output handle (top right)
+- The **Agent Node** has a **TOOLS** output handle
 - A **tool edge** (dashed line with 🔧 wrench icon) connects to the **Tool Node**
-- The tool becomes available to the LLM for function calling
-- The LLM can decide when and how to use this tool during execution
+- The tool becomes available to the Agent for function calling
+- The Agent can decide when and how to use this tool during its iteration loop
 
 **Other handles visible:**
-- **MEMORY** - For conversation history (bottom)
-- **PARALLEL** - For standard execution flow
-- **ERROR** - For error handling
+- **PARALLEL** — For standard execution flow (to downstream nodes)
+- **ERROR** — For error handling
 
 **How It Works:**
 
 <Steps>
   <Step title="Connection">
-    Connect tool nodes to an LLM node using tool edges
+    Connect Tool nodes to an Agent node's TOOLS handle using tool edges
   </Step>
   
   <Step title="Discovery">
-    The LLM automatically discovers all connected tools
+    The Agent automatically discovers all connected tools at the start of its loop
   </Step>
   
   <Step title="Decision">
-    During execution, the LLM decides which tools to call
+    During execution, the LLM decides which tools to call based on the conversation
   </Step>
   
   <Step title="Execution">
-    Tools execute and return results to the LLM
+    Tools execute and return results to the Agent
   </Step>
   
   <Step title="Iteration">
-    The LLM can call tools multiple times before responding
+    The Agent can call tools multiple times before producing a final response
   </Step>
 </Steps>
 
 **Visual Indicator:**
 - Icon: 🔧 Wrench
 - Label: Tool name or icon
-- Connection: Standard left-to-right flow
+- Connection: From Agent's TOOLS handle to Tool node's input
 
 **Example Use Case:**
 
 An AI customer support agent with three tools:
-- **Search Knowledge Base** - Find help articles
-- **Check Order Status** - Query order database  
-- **Create Ticket** - Generate support ticket
+- **Search Knowledge Base** — Find help articles
+- **Check Order Status** — Query order database  
+- **Create Ticket** — Generate support ticket
 
-The LLM can use any combination of these tools to answer the user's question.
+The Agent can use any combination of these tools to answer the user's question.
+
+<Info>
+  Tool edges are **not** execution edges — they don't trigger node execution directly. They only define which tools are available to the Agent. The Agent handles tool execution internally during its iteration loop.
+</Info>
 
 ---
 
@@ -82,15 +85,15 @@ The LLM can use any combination of these tools to answer the user's question.
 ## What's Next?
 
 <CardGroup cols={2}>
-  <Card title="LLM Node" icon="brain" href="/nodes/llm-node">
-    Learn how LLMs use tools
+  <Card title="Agent Node" icon="brain" href="/nodes/agent-node">
+    Learn how Agents use tools in their iteration loop
   </Card>
   
   <Card title="Tool Node" icon="wrench" href="/nodes/tool-node">
-    Explore available tool types
+    Explore available tool types and MCP servers
   </Card>
   
-  <Card title="Subflow Node" icon="diagram-nested" href="/nodes/subflow-node">
-    Create agent loops with tools
+  <Card title="Parallel Edges" icon="arrows-split-up-and-left" href="/edges/parallel-edges">
+    Standard execution flow between nodes
   </Card>
 </CardGroup>
