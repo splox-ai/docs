@@ -85,20 +85,6 @@ The payload structure depends on how the workflow is triggered:
     </Tip>
   </Accordion>
 
-  <Accordion title="Webhook Secret" icon="key">
-    **Description:** Optional secret for validating incoming webhook requests.
-    
-    **Fields:**
-    
-    | Field | Type | Description |
-    |-------|------|-------------|
-    | **Use Webhook Secret** | Boolean | Enable webhook secret validation |
-    | **Webhook Secret Header** | String | The HTTP header name containing the secret (e.g., `X-Webhook-Secret`) |
-    | **Webhook Secret** | String | The expected secret value |
-    
-    When enabled, incoming requests must include the correct secret in the specified header to trigger the workflow.
-  </Accordion>
-
   <Accordion title="Variable Mappings" icon="link">
     **Description:** Reference data from other nodes using Jinja2 templates.
     
@@ -216,9 +202,6 @@ When triggering a workflow, you specify which Start node to use via the `start_n
 <CardGroup cols={2}>
   <Card title="Descriptive Labels" icon="tag">
     Name Start nodes clearly — they appear in dropdowns and API calls
-  </Card>
-  <Card title="Validate Webhooks" icon="shield-check">
-    Enable webhook secrets for production endpoints to prevent unauthorized triggers
   </Card>
   <Card title="Handle Missing Fields" icon="triangle-exclamation">
     Use conditional logic (Switch nodes or template defaults) to handle cases where optional payload fields may be missing
