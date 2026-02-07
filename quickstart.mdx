@@ -5,18 +5,23 @@ description: 'Build your first AI workflow in 5 minutes'
 
 ## Welcome to Splox
 
-Get started by using our pre-built template. Build workflows visually in the web app, then chat with them via voice or text - in your browser or using the desktop app.
+Splox has two products: **Agent Chat** for using pre-built agents, and the **Workflow Builder** for creating your own. This quickstart covers both.
 
-<CardGroup cols={2}>
-  <Card title="Web App" icon="browser" href="https://app.splox.io">
-    **Build and chat with workflows**
+<CardGroup cols={3}>
+  <Card title="Agent Chat" icon="messages" href="https://chat.splox.io">
+    **chat.splox.io**
     
-    Visual workflow builder + chat interface in your browser
+    Browse agents and start chatting — no setup required
   </Card>
   <Card title="Desktop App" icon="desktop" href="https://splox.io/download">
-    **Chat interface for your OS**
+    **Windows, macOS, Linux**
     
-    Native app for Windows, macOS, Linux - auto-sets up your first workflow
+    Native agent chat app with voice support
+  </Card>
+  <Card title="Workflow Builder" icon="browser" href="https://app.splox.io">
+    **app.splox.io**
+    
+    Build and customize multi-agent workflows visually
   </Card>
 </CardGroup>
 
@@ -41,7 +46,7 @@ Get started by using our pre-built template. Build workflows visually in the web
 </Card>
 
 <Info>
-**Using Desktop App?** Your first workflow is automatically set up - just login and start chatting!
+**Using the Desktop App?** The desktop app connects to [chat.splox.io](https://chat.splox.io) — browse agents and start chatting with voice or text.
 </Info>
 
 <Steps>
@@ -108,13 +113,13 @@ The starter template shows you the basics:
 Interact with your agent via voice or text:
 
 <Tabs>
-  <Tab title="Web Chat (In Browser)">
-    **Chat directly in the web app**
+  <Tab title="Agent Chat (chat.splox.io)">
+    **Chat with agents in your browser**
     
     <img src="https://splox-app.s3.amazonaws.com/019ba342-53d7-7f4a-8050-978de73c1236.png" alt="Chat Mode Interface" style={{borderRadius: "8px"}} />
     
-    1. Click the **Chat icon** (speech bubble) in the toolbar
-    2. Select your **Start node** from the dropdown
+    1. Go to [chat.splox.io](https://chat.splox.io)
+    2. Browse the **agent marketplace** and select an agent
     3. Type or speak your message
     4. See the agent respond in real-time
     
@@ -122,26 +127,36 @@ Interact with your agent via voice or text:
   </Tab>
 
   <Tab title="Desktop App">
-    **Native chat experience on your OS**
+    **Native agent chat on your OS**
     
     1. Download from [splox.io/download](https://splox.io/download)
     2. Install on Windows, macOS, or Linux
     3. Login with your Splox account
-    4. **Start chatting immediately** - your first workflow is automatically set up
+    4. Browse agents and start chatting
     
-    **Best for:** Voice interaction, local machine integration, zero-config setup
+    **Best for:** Voice interaction, always-available agent chat
   </Tab>
 
-  <Tab title="API / Webhooks">
+  <Tab title="Workflow Builder (app.splox.io)">
+    **Chat with your own workflows**
+    
+    1. Open your workflow on [app.splox.io](https://app.splox.io)
+    2. Click the **Chat icon** (speech bubble) in the toolbar
+    3. Select your **Start node** from the dropdown
+    4. This opens a chat on [chat.splox.io](https://chat.splox.io) connected to your workflow
+  </Tab>
+
+  <Tab title="API">
     **Trigger programmatically**
     
     ```bash
-    curl -X POST https://app.splox.io/api/v1/workflow-webhooks/{webhook_id} \
+    curl -X POST https://app.splox.io/api/v1/workflow-requests/run \
+      -H "Authorization: Bearer YOUR_TOKEN" \
       -H "Content-Type: application/json" \
-      -d '{"message": "Process this data"}'
+      -d '{"workflow_version_id": "...", "chat_id": "...", "start_node_id": "...", "query": "Process this data"}'
     ```
     
-    **Best for:** Production automations, external integrations
+    **Best for:** Production automations, external integrations. See [API docs](/api-reference/introduction).
   </Tab>
 </Tabs>
 
@@ -204,8 +219,8 @@ Now that you've chatted with your first agent, here's what to explore:
     Master Agent nodes, Tool nodes, Switch logic, and more
   </Card>
 
-  <Card title="Voice Integration" icon="microphone" href="https://splox.io/download">
-    Download the desktop app for voice interaction with your workflows
+  <Card title="Agent Marketplace" icon="grid" href="https://chat.splox.io">
+    Browse and chat with published agents
   </Card>
 </CardGroup>
 
@@ -218,8 +233,8 @@ Now that you've chatted with your first agent, here's what to explore:
     Chat with the team and other users
   </Card>
 
-  <Card title="Download Desktop App" icon="desktop" href="https://splox.io/download">
-    Get the native app for voice interaction
+  <Card title="Desktop App" icon="desktop" href="https://splox.io/download">
+    Get the native app for voice chat with agents
   </Card>
 </CardGroup>
 
@@ -233,10 +248,10 @@ Now that you've chatted with your first agent, here's what to explore:
 
 Make sure you've completed these steps:
 
-- [ ] Opened the [starter template](https://app.splox.io/templates/019b36e4-f41b-7d9f-9b4d-fb87d550f21f)
-- [ ] Chatted with your agent (voice or text)
+- [ ] Opened the [starter template](https://app.splox.io/templates/019b36e4-f41b-7d9f-9b4d-fb87d550f21f) on app.splox.io
+- [ ] Chatted with an agent on [chat.splox.io](https://chat.splox.io) (voice or text)
 - [ ] Explored the workflow graph (Start → Agent → Tools)
-- [ ] (Optional) Downloaded the [desktop app](https://splox.io/download)
+- [ ] (Optional) Downloaded the [desktop app](https://splox.io/download) for voice chat
 - [ ] (Optional) Added your own API keys via BYOK
 
 **All done?** You're ready to customize and build your own workflows!
