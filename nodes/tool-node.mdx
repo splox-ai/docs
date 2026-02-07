@@ -1,13 +1,22 @@
 ---
 title: "Tool Node"
-description: "Execute operations, call APIs, run code, and integrate with external services"
+description: "Execute operations via MCP servers, platform integrations, sandboxes, and external APIs"
 ---
 
-## Tool Node
+## What is a Tool Node?
 
-**Purpose:** Execute operations, call APIs, run code, and integrate with external services
+A **Tool Node** executes actions — calling APIs, running commands, querying databases, managing files, and more. Tool nodes are the hands and feet of your AI agents, letting them interact with the real world.
 
-Tool nodes enable LLMs to take actions in the real world.
+Tool nodes work in two modes:
+
+<CardGroup cols={2}>
+  <Card title="Agent Mode (LLM-Controlled)" icon="brain">
+    Connected to an Agent via a **tool edge**. The Agent's LLM autonomously decides when and how to call the tool during its iteration loop.
+  </Card>
+  <Card title="Manual Mode" icon="hand">
+    Connected via a **parallel edge**. The tool executes once with pre-configured arguments when reached in the workflow.
+  </Card>
+</CardGroup>
 
 <div className="block dark:hidden">
   <img
@@ -25,735 +34,400 @@ Tool nodes enable LLMs to take actions in the real world.
   />
 </div>
 
-## Configuration
+---
 
-The Tool Node configuration varies based on the selected **Tool Type**. All tool types share a common field:
+## How It Works
 
-<Accordion title="Label" icon="tag">
-  **Description:** A user-defined name to identify this tool node in your workflow.
-  
-  **Type:** String
-  
-  **Required:** Yes
-  
-  **Example:**
-  ```
-  "Send Email Tool"
-  "GitHub API Tool"
-  "Search Database"
-  ```
-</Accordion>
+### Agent Mode (via Tool Edge)
 
-<Accordion title="Tool Type" icon="list">
-  **Description:** Defines what kind of tool this node represents.
-  
-  **Type:** Select
-  
-  **Required:** Yes
-  
-  **Options:**
-  - **Operations** - Platform integrations (APIs, databases, services)
-  - **MCP** - Model Context Protocol servers
-  - **Custom** - Custom code execution
-  - **Workflow** - Call other workflows as tools
-  
-  **What Changes:**
-  Different tool types show different configuration fields. See sections below for details.
-</Accordion>
+When a Tool node is connected to an Agent node through a **tool edge** (from the Agent's TOOLS handle):
+
+1. The Agent discovers all connected tools automatically at the start of its loop
+2. Tool definitions (names, descriptions, input schemas) are sent to the LLM
+3. The LLM decides which tools to call based on the task
+4. The Agent executes the tool calls and feeds results back to the LLM
+5. This repeats until the Agent finishes its iteration loop
+
+In this mode, the **Allowed Tools** and **Tool Approval** settings are available to control which tools the LLM can access and whether human approval is required.
+
+### Manual Mode (via Parallel Edge)
+
+When a Tool node is connected via a standard **parallel edge**:
+
+1. The tool executes when its parent node completes
+2. A single pre-configured tool is called with fixed or templated arguments
+3. The result flows to downstream nodes
+
+In this mode, you configure **Selected Tool** and **Tool Arguments** directly.
 
 ---
 
-### Operations Tools Configuration
+## Configuration
 
-Use operations tools to integrate with external platforms and services.
+### MCP Server
+
+Every Tool node is backed by an **MCP server** — the service that provides the actual tools.
+
+<Accordion title="MCP Server" icon="server">
+  **Description:** The MCP server that provides tools to this node.
+
+  **Type:** Select
+
+  **Required:** Yes
+
+  **Options include:**
+
+  | Server | Description |
+  |--------|-------------|
+  | **Tool Router** | Meta-tool that can discover and call tools from any connected MCP server dynamically |
+  | **Splox** | Built-in platform operations (API requests, KV store, vector search, etc.) |
+  | **Sandbox** | E2B sandbox operations (execute commands, read/write files, upload to S3) |
+  | **Remote Server** | SSH-based operations on remote machines |
+  | **Local Machine** | Desktop automation via the Splox desktop app |
+  | **Skills** | Reusable skill packs that bundle related tools |
+  | **Composio** | Third-party integrations via Composio |
+  | **Event Hub** | Event-driven messaging and webhooks |
+  | **Media** | Media processing operations |
+  | **Custom MCP** | Any MCP server you've connected in your integrations |
+
+  **Default:** `system:tool_router`
+
+  <Tip>
+    The **Tool Router** is ideal for Agent-mode tools — it lets the LLM dynamically discover and use any of your connected tools without configuring each one individually.
+  </Tip>
+</Accordion>
+
+### Manual Mode Settings
+
+These fields appear when the Tool node is **not** connected via a tool edge (manual/parallel-edge mode):
 
 <AccordionGroup>
-  <Accordion title="Platform" icon="plug">
-    **Description:** Select which platform this tool connects to.
-    
-    **Type:** Select (Dynamic)
-    
-    **Required:** Yes
-    
-    **Visibility:** Only when Tool Type = "Operations"
-    
-    **Options:** Shows platforms where you have active integrations:
-    - Splox (internal operations)
-    - Sandbox (E2B sandbox operations)
-    - Remote Server (SSH operations)
-    - Local Machine (desktop automation)
-    - Any other connected platforms
-    
-    **Setup:**
-    1. Go to **[Integrations](https://app.splox.io/integrations?tab=browse)** page
-    2. Connect the platform you need
-    3. It appears in this dropdown
-    
+  <Accordion title="Selected Tool" icon="hand-pointer">
+    **Description:** The specific tool to execute from the selected MCP server.
+
+    **Type:** Select (dynamic, loaded from MCP server)
+
+    **Required:** Yes (in manual mode)
+
+    After selecting an MCP server, this dropdown shows all available tools from that server.
+  </Accordion>
+
+  <Accordion title="Tool Arguments" icon="input-text">
+    **Description:** Input arguments for the selected tool.
+
+    **Type:** Dynamic form (schema-driven)
+
+    **Required:** Depends on tool
+
+    The input form is generated from the tool's JSON schema. Each field maps to a tool parameter. Supports **Pongo2 template variables** for dynamic values:
+
+    ```
+    {{ start.user_id }}
+    {{ previous_node.output_field }}
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Agent Mode Settings
+
+These fields appear when the Tool node **is** connected via a tool edge:
+
+<AccordionGroup>
+  <Accordion title="Allowed Tools" icon="filter">
+    **Description:** Restrict which tools from this MCP server the LLM can access.
+
+    **Type:** Multi-select (dynamic, loaded from MCP server)
+
+    **Required:** No
+
+    **Behavior:**
+    - **Empty (default):** All tools from the server are available to the LLM
+    - **Selected:** Only the specified tools are exposed to the LLM
+
+    **Use cases:**
+    - Limit LLM to safe/relevant operations
+    - Prevent access to destructive tools (e.g., delete operations)
+    - Optimize by reducing tool list size for faster LLM decisions
+  </Accordion>
+
+  <Accordion title="Tool Approval" icon="shield-check">
+    **Description:** Require human approval before tool calls execute.
+
+    **Type:** Approval configuration
+
+    **Required:** No
+
+    **Modes:**
+
+    | Mode | Behavior |
+    |------|----------|
+    | **Auto** | All tools execute immediately without approval (default) |
+    | **Require Approval** | All tools require human approval before executing |
+    | **Pattern-Based** | Rules match tool names with glob patterns to auto-approve, require approval, or reject |
+
+    **Pattern-Based Rules:**
+
+    Each rule has a **glob pattern** and an **action**:
+
+    | Action | Behavior |
+    |--------|----------|
+    | `auto` | Execute immediately (no approval needed) |
+    | `allow` | Pause and wait for human approval |
+    | `reject` | Reject the tool call automatically |
+
+    Rules are evaluated in order — first match wins.
+
+    **Example patterns:**
+    ```
+    read_*     → auto      (auto-approve all read operations)
+    delete_*   → allow     (require approval for deletes)
+    *          → auto      (auto-approve everything else)
+    ```
+
+    **Timeout:** Configurable (default: 300 seconds / 5 minutes). If no approval is received within the timeout, the tool call is rejected.
+
     <Info>
-      Only platforms with active integrations are shown. The list is filtered to your connected platforms.
+      When approval is required, the agent pauses and the approval request appears in the chat interface. The user can approve or reject each tool call.
+    </Info>
+  </Accordion>
+</AccordionGroup>
+
+### Common Settings
+
+These fields are available in both modes:
+
+<AccordionGroup>
+  <Accordion title="Output Storage" icon="database">
+    **Description:** Where to store tool execution output.
+
+    **Type:** Select
+
+    **Required:** No
+
+    | Option | Behavior | Best For |
+    |--------|----------|----------|
+    | **Memory** | Store output in workflow memory (default) | Small data, JSON responses, text |
+    | **S3** | Upload output to S3 and return a reference | Large files, images, documents, binary data |
+
+    <Info>
+      Outputs exceeding 200KB are automatically uploaded to S3 regardless of this setting.
     </Info>
   </Accordion>
 
-  <Accordion title="Integration" icon="link">
-    **Description:** Select which specific integration to use for this tool.
-    
-    **Type:** Select (Dynamic)
-    
-    **Required:** Yes
-    
-    **Visibility:** Only after Platform is selected
-    
-    **Options:** Shows your integrations for the selected platform
-    
-    **Example:**
-    - If Platform = "Slack" → Shows your Slack workspaces
-    - If Platform = "Sandbox" → Shows your sandbox templates
-  </Accordion>
+  <Accordion title="On Error" icon="triangle-exclamation">
+    **Description:** How to handle tool execution failures.
 
-  <Accordion title="Operation" icon="gear">
-    **Description:** Select the specific operation to execute.
-    
-    **Type:** Select or Multi-Select (Dynamic)
-    
-    **Required:** Yes
-    
-    **Visibility:** Only after Integration is selected
-    
-    **Display:**
-    - **Single Select:** When tool is NOT exposed to LLM (manual execution)
-    - **Multi Select:** When tool IS exposed to LLM (LLM chooses from list)
-    
-    **Options:** Dynamically loaded operations for the selected platform, grouped by category
-    
-    **Example Operations:**
-    - **Splox Platform:** API Request, KV Store, Vector Search, DateTime operations
-    - **Sandbox:** Execute Command, Read File, Write File, Upload to S3
-    - **Remote Server:** SSH commands, file operations, Morph editing
-    
-    <Tip>
-      Operations are grouped by category for easier navigation. Each operation has its own input schema.
-    </Tip>
-  </Accordion>
+    **Type:** Select
 
-  <Accordion title="Input Data" icon="input-text">
-    **Description:** Configure the input parameters for the selected operation.
-    
-    **Type:** Input Schema (Dynamic)
-    
     **Required:** No
-    
-    **Visibility:** Only when tool is NOT exposed to LLM
-    
-    **How It Works:**
-    - Schema changes based on selected operation
-    - Each operation has different required/optional parameters
-    - Supports template variables: `{{variable_name}}`
-    
-    **Example (API Request):**
-    ```json
-    {
-      "url": "https://api.example.com/users/{{user_id}}",
-      "method": "GET",
-      "headers": {
-        "Authorization": "Bearer {{api_token}}"
-      }
-    }
-    ```
+
+    | Option | Behavior |
+    |--------|----------|
+    | **Fail** | Mark the node as failed and trigger error edges |
+    | **Continue** | Return the error as output and let the workflow continue (default in Agent mode) |
+
+    In Agent mode with `continue`, the error is reported back to the LLM, which can decide how to handle it (retry, use a different tool, or respond to the user).
   </Accordion>
 
-  <Accordion title="Sandbox Template" icon="box">
-    **Description:** Select which sandbox template to use for operations.
-    
-    **Type:** Select (Dynamic)
-    
-    **Required:** Conditional
-    
-    **Visibility:** Only when Platform = "Sandbox"
-    
-    **Options:** Your user-defined sandbox templates
-    
-    **Setup:**
-    Create sandbox templates in Settings to reuse configurations across workflows.
+  <Accordion title="Variable Mappings" icon="link">
+    **Description:** Reference data from other nodes using Pongo2 templates.
+
+    **Type:** Variable mapping list
+
+    **Required:** No
+
+    Add mappings to make data from upstream nodes available in tool arguments and templates. See [Variable Mappings](/nodes/variable-mappings) for details.
   </Accordion>
 
-  <Accordion title="Sandbox ID" icon="id-badge">
-    **Description:** Specify which sandbox instance to use for commands.
-    
-    **Type:** Editor (supports template variables)
-    
-    **Required:** Conditional
-    
-    **Visibility:** Only when Platform = "Sandbox"
-    
-    **How It Works:**
-    - Use template variables to reference sandbox IDs from previous nodes
-    - Enables persistent sandbox usage across multiple tool calls
-    
-    **Example:**
-    ```
-    {{sandbox_instance.id}}
-    ```
+  <Accordion title="Max Retries" icon="rotate">
+    **Description:** Number of automatic retries on transient failures.
+
+    **Type:** Number
+
+    **Default:** 3
+
+    **Range:** 0–10
+  </Accordion>
+
+  <Accordion title="Timeout" icon="clock">
+    **Description:** Maximum execution time in minutes.
+
+    **Type:** Number
+
+    **Default:** 525,600 (1 year)
   </Accordion>
 </AccordionGroup>
 
 ---
 
-### MCP Tools Configuration
+## Handles
 
-Use MCP (Model Context Protocol) tools for standardized server-side tool execution.
-
-<AccordionGroup>
-  <Accordion title="Launch Method" icon="rocket">
-    **Description:** How the MCP server is launched and accessed.
-    
-    **Type:** Select
-    
-    **Required:** Yes
-    
-    **Visibility:** Only when Tool Type = "MCP"
-    
-    **Options:**
-    - **Remote** - Connect to an existing MCP server via URL
-    - **Sandbox** - Launch MCP server in E2B sandbox
-    
-    **When to Use:**
-    - **Remote:** Server is already running (self-hosted or cloud)
-    - **Sandbox:** Need isolated, temporary MCP server instance
-  </Accordion>
-
-  <Accordion title="Transport Type" icon="network-wired">
-    **Description:** Communication protocol for the MCP server.
-    
-    **Type:** Select
-    
-    **Required:** Yes
-    
-    **Visibility:** Only when Launch Method = "Remote"
-    
-    **Options:**
-    - **HTTP** - RESTful API communication
-    - **SSE** - Server-Sent Events (streaming)
-    - **stdio** - Standard input/output (for local processes)
-    
-    **Recommendation:**
-    - Use **HTTP** for most remote servers
-    - Use **SSE** for real-time streaming responses
-  </Accordion>
-
-  <Accordion title="MCP URL" icon="link">
-    **Description:** The URL endpoint of your MCP server.
-    
-    **Type:** String
-    
-    **Required:** Yes
-    
-    **Visibility:** Only when Launch Method = "Remote"
-    
-    **Example:**
-    ```
-    https://mcp-server.example.com/api
-    http://localhost:3000/mcp
-    ```
-  </Accordion>
-
-  <Accordion title="Auth Token" icon="key">
-    **Description:** Bearer token for authenticating with the MCP server.
-    
-    **Type:** String
-    
-    **Required:** No
-    
-    **Visibility:** Only when Launch Method = "Remote"
-    
-    **Format:**
-    ```
-    your-bearer-token-here
-    ```
-    
-    <Warning>
-      Tokens are stored securely but visible in workflow configuration. Use environment-specific tokens for security.
-    </Warning>
-  </Accordion>
-
-  <Accordion title="Sandbox Template" icon="box">
-    **Description:** Sandbox template for launching MCP server.
-    
-    **Type:** Select (Dynamic)
-    
-    **Required:** Yes
-    
-    **Visibility:** Only when Launch Method = "Sandbox"
-    
-    **How It Works:**
-    MCP server runs inside the sandbox, isolated from other processes.
-  </Accordion>
-
-  <Accordion title="Sandbox ID" icon="id-badge">
-    **Description:** Sandbox instance ID to use.
-    
-    **Type:** Editor
-    
-    **Required:** Yes
-    
-    **Visibility:** Only when Launch Method = "Sandbox"
-    
-    **Example:**
-    ```
-    {{sandbox_instance.id}}
-    ```
-  </Accordion>
-
-  <Accordion title="Allowed Tools" icon="filter">
-    **Description:** Restrict which MCP tools are available to the LLM.
-    
-    **Type:** Multi-Select (Dynamic)
-    
-    **Required:** No
-    
-    **Visibility:** Only when Launch Method = "Remote" or "Sandbox"
-    
-    **Default Behavior:**
-    - Empty = All tools allowed
-    - Selected = Only specified tools allowed
-    
-    **Use Cases:**
-    - Limit LLM access to specific operations
-    - Prevent dangerous tool calls
-    - Optimize for specific tasks
-  </Accordion>
-
-  <Accordion title="Output Storage" icon="database">
-    **Description:** Where to store MCP tool execution outputs.
-    
-    **Type:** Select
-    
-    **Required:** No
-    
-    **Visibility:** Only when Tool Type = "MCP"
-    
-    **Options:**
-    - **S3** - Store in S3 bucket (for large outputs, files)
-    - **Memory** - Store in workflow memory (for small data)
-    - **Sandbox** - Keep in sandbox filesystem (for subsequent commands)
-    
-    **When to Use:**
-    - **S3:** Large files, images, documents
-    - **Memory:** Small JSON data, text results
-    - **Sandbox:** Temporary files for multi-step processes
-  </Accordion>
-</AccordionGroup>
-
----
-
-### Workflow Tools Configuration
-
-Call other workflows as tools, enabling modular and reusable workflow components.
-
-<AccordionGroup>
-  <Accordion title="Select Workflow" icon="diagram-project">
-    **Description:** Choose which workflow to execute as a tool.
-    
-    **Type:** Select (Dynamic)
-    
-    **Required:** Yes
-    
-    **Visibility:** Only when Tool Type = "Workflow"
-    
-    **Options:** Your draft workflows (only draft versions can be called)
-    
-    **Use Cases:**
-    - Modular workflows (reusable components)
-    - Multi-agent systems (each workflow = one agent)
-    - Parallel processing (call multiple workflows)
-  </Accordion>
-
-  <Accordion title="Select Start Node" icon="play">
-    **Description:** Choose which start node of the workflow to trigger.
-    
-    **Type:** Select (Dynamic)
-    
-    **Required:** Yes
-    
-    **Visibility:** Only after Workflow is selected
-    
-    **Options:** Start nodes from the selected workflow (with trigger_type = "internal")
-    
-    **Why Multiple Start Nodes:**
-    One workflow can have multiple entry points for different use cases.
-  </Accordion>
-
-  <Accordion title="Tool Name" icon="tag">
-    **Description:** Name of the tool as seen by the LLM.
-    
-    **Type:** String
-    
-    **Required:** Conditional
-    
-    **Visibility:** Only when tool is exposed to LLM
-    
-    **Example:**
-    ```
-    search_knowledge_base
-    create_support_ticket
-    analyze_sentiment
-    ```
-    
-    <Tip>
-      Use descriptive, snake_case names that clearly indicate the tool's purpose.
-    </Tip>
-  </Accordion>
-
-  <Accordion title="Tool Description" icon="message">
-    **Description:** Describe what the tool does for the LLM to understand when to use it.
-    
-    **Type:** Editor
-    
-    **Required:** Conditional
-    
-    **Visibility:** Only when tool is exposed to LLM
-    
-    **Best Practices:**
-    - Be specific about inputs and outputs
-    - Mention when to use this tool
-    - Include examples if helpful
-    
-    **Example:**
-    ```
-    Search the company knowledge base for relevant documentation.
-    
-    Input: search_query (string) - The search term or question
-    Output: list of relevant documents with titles and summaries
-    
-    Use this when the user asks questions about company policies,
-    procedures, or product documentation.
-    ```
-  </Accordion>
-
-  <Accordion title="Workflow Message" icon="envelope">
-    **Description:** The message/data to send to the workflow.
-    
-    **Type:** Editor (supports template variables)
-    
-    **Required:** Conditional
-    
-    **Visibility:** Only when tool is NOT exposed to LLM
-    
-    **Example:**
-    ```json
-    {
-      "user_id": "{{user.id}}",
-      "action": "process_order",
-      "order_data": {{order_details}}
-    }
-    ```
-  </Accordion>
-
-  <Accordion title="Tool Output" icon="output">
-    **Description:** Define the schema of what this tool returns to the LLM.
-    
-    **Type:** Schema Builder
-    
-    **Required:** Conditional
-    
-    **Visibility:** Only when tool is exposed to LLM
-    
-    **Example:**
-    ```json
-    {
-      "type": "object",
-      "properties": {
-        "results": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "title": { "type": "string" },
-              "content": { "type": "string" },
-              "relevance_score": { "type": "number" }
-            }
-          }
-        },
-        "total_found": { "type": "integer" }
-      }
-    }
-    ```
-  </Accordion>
-</AccordionGroup>
-
----
-
-### Custom Tools Configuration
-
-Execute custom logic with user-defined code.
-
-<AccordionGroup>
-  <Accordion title="Tool Name" icon="tag">
-    **Description:** Name of the custom tool.
-    
-    **Type:** String
-    
-    **Required:** Conditional
-    
-    **Visibility:** Only when Tool Type = "Custom"
-    
-    **Example:**
-    ```
-    calculate_discount
-    validate_input
-    transform_data
-    ```
-  </Accordion>
-
-  <Accordion title="Tool Description" icon="message">
-    **Description:** Describe what the custom tool does.
-    
-    **Type:** Editor
-    
-    **Required:** Yes
-    
-    **Visibility:** Only when Tool Type = "Custom"
-  </Accordion>
-
-  <Accordion title="Workflow Message" icon="code">
-    **Description:** The custom code or logic to execute.
-    
-    **Type:** Editor
-    
-    **Required:** Conditional
-    
-    **Visibility:** Only when tool is NOT exposed to LLM
-  </Accordion>
-
-  <Accordion title="Tool Output" icon="output">
-    **Description:** Schema of the tool's output.
-    
-    **Type:** Schema Builder
-    
-    **Required:** Conditional
-    
-    **Visibility:** Only when tool is exposed to LLM
-  </Accordion>
-</AccordionGroup>
-
----
-
-### Scheduling Configuration
-
-Schedule when workflows execute (only for non-LLM workflow tools).
-
-<AccordionGroup>
-  <Accordion title="Schedule Type" icon="clock">
-    **Description:** How to schedule the workflow execution.
-    
-    **Type:** Select
-    
-    **Required:** No
-    
-    **Visibility:** Only when Tool Type = "Workflow" and NOT exposed to LLM
-    
-    **Options:**
-    - **Cron** - Recurring schedule using cron expressions
-    - **Once At** - Execute once at a specific time
-    - **None** - No automatic scheduling
-  </Accordion>
-
-  <Accordion title="Schedule Control" icon="sliders">
-    **Description:** Who controls the scheduling.
-    
-    **Type:** Select
-    
-    **Required:** No
-    
-    **Visibility:** Only when Tool Type = "Workflow" and IS exposed to LLM
-    
-    **Options:**
-    - **Agent** - LLM decides when to schedule
-    - **None** - No scheduling
-  </Accordion>
-
-  <Accordion title="Cron Expression" icon="calendar">
-    **Description:** Cron expression defining the recurring schedule.
-    
-    **Type:** Editor
-    
-    **Required:** Conditional
-    
-    **Visibility:** Only when Schedule Type = "Cron"
-    
-    **Format:**
-    ```
-    * * * * *
-    │ │ │ │ │
-    │ │ │ │ └─ Day of week (0-7)
-    │ │ │ └─── Month (1-12)
-    │ │ └───── Day of month (1-31)
-    │ └─────── Hour (0-23)
-    └───────── Minute (0-59)
-    ```
-    
-    **Examples:**
-    ```
-    0 9 * * *        # Every day at 9 AM
-    */15 * * * *     # Every 15 minutes
-    0 0 * * 1        # Every Monday at midnight
-    ```
-  </Accordion>
-
-  <Accordion title="Schedule In Seconds" icon="stopwatch">
-    **Description:** Number of seconds from now to execute.
-    
-    **Type:** Editor
-    
-    **Required:** No
-    
-    **Visibility:** Only when Schedule Type = "Once At"
-    
-    **Example:**
-    ```
-    3600    # Execute in 1 hour
-    86400   # Execute in 24 hours
-    ```
-  </Accordion>
-
-  <Accordion title="Schedule Timezone" icon="globe">
-    **Description:** Timezone for scheduled execution.
-    
-    **Type:** String
-    
-    **Required:** No
-    
-    **Visibility:** Only when Schedule Type = "Once At"
-    
-    **Example:**
-    ```
-    America/New_York
-    Europe/London
-    Asia/Tokyo
-    UTC
-    ```
-  </Accordion>
-</AccordionGroup>
-
-## Node Handles
-
-<Tabs>
-  <Tab title="Input Handle">
-    **Left Side - Tool Call Input**
-    
-    Receives tool call requests from LLM nodes or other workflow nodes.
-    
-    **Accepts:**
-    - Tool call parameters from LLM
-    - Direct invocation data
-    - Workflow context variables
-  </Tab>
-  
-  <Tab title="Output Handles">
-    **Right Side Handles:**
-    
-    - **PARALLEL:** Main output path for successful tool execution
-      - Fires after tool completes successfully
-      - Passes tool results to next workflow nodes
-      - Contains structured output data
-    
-    - **ERROR:** Error handling path for failed tool execution
-      - Activated on execution errors, API failures, or timeouts
-      - Passes error details and stack traces
-      - Allows graceful error recovery
-  </Tab>
-</Tabs>
-
-## Tool Types
-
-<AccordionGroup>
-  <Accordion title="Operations Tools" icon="plug">
-    Execute platform-specific operations (API calls, database queries, etc.)
-    
-    **Features:**
-    - OAuth integration support
-    - Dynamic credential management
-    - Input/output schema validation
-    - Rate limiting and retry logic
-    
-    **Example:** Send email, create ticket, query database
-  </Accordion>
-  
-  <Accordion title="Custom Tools" icon="code">
-    Execute custom JavaScript/Python code with user-defined logic
-    
-    **Features:**
-    - Full language support
-    - Access to workflow context
-    - Timeout protection
-    - Error handling and logging
-    
-    **Example:** Data transformation, custom validation, calculations
-  </Accordion>
-  
-  <Accordion title="MCP Tools" icon="server">
-    Model Context Protocol servers for standardized tool interfaces
-    
-    **Features:**
-    - Server-side tool execution
-    - Stateful connections
-    - Resource access patterns
-    - Prompt injection protection
-    
-    **Example:** File system access, terminal execution, API wrappers
-  </Accordion>
-  
-  <Accordion title="Workflow Tools" icon="diagram-project">
-    Trigger other workflows as sub-tasks
-    
-    **Features:**
-    - Specify target workflow and start node
-    - Pass input data programmatically
-    - Wait for completion or run async
-    - Access sub-workflow outputs
-    
-    **Example:** Multi-agent systems, modular workflows, parallel processing
-  </Accordion>
-  
-  <Accordion title="Sandbox Tools" icon="box">
-    Execute code in isolated E2B sandboxes
-    
-    **Features:**
-    - User-defined sandbox templates
-    - Persistent sandbox instances
-    - File system access
-    - Package installation
-    - Automatic inactivity pausing
-    
-    **Example:** Code execution, data science pipelines, test environments
-  </Accordion>
-</AccordionGroup>
-
-## LLM Tool Integration
-
-When connected to an LLM node, tools become automatically available to the AI model. The LLM decides which tools to use and when.
+| Handle | Position | Type | Description |
+|--------|----------|------|-------------|
+| **Input** | Left | Execution | Receives execution flow from parent nodes or tool calls from an Agent |
+| **PARALLEL** | Right | Execution | Sends output to next nodes on successful completion |
+| **ERROR** | Right | Error | Routes to fallback nodes when execution fails |
 
 <Info>
-  In subflows with loops (agent patterns), LLMs can call multiple tools sequentially. Outside subflows, tool execution is one-directional without feedback.
+  Tool nodes do **not** have a TOOLS handle — they receive tool calls through their input handle when connected to an Agent via a tool edge.
 </Info>
+
+---
+
+## Output
+
+The Tool node produces a `ToolResult`:
+
+| Field | Description |
+|-------|-------------|
+| **tool_name** | Name of the tool that was executed |
+| **tool_call_id** | Unique identifier for this tool invocation |
+| **args** | The arguments passed to the tool |
+| **result** | The tool's return value (content) |
+| **error** | Error message if the tool failed (null on success) |
+| **files** | Any files produced by the tool execution |
+| **approval_status** | Whether the call was approved/rejected (when approval is enabled) |
+
+In Agent mode, tool results are automatically fed back to the LLM. In manual mode, access results in downstream nodes via variable mappings: `{{ tool_node_name.result }}`.
+
+---
+
+## System MCP Servers
+
+Splox provides several built-in MCP servers:
+
+<AccordionGroup>
+  <Accordion title="Tool Router" icon="route">
+    A meta-tool server that gives your agent the ability to **discover and call tools dynamically** from any connected MCP server.
+
+    **Tools provided:**
+    - `splox_list_user_connections` — List all connected MCP servers
+    - `splox_search_tools` — Search for tools across all servers
+    - `splox_execute_tool` — Execute any discovered tool
+    - `splox_get_tool_schema` — Get a tool's input schema
+
+    **Best for:** General-purpose agents that need to decide which tools to use at runtime.
+  </Accordion>
+
+  <Accordion title="Splox" icon="bolt">
+    Built-in platform operations.
+
+    **Common tools:** API Request, KV Store, Vector Search, DateTime operations
+
+    **Best for:** Interacting with Splox platform features directly.
+  </Accordion>
+
+  <Accordion title="Sandbox" icon="box">
+    Execute code and commands in isolated [E2B](https://e2b.dev) sandbox environments.
+
+    **Common tools:** Execute Command, Read File, Write File, Upload to S3
+
+    **Best for:** Code execution, data processing, file manipulation in an isolated environment.
+
+    **Configuration:** Requires a sandbox template and sandbox ID (can be templated from previous nodes for persistent sandbox sessions).
+  </Accordion>
+
+  <Accordion title="Remote Server" icon="terminal">
+    Execute commands on remote machines via SSH.
+
+    **Common tools:** SSH commands, file operations
+
+    **Best for:** Server management, deployment automation, remote execution.
+  </Accordion>
+
+  <Accordion title="Local Machine" icon="desktop">
+    Control the user's local machine via the Splox desktop app.
+
+    **Best for:** Desktop automation, local file access, system interactions.
+  </Accordion>
+
+  <Accordion title="Skills" icon="wand-magic-sparkles">
+    Reusable skill packs that bundle related tools together.
+
+    **Best for:** Sharing curated tool sets across agents and workflows.
+  </Accordion>
+
+  <Accordion title="Event Hub" icon="tower-broadcast">
+    Event-driven messaging and webhook operations.
+
+    **Best for:** Publishing events, triggering webhooks, inter-workflow communication.
+  </Accordion>
+
+  <Accordion title="Media" icon="photo-film">
+    Media processing operations.
+
+    **Best for:** Image, audio, and video processing tasks.
+  </Accordion>
+
+  <Accordion title="Composio" icon="puzzle-piece">
+    Third-party integrations via Composio.
+
+    **Best for:** Connecting to SaaS platforms (Slack, GitHub, Gmail, etc.) with managed OAuth.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Custom MCP Servers
+
+Connect your own MCP servers via the **Integrations** page:
+
+1. Go to **[Integrations](https://app.splox.io/integrations?tab=browse)**
+2. Add your MCP server with its URL and authentication
+3. The server appears in the MCP Server dropdown across all Tool nodes
+
+**Supported transports:**
+- **HTTP** — Standard RESTful communication
+- **SSE** — Server-Sent Events for streaming
+
+**Authentication:**
+- **OAuth** — Full OAuth flow with token persistence
+- **Manual** — Custom headers (API keys, bearer tokens)
+- **None** — No authentication
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Tool Router for Agents" icon="route">
+    For Agent-mode tools, the Tool Router lets the LLM discover and use tools dynamically without pre-configuring each one
+  </Card>
+  <Card title="Set Allowed Tools" icon="filter">
+    In Agent mode, restrict allowed tools to only what the agent needs — fewer tools means faster and more accurate LLM decisions
+  </Card>
+  <Card title="Enable Approval for Sensitive Actions" icon="shield-check">
+    Use pattern-based approval rules to auto-approve safe operations and require human review for destructive ones
+  </Card>
+  <Card title="Handle Errors Gracefully" icon="triangle-exclamation">
+    Use `continue` error strategy in Agent mode so the LLM can recover from tool failures
+  </Card>
+  <Card title="Use S3 for Large Outputs" icon="database">
+    Set output storage to S3 for tools that produce large files or binary data
+  </Card>
+  <Card title="Template Arguments" icon="code">
+    Use Pongo2 templates in manual-mode arguments to pass dynamic data from upstream nodes
+  </Card>
+</CardGroup>
 
 ---
 
 ## What's Next?
 
 <CardGroup cols={2}>
-  <Card title="LLM Node" icon="brain" href="/nodes/llm-node">
-    Learn how LLMs call tools automatically
+  <Card title="Agent Node" icon="brain" href="/nodes/agent-node">
+    Learn how agents autonomously call tools in a loop
   </Card>
-  
-  <Card title="Subflow Node" icon="diagram-nested" href="/nodes/subflow-node">
-    Create agent loops for multi-tool workflows
+
+  <Card title="Tool Edges" icon="plug" href="/edges/tool-edges">
+    How to connect agents to tools via the TOOLS handle
   </Card>
-  
-  <Card title="End & Stop Nodes" icon="flag-checkered" href="/nodes/end-node">
-    Control tool execution flow in subflows
+
+  <Card title="Variable Mappings" icon="link" href="/nodes/variable-mappings">
+    Reference data between nodes with Pongo2 templates
   </Card>
-  
-  <Card title="Integrations" icon="plug" href="/integrations/overview">
-    Explore available operations and integrations
+
+  <Card title="Node Lifecycle" icon="circle-play" href="/nodes/lifecycle">
+    Understand execution states and transitions
   </Card>
 </CardGroup>
