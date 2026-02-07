@@ -3,11 +3,11 @@ title: "Start Node"
 description: "Entry point for workflow execution - where every workflow begins"
 ---
 
-## Start Node
+## What is a Start Node?
 
-**Purpose:** Entry point for workflow execution
+The **Start Node** is the entry point of every workflow. When a workflow is triggered — via chat, API, or an external event — execution begins at the specified Start node, which passes the incoming payload to downstream nodes.
 
-Every workflow must have at least one start node. When a workflow is triggered, execution begins at the specified start node.
+Every workflow must have at least one Start node. A workflow can have **multiple Start nodes** to support different entry points for different use cases.
 
 <div className="block dark:hidden">
   <img
@@ -25,256 +25,274 @@ Every workflow must have at least one start node. When a workflow is triggered, 
   />
 </div>
 
+---
+
+## How It Works
+
+The Start node is simple — it receives the raw input payload and passes it through as its output. Downstream nodes access the payload fields via variable mappings like `{{ start.text }}`, `{{ start.chat_id }}`, `{{ start.files }}`, etc.
+
+The payload structure depends on how the workflow is triggered:
+
+<Tabs>
+  <Tab title="Chat / API Run">
+    When triggered via the chat interface or `POST /v1/workflow-requests/run`:
+    
+    ```json
+    {
+      "text": "User's message or query",
+      "chat_id": "uuid-of-the-chat-session",
+      "files": [
+        { "url": "https://...", "name": "document.pdf", "type": "application/pdf" }
+      ]
+    }
+    ```
+    
+    | Field | Description |
+    |-------|-------------|
+    | `text` | The user's message or query |
+    | `chat_id` | UUID of the chat session (used by Agent nodes for context memory) |
+    | `files` | Optional array of uploaded files |
+  </Tab>
+  
+  <Tab title="External Event">
+    When triggered via an Event Hub webhook (`POST /v1/events/:webhook_id`):
+    
+    The payload is the **raw HTTP body** sent by the external service. For example, a Telegram update:
+    
+    ```json
+    {
+      "update_id": 123456789,
+      "message": {
+        "chat": { "id": 987654321 },
+        "text": "Hello bot!"
+      }
+    }
+    ```
+    
+    Access nested fields with dot notation: `{{ start.message.chat.id }}`, `{{ start.message.text }}`
+  </Tab>
+  
+  <Tab title="Agent-to-Agent">
+    When triggered by another Agent node calling this workflow as a child:
+    
+    The payload contains the message and context from the parent agent. The structure depends on the parent's configuration.
+  </Tab>
+</Tabs>
+
+---
+
 ## Configuration
 
 <AccordionGroup>
   <Accordion title="Label" icon="tag">
-    **Description:** The name of the start node that identifies the entry point of your workflow.
+    **Description:** A name to identify this Start node on the canvas and in the start node selector.
     
     **Type:** String
     
     **Required:** Yes
     
-    **Constraints:**
-    - Minimum length: 1 character
-    - Maximum length: 64 characters
-    
     **Example:**
     ```
-    "Stripe Payment Webhook"
-    "Process Customer Data"
-    "New User Registration"
-    ```
-  </Accordion>
-
-  <Accordion title="Trigger Type" icon="bolt">
-    **Description:** Defines how the workflow is triggered - either by external webhook or internal API call.
-    
-    **Type:** Select
-    
-    **Required:** Yes
-    
-    **Default:** Internal
-    
-    **Options:**
-    - **Webhook** - Triggered by external platform webhooks (Stripe, Slack, etc.)
-    - **Internal** - Triggered by internal API calls or other workflows
-    
-    **Visibility:** Only shown when node has no parent (root start node)
-    
-    **Example:**
-    ```
-    webhook  # For external integrations
-    internal # For API or workflow triggers
-    ```
-  </Accordion>
-
-  <Accordion title="Platform" icon="plug">
-    **Description:** Specifies which platform will trigger this start node via webhook.
-    
-    **Type:** Select (Dynamic)
-    
-    **Required:** Conditional
-    
-    **Visibility:** Only shown when Trigger Type is set to "Webhook"
-    
-    **Options:** Dynamically loaded from available platforms:
-    - **External Platforms:** Telegram, Slack, GitHub, Stripe, and more
-    - **Splox Platform:** For custom API webhooks from your own application
-    
-    **Example:**
-    ```
-    telegram   # For Telegram bot webhooks
-    slack      # For Slack app webhooks
-    splox      # For custom API webhooks from your app
+    "Chat Handler"
+    "Event Processor"  
+    "API Endpoint"
     ```
     
     <Tip>
-      Choose **Splox** platform if you want to trigger workflows via custom API requests from your own application.
+      Use descriptive labels — when a workflow has multiple Start nodes, users and API callers need to choose which one to trigger.
     </Tip>
   </Accordion>
 
-  <Accordion title="Integration" icon="link">
-    **Description:** Links to your specific connected integration that will handle incoming webhook requests.
+  <Accordion title="Webhook Secret" icon="key">
+    **Description:** Optional secret for validating incoming webhook requests.
     
-    **Type:** Select (Dynamic)
+    **Fields:**
     
-    **Required:** Conditional
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | **Use Webhook Secret** | Boolean | Enable webhook secret validation |
+    | **Webhook Secret Header** | String | The HTTP header name containing the secret (e.g., `X-Webhook-Secret`) |
+    | **Webhook Secret** | String | The expected secret value |
     
-    **Visibility:** Only shown when Trigger Type is "Webhook" AND Platform is selected
+    When enabled, incoming requests must include the correct secret in the specified header to trigger the workflow.
+  </Accordion>
+
+  <Accordion title="Variable Mappings" icon="link">
+    **Description:** Reference data from other nodes using Pongo2 templates.
     
-    **Options:** Dynamically loaded from your connected integrations for the selected platform
+    **Type:** Variable mapping list
     
-    **Example:**
-    ```
-    user_stripe_integration_id
-    user_slack_workspace_id
-    ```
+    **Required:** No
     
-    <Info>
-      You must first connect an integration in Settings > Integrations before it appears in this list.
-    </Info>
+    See [Variable Mappings](/nodes/variable-mappings) for details.
+  </Accordion>
+
+  <Accordion title="Max Retries" icon="rotate">
+    **Description:** Number of automatic retries on transient failures.
+    
+    **Type:** Number
+    
+    **Default:** 3
+    
+    **Range:** 0–10
+  </Accordion>
+
+  <Accordion title="Timeout" icon="clock">
+    **Description:** Maximum execution time in minutes.
+    
+    **Type:** Number
+    
+    **Default:** 525,600 (1 year)
   </Accordion>
 </AccordionGroup>
 
-**Node Handles:**
+---
 
-<Tabs>
-  <Tab title="Output Handles">
-    **Right Side Handles:**
-    
-    - **PARALLEL:** Main output path after trigger activation
-      - Fires when workflow starts
-      - Passes trigger input data to next nodes
-      - Enables workflow execution to begin
-    
-    - **ERROR:** Error handling path for trigger failures
-      - Activated if trigger validation fails
-      - Passes error details for logging
-      - Allows error recovery at workflow start
-  </Tab>
-</Tabs>
+## Handles
 
-**Features:**
-- **Multiple Trigger Types:** Support both internal triggers and external webhook triggers
-- **Platform Integration:** Direct webhook connections to 50+ external platforms (Telegram, Slack, etc.)
-- **Custom API Webhooks:** Use Splox platform webhook for custom API integrations from your app
-- **Internal Orchestration:** Connect workflows and build multi-agent systems with internal triggers
-- **Error Handling:** Built-in error path for trigger validation failures
-- **Input Data Flow:** Automatically passes trigger payload to connected nodes
-- **Webhook Security:** Validates signatures and authentication from external platforms
+| Handle | Position | Type | Description |
+|--------|----------|------|-------------|
+| **PARALLEL** | Right | Execution | Sends the input payload to downstream nodes |
+| **ERROR** | Right | Error | Routes to fallback nodes if the start node fails |
 
 <Info>
-  **Choosing Trigger Type:**
-  - **Internal** → Multi-agent systems, workflow orchestration
-  - **Webhook + External Platform** → Telegram, Slack bots
-  - **Webhook + Splox Platform** → Custom API integration from your app
-</Info>
-
-**Use Cases:**
-- **API Webhooks:** Receive data from external platforms like Stripe payments, Slack messages, or GitHub events
-- **Scheduled Workflows:** Entry point for time-based triggers and scheduled tasks
-- **Manual Execution:** Start workflows manually from the dashboard or API
-- **Multi-Entry Workflows:** Create different start nodes for different trigger sources in the same workflow
-
-<Tip>
-  Start nodes can be selected when triggering a workflow programmatically, allowing different entry points for different use cases.
-</Tip>
-
-## Configuration Examples
-
-### Example 1: Internal Trigger (Multi-Agent Orchestration)
-
-```yaml
-Label: "Process Customer Request"
-Trigger Type: Internal
-```
-
-**Use Case:** Connect multiple workflows together or use internal workflow chat for multi-agent systems.
-
-**Triggered By:**
-- **Internal Workflow Chat** - Using `send_internal_message` tool from another workflow
-- **Subflow Nodes** - When this workflow is called as a subflow from another workflow
-- **Multi-Agent Systems** - Orchestrate multiple agents communicating internally
-
-**How It Works:**
-No webhook or external integration needed. This start node activates when:
-- Another workflow sends a message via the `send_internal_message` tool
-- A subflow node executes this workflow
-- Internal Splox operations trigger the workflow
-
-<Info>
-  **Best For:** Building complex multi-agent systems where workflows communicate with each other internally.
+  Start nodes have **no input handle** — they are always the first node in the execution chain.
 </Info>
 
 ---
 
-### Example 2: Telegram Bot Webhook
+## How to Trigger Workflows
 
-```yaml
-Label: "Telegram Message Handler"
-Trigger Type: Webhook
-Platform: Telegram
-Integration: My Telegram Bot
-```
+### 1. Chat Interface
 
-**Use Case:** Build a Telegram bot that responds to user messages, commands, and button clicks automatically.
+The most common way to trigger a workflow during development and testing:
 
-**Setup:**
-1. Go to **[Integrations](https://app.splox.io/integrations?tab=browse)** page and connect your Telegram bot
-2. Configure this start node with Telegram platform and your bot integration
-3. Splox generates webhook URL: `https://app.splox.io/v1/webhooks/{webhook_id}`
-4. Webhook is automatically registered with Telegram
+1. Open a workflow in the editor
+2. Open the **Chat** panel
+3. Select a Start node from the dropdown
+4. Type a message and send
 
-**Triggered By:** External Telegram events (messages, commands, callbacks)
+The message becomes `{{ start.text }}` and the chat session ID becomes `{{ start.chat_id }}`.
 
----
+### 2. API — Run Workflow
 
-### Example 3: Splox Custom Webhook (Your Own API)
+Trigger a workflow programmatically via the API:
 
-```yaml
-Label: "API Request Handler"
-Trigger Type: Webhook
-Platform: Splox
-Integration: Splox Webhook
-```
-
-**Use Case:** Trigger workflows from your own application, scripts, or external services with custom API requests.
-
-**Setup:**
-1. Go to **[Integrations](https://app.splox.io/integrations?tab=browse)** page and create a Splox integration (if not exists)
-2. Configure this start node with Splox platform
-3. Get webhook URL: `https://app.splox.io/api/v1/workflow-webhooks/{webhook_id}`
-4. Make POST requests from your app to trigger the workflow
-
-**How to Trigger:**
 ```bash
-POST https://app.splox.io/api/v1/workflow-webhooks/{webhook_id}
+POST https://app.splox.io/api/v1/workflow-requests/run
+Authorization: Bearer YOUR_TOKEN
 Content-Type: application/json
 
 {
-  "customer_id": "12345",
-  "action": "process_order",
-  "data": {
-    "order_id": "ORD-789",
-    "amount": 99.99
-  }
+  "workflow_version_id": "your-workflow-version-id",
+  "chat_id": "your-chat-id",
+  "start_node_id": "your-start-node-id",
+  "query": "Process this request",
+  "files": []
 }
 ```
 
 **Response:**
 ```json
 {
-  "workflow_request_id": "workflow_request_uuid",
-  "status": "success"
+  "workflow_request_id": "uuid-of-the-execution"
 }
 ```
 
+Use the returned `workflow_request_id` to:
+- **Listen for results:** `GET /v1/workflow-requests/{id}/listen` (SSE stream)
+- **Get execution tree:** `GET /v1/workflow-requests/{id}/execution-tree`
+- **Get history:** `GET /v1/workflow-requests/{id}/history`
+
+<Info>
+  Rate limited to **20 workflow executions per minute** per user.
+</Info>
+
+### 3. Event Hub — External Webhooks
+
+Receive events from external services (Telegram, Slack, Stripe, GitHub, etc.) via the Event Hub:
+
+```bash
+POST https://app.splox.io/api/v1/events/:webhook_id
+Content-Type: application/json
+
+{
+  "any": "json payload from external service"
+}
+```
+
+The Event Hub stores the event and routes it to subscribed agents. The raw payload becomes the Start node's output.
+
+**Response:**
+```json
+{
+  "ok": true,
+  "event_id": "uuid-of-the-event"
+}
+```
+
+Event webhooks support:
+- **Secret validation** via `X-Webhook-Secret` header
+- **Verification challenges** for Slack and Facebook/Instagram
+- **Expiration dates** for temporary webhooks
+- **10MB payload limit**
+
+---
+
+## Multiple Start Nodes
+
+A single workflow can have multiple Start nodes for different entry points:
+
+```
+Workflow: Customer Support
+├── Start: "Chat Handler"       ← For interactive chat sessions
+├── Start: "Telegram Events"    ← For Telegram bot messages
+└── Start: "API Requests"       ← For programmatic API calls
+```
+
+When triggering a workflow, you specify which Start node to use via the `start_node_id` parameter. In the chat interface, a dropdown lets you select the active Start node.
+
 <Tip>
-  **Splox Webhook vs Internal:** Splox webhook is for **external API calls** from your app. Internal trigger is for **workflow-to-workflow** communication within Splox.
+  Use multiple Start nodes when your workflow needs to handle different types of input — each Start node can lead to a different processing path.
 </Tip>
 
 ---
 
-### Example 4: Slack Event Webhook
+## Best Practices
 
-```yaml
-Label: "Slack Command Handler"
-Trigger Type: Webhook
-Platform: Slack
-Integration: Company Workspace
-```
-
-**Use Case:** Respond to Slack slash commands, message events, or button interactions in your workspace.
-
-**Setup:**
-1. Go to **[Integrations](https://app.splox.io/integrations?tab=browse)** page and connect your Slack workspace
-2. Configure this start node with Slack platform and your workspace integration
-3. Splox generates webhook URL: `https://app.splox.io/api/v1/workflow-webhooks/{webhook_id}`
-4. Add this URL to your Slack app's Event Subscriptions settings
-
-**Triggered By:** External Slack events (slash commands, messages, interactions)
+<CardGroup cols={2}>
+  <Card title="Descriptive Labels" icon="tag">
+    Name Start nodes clearly — they appear in dropdowns and API calls
+  </Card>
+  <Card title="Validate Webhooks" icon="shield-check">
+    Enable webhook secrets for production endpoints to prevent unauthorized triggers
+  </Card>
+  <Card title="Handle Missing Fields" icon="triangle-exclamation">
+    Use conditional logic (Switch nodes or template defaults) to handle cases where optional payload fields may be missing
+  </Card>
+  <Card title="One Concern Per Start" icon="bullseye">
+    Create separate Start nodes for different trigger sources rather than handling everything in one
+  </Card>
+</CardGroup>
 
 ---
 
 ## What's Next?
+
+<CardGroup cols={2}>
+  <Card title="Agent Node" icon="brain" href="/nodes/agent-node">
+    Connect your Start node to an Agent to process the incoming data
+  </Card>
+  
+  <Card title="Variable Mappings" icon="link" href="/nodes/variable-mappings">
+    Access Start node payload data in downstream nodes
+  </Card>
+  
+  <Card title="Node Lifecycle" icon="circle-play" href="/nodes/lifecycle">
+    Understand execution states and transitions
+  </Card>
+  
+  <Card title="Build Your First Agent" icon="play" href="/tutorials/first-ai-agent">
+    Step-by-step tutorial using a Start node
+  </Card>
+</CardGroup>
