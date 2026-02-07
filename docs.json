@@ -143,7 +143,6 @@
               "providers/anthropic",
               "providers/gemini",
               "providers/openrouter",
-              "providers/perplexity",
               "providers/morph",
               "providers/sandbox"
             ]
@@ -212,7 +211,6 @@
       "view",
       "chatgpt",
       "claude",
-      "perplexity",
       "mcp",
       "cursor",
       "vscode"
