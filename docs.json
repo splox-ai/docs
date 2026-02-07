@@ -39,9 +39,7 @@
             "pages": [
               "concepts/workflows",
               "concepts/nodes",
-              "concepts/edges",
-              "concepts/tools",
-              "concepts/skills"
+              "concepts/edges"
             ]
           },
           {

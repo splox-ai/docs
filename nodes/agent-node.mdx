@@ -5,32 +5,277 @@ description: "Autonomous AI agents that can reason, plan, and use tools to compl
 
 ## What is an Agent Node?
 
-The **Agent Node** is an autonomous AI system that combines an LLM with tools to complete tasks iteratively. Unlike a simple LLM call, an Agent Node can:
+The **Agent Node** is the core building block of Splox workflows. It's an autonomous AI system that combines an LLM with tools, conversation memory, and iteration logic to complete tasks. Unlike a simple LLM call, an Agent Node can:
 
 - **Reason and plan** using large language models
-- **Execute actions** through tool calling
-- **Iterate autonomously** until the task is complete
-- **Maintain context** across multiple tool calls
+- **Execute actions** through autonomous tool calling
+- **Iterate in a loop** — calling tools, processing results, and deciding next steps
+- **Maintain conversation context** across multiple turns with built-in memory
+- **Stream responses** in real-time via SSE
+- **Collaborate with other agents** using configurable execution modes
+- **Handle voice/realtime** interactions with supported providers
 
-<CardGroup cols={2}>
+<CardGroup cols={3}>
   <Card title="Autonomous Execution" icon="brain">
     The agent decides which tools to use and when to stop based on the task
   </Card>
   <Card title="Tool Integration" icon="wrench">
     Connect tools via tool edges for the agent to use autonomously
   </Card>
+  <Card title="Built-in Memory" icon="database">
+    Conversation context is managed automatically — no separate memory node needed
+  </Card>
   <Card title="Configurable Limits" icon="gauge">
-    Set max iterations and timeouts to control agent behavior
+    Set max iterations, stop conditions, and timeouts to control behavior
+  </Card>
+  <Card title="Real-time Streaming" icon="bolt">
+    Token-by-token output streaming with session-based chat support
+  </Card>
+  <Card title="Multi-Agent" icon="users">
+    Connect agents together with sync, async, fire-forget, or handoff modes
   </Card>
 </CardGroup>
 
 ---
 
+## How It Works
+
+The Agent node runs an **autonomous loop** that alternates between LLM reasoning and tool execution:
+
+<Steps>
+  <Step title="Receive Input">
+    The Agent receives input from its parent node (Start payload, previous node output, or variable mappings). If context memory is configured, the input is appended as a user message.
+  </Step>
+  
+  <Step title="LLM Completion">
+    The configured LLM processes the full conversation context — system prompt, memory history, and current input — and produces either a text response or tool call requests.
+  </Step>
+  
+  <Step title="Tool Execution">
+    If the LLM requests tool calls, the Agent executes them via connected Tool nodes (through tool edges). Results are appended to the conversation context as tool result messages.
+  </Step>
+  
+  <Step title="Iteration">
+    The Agent loops back to the LLM with tool results. The loop continues until:
+    - The LLM responds **without tool calls** (task complete)
+    - The **max iterations** limit is reached
+    - A **stop condition** template evaluates to true
+  </Step>
+  
+  <Step title="Output">
+    The Agent's final response is emitted as its output, flowing to downstream nodes via parallel edges.
+  </Step>
+</Steps>
+
+---
+
 ## Configuration
 
+### LLM Settings
+
+<AccordionGroup>
+  <Accordion title="Provider & Model" icon="server">
+    Select the LLM provider and model for text generation.
+    
+    | Field | Description | Default |
+    |-------|-------------|---------|
+    | **Text LLM Provider** | Provider slug (`anthropic`, `openai`, `gemini`, `openrouter`, `perplexity`, etc.) | `anthropic` |
+    | **Text LLM Model** | Model identifier (e.g., `claude-sonnet-4-5-20250929`) | `claude-sonnet-4-5-20250929` |
+    | **Credential** | Optional custom API key credential | Account default |
+    
+    <Tip>
+      You can also configure a **Voice LLM** for realtime audio interactions (supported by OpenAI and Gemini).
+    </Tip>
+  </Accordion>
+  
+  <Accordion title="System Prompt" icon="message">
+    The system prompt instructs the agent on its role, behavior, and constraints. It supports **Pongo2 templates** for dynamic content.
+    
+    ```
+    You are a helpful research assistant. 
+    The user's name is {{ start.user_name }}.
+    Today's date is {{ start.date }}.
+    ```
+    
+    Use variable mappings to reference data from other nodes in your system prompt.
+  </Accordion>
+  
+  <Accordion title="Advanced LLM Config" icon="sliders">
+    Additional configuration passed to the LLM:
+    
+    | Field | Description | Default |
+    |-------|-------------|---------|
+    | **Thinking Tokens** | Enable extended thinking with token budget | `4096` |
+    | **Modalities** | Output types (`text`, `image`) | `["text", "image"]` |
+    | **Cache Control** | Prompt caching duration | `5m` |
+    | **Max Completion Tokens** | Maximum output token length | `48000` |
+    | **Enable 1M Context** | Allow extended context window | `true` |
+  </Accordion>
+</AccordionGroup>
+
+### Tool Calling
+
+<AccordionGroup>
+  <Accordion title="Tool Choice" icon="hand-pointer">
+    Controls how the LLM selects tools:
+    
+    | Value | Behavior |
+    |-------|----------|
+    | `auto` | LLM decides whether to use tools (default) |
+    | `required` | LLM must call at least one tool per turn |
+    | `none` | Tool calling is disabled |
+    | `<tool_name>` | Force a specific tool to be called |
+  </Accordion>
+  
+  <Accordion title="On Tool Error" icon="triangle-exclamation">
+    What happens when a tool call fails:
+    
+    | Value | Behavior |
+    |-------|----------|
+    | `continue` | Report the error to the LLM and let it decide what to do (default) |
+    | `fail` | Stop the agent entirely and mark it as failed |
+  </Accordion>
+  
+  <Accordion title="Tool Approval" icon="shield-check">
+    Enable human-in-the-loop approval for sensitive tool calls. When enabled, the agent pauses and waits for user approval before executing specific tools.
+    
+    Default timeout: 5 minutes.
+  </Accordion>
+  
+  <Accordion title="Skills" icon="wand-magic-sparkles">
+    Attach reusable skill sets to the agent. Skills provide additional tools and capabilities that can be shared across multiple agents.
+  </Accordion>
+</AccordionGroup>
+
+### Iteration Control
+
+| Field | Description | Default | Range |
+|-------|-------------|---------|-------|
+| **Max Iterations** | Maximum number of LLM → Tool → LLM cycles | `10` | 1–50 |
+| **Stop Condition** | Pongo2 template that evaluates to true/false for early exit | None | — |
+| **Timeout** | Maximum execution time in minutes | 525,600 (1 year) | — |
+| **Max Retries** | Retries on transient failures | `3` | 0–10 |
+
+<Warning>
+  Setting max iterations too high can lead to excessive credit usage. Start with 10 and increase as needed.
+</Warning>
+
+### Context Memory
+
+The Agent has **built-in conversation memory** that persists across executions. This replaces the need for separate memory nodes.
+
+<AccordionGroup>
+  <Accordion title="Memory ID" icon="key">
+    The **Context Memory ID** links conversations across executions. Typically set to `{{ start.chat_id }}` so the same chat session maintains continuity.
+    
+    Different memory IDs create separate conversation threads.
+  </Accordion>
+  
+  <Accordion title="User Message Content" icon="message">
+    Template for the user message appended each turn. Default: `{{ start.text }}`
+    
+    This determines what the agent sees as the "user's message" each time the workflow runs.
+  </Accordion>
+  
+  <Accordion title="Limits & Trimming" icon="scissors">
+    Control memory size to prevent context overflow:
+    
+    | Field | Options | Default |
+    |-------|---------|---------|
+    | **Limit Type** | `tokens` or `messages` | `tokens` |
+    | **Max Tokens** | Token limit for conversation history | `70,000` |
+    | **Min Messages to Keep** | Minimum messages preserved during trimming | `70` |
+    | **Trim Strategy** | `drop_oldest` or `drop_middle` | `drop_oldest` |
+    | **Empty Tool Results** | Replace tool result content with empty strings to save tokens | `false` |
+  </Accordion>
+  
+  <Accordion title="Summarization" icon="compress">
+    When enabled, old messages are summarized before being dropped, preserving key context.
+    
+    | Field | Description | Default |
+    |-------|-------------|---------|
+    | **Enable Summarization** | Automatically summarize before trimming | `true` |
+    | **Summarize Prompt** | Custom prompt for the summarization LLM call | Default summary prompt |
+  </Accordion>
+  
+  <Accordion title="Custom Messages" icon="list">
+    Inject predefined messages into the conversation context. Useful for few-shot examples or persistent instructions.
+    
+    Enable **Use Predefined Messages** and add messages with specific roles (`user`, `assistant`, `system`).
+  </Accordion>
+</AccordionGroup>
+
+### Streaming
+
+| Field | Description | Default |
+|-------|-------------|---------|
+| **Enable Streaming** | Stream tokens in real-time via SSE | `true` |
+| **Chat Streaming Mode** | `session` for persistent chat connections | `session` |
+
+### Voice & Realtime
+
 <Info>
-Documentation for Agent Node configuration is coming soon. Check back for detailed setup instructions.
+  Voice agents are supported with **OpenAI** and **Gemini** providers.
 </Info>
+
+| Field | Description | Default |
+|-------|-------------|---------|
+| **Realtime Enabled** | Enable voice/audio interactions | `false` |
+| **Voice LLM Provider** | Provider for voice model | `gemini` |
+| **Voice LLM Model** | Voice-capable model | `gemini-2.5-flash-native-audio-preview-12-2025` |
+
+---
+
+## Agent-to-Agent Communication
+
+When connecting Agent nodes together, the edge between them can be configured with an **execution mode** that controls how the child agent runs relative to the parent:
+
+| Mode | Parent Behavior | Child Result | Best For |
+|------|----------------|--------------|----------|
+| **`sync`** | Blocks until child completes | Returned directly | Sequential delegation |
+| **`async_inject`** | Continues immediately | Auto-injected when ready | Background processing |
+| **`async_bidir`** | Continues immediately | Child has `reply_to_parent` tool | Ongoing collaboration |
+| **`fire_forget`** | Continues immediately | Not received | Logging, notifications |
+| **`handoff`** | Exits completely | Child takes over | Agent routing, escalation |
+
+### Configuration
+
+When connecting agents, you can customize how they appear to each other:
+
+| Field | Description |
+|-------|-------------|
+| **Child Tool Name** | How the child agent appears as a tool to the parent |
+| **Child Tool Description** | Description of what the child agent does |
+| **Reply Tool Name** | For `async_bidir`: name of the reply-to-parent tool |
+| **Reply Tool Description** | For `async_bidir`: description of the reply tool |
+
+---
+
+## Handles
+
+| Handle | Position | Type | Description |
+|--------|----------|------|-------------|
+| **Input** | Left | Execution | Receives data from parent nodes |
+| **PARALLEL** | Right | Execution | Sends output to next nodes on success |
+| **ERROR** | Right | Error | Routes to fallback nodes on failure |
+| **TOOLS** | Right | Tool | Connects to Tool nodes for autonomous tool calling |
+
+---
+
+## Output
+
+The Agent node produces an `AgentResponse` with:
+
+| Field | Description |
+|-------|-------------|
+| **text** | The agent's final text response |
+| **tool_calls** | List of tool calls made during execution |
+| **reasoning** | The agent's reasoning/thinking output (if thinking tokens enabled) |
+| **iterations** | Number of LLM → Tool cycles performed |
+| **input_tokens** | Total input tokens consumed |
+| **output_tokens** | Total output tokens generated |
+
+Access these in downstream nodes via variable mappings: `{{ agent_node_name.text }}`, `{{ agent_node_name.iterations }}`, etc.
 
 ---
 
@@ -42,6 +287,14 @@ Documentation for Agent Node configuration is coming soon. Check back for detail
   </Card>
   
   <Card title="Variable Mappings" icon="link" href="/nodes/variable-mappings">
-    Reference data in agent prompts
+    Reference data between nodes with Pongo2 templates
+  </Card>
+  
+  <Card title="Tool Edges" icon="plug" href="/edges/tool-edges">
+    How to connect agents to tools
+  </Card>
+  
+  <Card title="Node Lifecycle" icon="circle-play" href="/nodes/lifecycle">
+    Understand execution states and transitions
   </Card>
 </CardGroup>

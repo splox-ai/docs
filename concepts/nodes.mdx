@@ -46,17 +46,8 @@ Nodes connect to each other through **handles** - connection points that define 
     Common output handle types:
     - **PARALLEL:** Main execution path (success)
     - **ERROR:** Error handling path (failures)
-    - **TOOLS:** Tool calling path (LLM → Tool nodes)
+    - **TOOLS:** Tool calling path (Agent → Tool nodes)
     - **IF/ELIF/ELSE:** Conditional branching (Switch nodes)
-    - **LOOP:** Iteration path (End → Start in subflows)
-  </Accordion>
-  
-  <Accordion title="Special Handles" icon="sparkles">
-    **Bottom/Top handles for specific purposes**
-    
-    - **MEMORY (bottom on LLM):** Bidirectional connection to Memory nodes
-    - **MEMORY (top on Memory):** Connects to LLM's MEMORY handle
-    - These handles enable persistent conversation context
   </Accordion>
 </AccordionGroup>
 
@@ -116,11 +107,7 @@ Every node has configurable properties:
     Understand how nodes combine to create complete workflows
   </Card>
   
-  <Card title="Build Your First Workflow" icon="hammer" href="/guides/first-workflow">
-    Follow a step-by-step guide to create a workflow
-  </Card>
-  
-  <Card title="Testing" icon="flask" href="/guides/testing-workflows">
-    Master workflow testing and debugging
+  <Card title="Build Your First Agent" icon="hammer" href="/tutorials/first-ai-agent">
+    Follow a step-by-step tutorial to build an AI agent
   </Card>
 </CardGroup>

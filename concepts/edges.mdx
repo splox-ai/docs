@@ -75,16 +75,8 @@ Nodes connect through **handles** - connection points that define how edges atta
     Common types:
     - **PARALLEL:** Main execution path
     - **ERROR:** Error handling path
-    - **TOOLS:** Tool calling path (LLM nodes)
+    - **TOOLS:** Tool calling path (Agent nodes)
     - **IF/ELIF/ELSE:** Conditional branches (Switch nodes)
-  </Tab>
-  
-  <Tab title="Special Handles">
-    **Bottom/top handles**
-    
-    - **MEMORY (bottom):** On LLM nodes for memory connection
-    - **MEMORY (top):** On Memory nodes to connect upward
-    - Used exclusively for memory relationships
   </Tab>
 </Tabs>
 
@@ -93,7 +85,7 @@ Nodes connect through **handles** - connection points that define how edges atta
 Each edge has:
 - **Source Node + Handle:** Where the edge starts
 - **Target Node + Handle:** Where the edge ends
-- **Edge Type:** Parallel, tool, memory, conditional, or error
+- **Edge Type:** Parallel, tool, conditional, or error
 - **Visual Style:** Different colors/patterns for different types
 
 ---
@@ -140,7 +132,7 @@ Each edge has:
   <Accordion title="Special Edges" icon="sparkles">
     **Tool edges require specific nodes**
     
-    - **Tool Edges:** Connect LLM's TOOLS handle to Tool node input
+    - **Tool Edges:** Connect Agent's TOOLS handle to Tool node input
     
     These connections have unique visual styling.
   </Accordion>
@@ -148,7 +140,7 @@ Each edge has:
   <Accordion title="Validation" icon="shield-check">
     **Splox prevents invalid connections**
     
-    - Can't create cycles (except in subflows)
+    - Can't create cycles in the workflow graph
     - Can't connect incompatible handle types
     - Some nodes have handle restrictions
   </Accordion>
@@ -168,7 +160,7 @@ Each edge has:
   </Card>
   
   <Card title="Keep Flows Simple" icon="diagram-simple">
-    Avoid overly complex branching - use subflows instead
+    Avoid overly complex branching - break into multiple workflows if needed
   </Card>
   
   <Card title="Use Merge Nodes" icon="code-merge">
@@ -272,25 +264,22 @@ Each edge has:
   </Tab>
   
   <Tab title="AI Agent with Tools">
-    **LLM with multiple tools in a loop**
+    **Agent with autonomous tool calling**
     
     <div className="block dark:hidden">
     ```mermaid
     %%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#f5f5f5','primaryTextColor':'#171717','primaryBorderColor':'#171717','lineColor':'#171717','secondaryColor':'#ffffff','tertiaryColor':'#f5f5f5','background':'#ffffff','mainBkg':'#f5f5f5','secondBkg':'#ffffff','textColor':'#171717','nodeTextColor':'#171717','nodeBorder':'#171717','edgeLabelBackground':'#ffffff'}}}%%
     graph LR
-      LLM --> ToolA[Tool A]
-      LLM --> ToolB[Tool B]
-      LLM --> ToolC[Tool C]
-      ToolA --> End
-      ToolB --> End
-      ToolC --> End
-      End -.loop back.-> LLM
+      Agent[Agent] -.->|tool| ToolA[Tool A]
+      Agent -.->|tool| ToolB[Tool B]
+      Agent -.->|tool| ToolC[Tool C]
+      Agent -->|done| Next[Next Node]
       
-      style LLM fill:#ffffff,stroke:#171717
+      style Agent fill:#ffffff,stroke:#171717,stroke-width:2px
       style ToolA fill:#ffffff,stroke:#171717
       style ToolB fill:#ffffff,stroke:#171717
       style ToolC fill:#ffffff,stroke:#171717
-      style End fill:#ffffff,stroke:#171717
+      style Next fill:#ffffff,stroke:#171717
     ```
     </div>
 
@@ -298,23 +287,20 @@ Each edge has:
     ```mermaid
     %%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#252526','primaryTextColor':'#fafafa','primaryBorderColor':'#fafafa','lineColor':'#fafafa','secondaryColor':'#1e1e1e','tertiaryColor':'#252526','background':'#1e1e1e','mainBkg':'#252526','secondBkg':'#1e1e1e','textColor':'#fafafa','nodeTextColor':'#fafafa','nodeBorder':'#fafafa','edgeLabelBackground':'#252526'}}}%%
     graph LR
-      LLM --> ToolA[Tool A]
-      LLM --> ToolB[Tool B]
-      LLM --> ToolC[Tool C]
-      ToolA --> End
-      ToolB --> End
-      ToolC --> End
-      End -.loop back.-> LLM
+      Agent[Agent] -.->|tool| ToolA[Tool A]
+      Agent -.->|tool| ToolB[Tool B]
+      Agent -.->|tool| ToolC[Tool C]
+      Agent -->|done| Next[Next Node]
       
-      style LLM fill:#1e1e1e,stroke:#fafafa
+      style Agent fill:#1e1e1e,stroke:#fafafa,stroke-width:2px
       style ToolA fill:#1e1e1e,stroke:#fafafa
       style ToolB fill:#1e1e1e,stroke:#fafafa
       style ToolC fill:#1e1e1e,stroke:#fafafa
-      style End fill:#1e1e1e,stroke:#fafafa
+      style Next fill:#1e1e1e,stroke:#fafafa
     ```
     </div>
     
-    Use tool edges in a subflow for agent patterns.
+    Use tool edges to connect tools. The Agent handles the iteration loop internally.
   </Tab>
   
   <Tab title="Error Recovery">
@@ -385,11 +371,7 @@ Each edge has:
     Understand how edges and nodes create workflows
   </Card>
   
-  <Card title="Build a Workflow" icon="hammer" href="/guides/first-workflow">
+  <Card title="Build Your First Agent" icon="hammer" href="/tutorials/first-ai-agent">
     Create your first workflow with edges
-  </Card>
-  
-  <Card title="Testing" icon="flask" href="/guides/testing-workflows">
-    Test and debug edge connections
   </Card>
 </CardGroup>
