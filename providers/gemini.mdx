@@ -6,9 +6,8 @@ description: "Access Google's Gemini models through Splox with transparent prici
 <Card>
   **Google Gemini** provides multimodal AI capabilities:
   - **Advanced reasoning** with Gemini 2.5 and 3.0
-  - **Multimodal understanding** (text, image, video, audio)
-  - **Video generation** with Veo models
-  - **Text-to-speech** synthesis
+  - **Multimodal understanding** (text, image, audio)
+  - **Prompt caching** for cost optimization
   - **Cost-effective** options with Flash variants
 </Card>
 
@@ -54,60 +53,6 @@ Fast, cost-efficient models for high-volume tasks.
 
 ---
 
-## Text-to-Speech
-
-Gemini-powered voice synthesis models.
-
-| Model | Input | Output | Best For |
-|-------|-------|--------|----------|
-| **Text-to-Speech 2.5 Pro** | \$1.30/M | \$26.00/M | High-quality voice synthesis |
-| **Gemini 2.5 Pro Preview TTS** | \$1.30/M | \$26.00/M | Preview TTS features |
-| **Text-to-Speech 2.5 Flash** | \$0.65/M | \$13.00/M | Fast, cost-effective TTS |
-| **Gemini 2.5 Flash Preview TTS** | \$0.65/M | \$13.00/M | Preview Flash TTS |
-
-<Info>
-  **Pricing is per million characters** of text input and audio output tokens.
-</Info>
-
----
-
-## Image Generation
-
-Generate and understand images with Gemini.
-
-| Model | Input | Output (Text) | Output (Image) | Best For |
-|-------|-------|---------------|----------------|----------|
-| **Gemini 3 Pro Image** | \$2.00/M | \$12.00/M | \$120.00/M | High-quality image understanding & generation |
-| **Gemini 2.5 Flash Image** | \$0.30/M | - | \$30.00/M | Fast, cost-effective image generation |
-
-<Info>
-  **Image pricing is per million tokens.**
-  - Image input: ~560 tokens (~\$0.0011 per image with Gemini 3 Pro)
-  - Image output 1K-2K: ~1120 tokens (~\$0.134 per image with Gemini 3 Pro)
-  - Image output 4K: ~2000 tokens (~\$0.24 per image with Gemini 3 Pro)
-  - Flash image output: ~1290 tokens (~\$0.039 per image)
-</Info>
-
----
-
-## Video Generation (Veo)
-
-Google's text-to-video models for creating dynamic video content.
-
-| Model | Price | Per Minute | Best For |
-|-------|-------|------------|----------|
-| **Veo 3.1 Generate Preview** | \$0.52/sec | \$31.20/min | Latest video generation |
-| **Veo 3.1 Fast Generate Preview** | \$0.20/sec | \$11.70/min | Fast video creation |
-| **Veo 3.0 Generate** | \$0.52/sec | \$31.20/min | High-quality video |
-| **Veo 3.0 Fast Generate** | \$0.20/sec | \$11.70/min | Balanced speed/quality |
-| **Veo 2.0 Generate** | \$0.46/sec | \$27.30/min | Standard video generation |
-
-<Info>
-  **Pricing is per second of video output.** Example: A 30-second video with Veo 3.1 = 30 × \$0.52 = **\$15.60**
-</Info>
-
----
-
 ## Best Practices
 
 ### Model Selection
@@ -132,13 +77,6 @@ Google's text-to-video models for creating dynamic video content.
     - Fast responses needed
     - Cost-sensitive workloads
     - Simple queries
-  </Card>
-  
-  <Card title="Use Veo for" icon="video">
-    - Video generation
-    - Marketing content
-    - Creative projects
-    - Dynamic visuals
   </Card>
 </CardGroup>
 
