@@ -54,24 +54,6 @@ The payload structure depends on how the workflow is triggered:
     | `files` | Optional array of uploaded files |
   </Tab>
   
-  <Tab title="External Event">
-    When triggered via an Event Hub webhook (`POST /v1/events/:webhook_id`):
-    
-    The payload is the **raw HTTP body** sent by the external service. For example, a Telegram update:
-    
-    ```json
-    {
-      "update_id": 123456789,
-      "message": {
-        "chat": { "id": 987654321 },
-        "text": "Hello bot!"
-      }
-    }
-    ```
-    
-    Access nested fields with dot notation: `{{ start.message.chat.id }}`, `{{ start.message.text }}`
-  </Tab>
-  
   <Tab title="Agent-to-Agent">
     When triggered by another Agent node calling this workflow as a child:
     
@@ -208,35 +190,6 @@ Use the returned `workflow_request_id` to:
   Rate limited to **20 workflow executions per minute** per user.
 </Info>
 
-### 3. Event Hub — External Webhooks
-
-Receive events from external services (Telegram, Slack, Stripe, GitHub, etc.) via the Event Hub:
-
-```bash
-POST https://app.splox.io/api/v1/events/:webhook_id
-Content-Type: application/json
-
-{
-  "any": "json payload from external service"
-}
-```
-
-The Event Hub stores the event and routes it to subscribed agents. The raw payload becomes the Start node's output.
-
-**Response:**
-```json
-{
-  "ok": true,
-  "event_id": "uuid-of-the-event"
-}
-```
-
-Event webhooks support:
-- **Secret validation** via `X-Webhook-Secret` header
-- **Verification challenges** for Slack and Facebook/Instagram
-- **Expiration dates** for temporary webhooks
-- **10MB payload limit**
-
 ---
 
 ## Multiple Start Nodes
@@ -246,7 +199,7 @@ A single workflow can have multiple Start nodes for different entry points:
 ```
 Workflow: Customer Support
 ├── Start: "Chat Handler"       ← For interactive chat sessions
-├── Start: "Telegram Events"    ← For Telegram bot messages
+├── Start: "Internal Agent"     ← For agent-to-agent calls
 └── Start: "API Requests"       ← For programmatic API calls
 ```
 
