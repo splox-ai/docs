@@ -419,7 +419,7 @@
                   },
                   "resource_type": {
                     "type": "string",
-                    "enum": ["workflow", "gui", "api", "agent"],
+                    "enum": ["api"],
                     "description": "Type of resource this chat is associated with"
                   },
                   "resource_id": {
@@ -435,7 +435,7 @@
               },
               "example": {
                 "name": "Support Chat",
-                "resource_type": "workflow",
+                "resource_type": "api",
                 "resource_id": "0199e001-a23b-7c8d-1234-567890abcdef"
               }
             }
@@ -800,7 +800,7 @@
           },
           "resource_type": {
             "type": "string",
-            "enum": ["workflow", "gui", "api", "agent"]
+            "enum": ["api"]
           },
           "resource_id": {
             "type": "string"

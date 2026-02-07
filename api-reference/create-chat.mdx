@@ -13,7 +13,7 @@ curl -X POST https://app.splox.io/api/v1/chats \
   -H "Content-Type: application/json" \
   -d '{
     "name": "My Chat Session",
-    "resource_type": "workflow",
+    "resource_type": "api",
     "resource_id": "0199e001-a23b-7c8d-1234-567890abcdef"
   }'
 ```
@@ -23,7 +23,7 @@ curl -X POST https://app.splox.io/api/v1/chats \
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `name` | string | Yes | Display name for the chat session |
-| `resource_type` | string | Yes | Type of resource: `workflow`, `gui`, `api`, or `agent` |
+| `resource_type` | string | Yes | Must be `api` |
 | `resource_id` | string | Yes | ID of the resource (workflow ID, agent ID, etc.) |
 | `metadata` | object | No | Optional metadata |
 
@@ -41,15 +41,6 @@ curl -X POST https://app.splox.io/api/v1/chats \
   "updated_at": "2025-10-22T10:00:00Z"
 }
 ```
-
-## Resource Types
-
-| Type | Description |
-|------|-------------|
-| `workflow` | Chat associated with a specific workflow |
-| `gui` | Chat from the desktop/GUI application |
-| `api` | Chat created via API integration |
-| `agent` | Chat with a published agent |
 
 ## Notes
 
