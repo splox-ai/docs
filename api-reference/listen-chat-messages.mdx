@@ -1,51 +1,49 @@
 ---
-title: 'Listen to Chat Messages (SSE)'
+title: 'Listen to Chat Events (SSE)'
 openapi: 'GET /chat-internal-messages/{chatId}/listen'
 ---
 
-Streams real-time chat messages via Server-Sent Events (SSE) as they are sent and received.
+Streams real-time events for a chat session via Server-Sent Events (SSE). This is the recommended way to receive live updates when running a workflow through a chat.
 
 ## Usage
-
-This endpoint provides a persistent connection that streams chat messages as they happen:
 
 ```bash
 curl -N -H "Authorization: Bearer YOUR_TOKEN" \
   https://app.splox.io/api/v1/chat-internal-messages/{chat_id}/listen
 ```
 
+## How It Works
+
+1. Subscribes to the chat's Redis PubSub channel
+2. Streams workflow request status updates and node execution events
+3. Sends keepalive messages every 3 seconds
+4. Checks workflow status every 5 seconds
+5. Connection times out after 30 minutes
+
 ## Response Format
 
-Server-Sent Events (SSE) stream with each event containing chat messages:
+Standard SSE format. Events contain workflow request and node execution updates:
 
-```json
-{
-  "id": "0199f300-b22c-8d9e-5555-999901cdef02",
-  "chat_id": "0199f200-a11b-7c8d-4444-888890abcdef",
-  "role": "assistant",
-  "content": "Hello! How can I help you?",
-  "created_at": "2025-10-22T12:16:00Z",
-  "workflow_request_id": "0199f123-d60e-7ffd-9131-4cc5ab040ee8"
-}
+```
+data: {"workflow_request":{"id":"...","status":"in_progress",...},"node_execution":{"id":"...","status":"completed",...}}
+
+data: keepalive
+
+data: {"is_active":false,"type":"workflow_status"}
 ```
 
-## Message Roles
+## Event Types
 
-- `user` - Messages from the user
-- `assistant` - Messages from the AI/workflow
-- `system` - System messages (optional)
-
-## Use Cases
-
-- **Real-time chat UI** - Display messages as they arrive
-- **Desktop app** - Stream chat messages in native app
-- **Web chat interface** - Update UI without polling
-- **Multi-user sync** - Keep multiple clients in sync
+| Event | Description |
+|-------|-------------|
+| Workflow + Node update | Contains `workflow_request` and/or `node_execution` fields with current status and data |
+| Keepalive | Literal string `keepalive` sent every 3 seconds |
+| Workflow status | `{"is_active":false,"type":"workflow_status"}` when a workflow stops |
 
 ## Notes
 
 <Info>
-**Authentication required:** Users can only listen to their own chats
+**Authentication required:** Users can only listen to their own chats.
 </Info>
 
 <Warning>
@@ -53,5 +51,5 @@ Server-Sent Events (SSE) stream with each event containing chat messages:
 </Warning>
 
 <Tip>
-The stream includes keepalive messages every 3 seconds to prevent connection drops.
+The keepalive messages every 3 seconds prevent connection drops from proxies and load balancers.
 </Tip>

@@ -1,6 +1,6 @@
 ---
 title: 'API Introduction'
-description: 'Trigger workflows and retrieve execution results via API'
+description: 'Run workflows, manage chats, and monitor execution via the Splox API'
 ---
 
 ## Base URL
@@ -11,69 +11,96 @@ All API requests should be made to:
 https://app.splox.io/api/v1
 ```
 
-## Webhook URL Format
-
-Workflow webhooks use the same base URL:
-
-```
-https://app.splox.io/api/v1/workflow-webhooks/{webhook_id}
-```
-
-Example:
-```
-https://app.splox.io/api/v1/workflow-webhooks/0199eeeb-d60e-7ffd-9131-4cc5ab040ee7
-```
-
 ## Authentication
 
-Webhooks can be configured as public (no authentication) or private (requires authentication).
-
-For authenticated endpoints, include your API token in the Authorization header:
+Protected endpoints require a Bearer token in the Authorization header:
 
 ```bash
 Authorization: Bearer YOUR_API_TOKEN
 ```
 
-You can generate API tokens from your [Splox Dashboard](https://app.splox.io/account?tab=settings).
+Generate API tokens from your [account settings](https://app.splox.io/account?tab=settings).
+
+<Info>
+  API tokens require a minimum $2.00 account balance to create. Tokens can be configured with custom expiry (default: 1 hour, max: 1 year).
+</Info>
 
 ## Endpoints
 
-The Splox API provides these main endpoints:
+The Splox API provides these endpoints:
 
-1. **Trigger Workflow** - Send data to webhook to execute workflow
-2. **Listen to Execution** - Stream real-time updates via SSE
-3. **Get Execution Tree** - Retrieve complete execution hierarchy
-4. **Get History** - View past executions
-5. **Manage Chats** - Create and retrieve chat sessions
+### Workflow Execution
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/workflow-requests/run` | Run a workflow |
+| GET | `/workflow-requests/{id}/listen` | Stream execution updates (SSE) |
+| GET | `/workflow-requests/{id}/execution-tree` | Get complete execution hierarchy |
+| GET | `/workflow-requests/{id}/history` | Get past executions |
+| POST | `/workflow-requests/{id}/stop` | Stop a running workflow |
+
+### Chats
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/chats` | Create a new chat session |
+| GET | `/chats/{id}` | Get a chat session |
+| GET | `/chat-internal-messages/{chatId}/listen` | Stream chat events (SSE) |
+
+### Events
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/events/{webhook_id}` | Receive external event via webhook |
+
+## Typical API Flow
+
+<Steps>
+  <Step title="Create a Chat">
+    `POST /chats` — Create a chat session for the workflow you want to run. The chat ID is used for context memory and SSE streaming.
+  </Step>
+  
+  <Step title="Run the Workflow">
+    `POST /workflow-requests/run` — Trigger the workflow with your query, chat ID, and start node ID. Returns a `workflow_request_id`.
+  </Step>
+  
+  <Step title="Listen for Results">
+    `GET /workflow-requests/{id}/listen` — Connect to the SSE stream to receive real-time execution updates as nodes complete.
+  </Step>
+</Steps>
 
 ## Response Format
 
-API responses return JSON data directly:
+All responses return JSON. Example run workflow response:
 
-**Webhook trigger response:**
 ```json
 {
   "workflow_request_id": "0199f123-d60e-7ffd-9131-4cc5ab040ee8"
 }
 ```
 
-**Use this ID** to listen to execution, get the tree, or view history.
+Use this ID to listen for results, get the execution tree, or check history.
 
-**Execution tree response:**
-```json
-{
-  "id": "0199f123-d60e-7ffd-9131-4cc5ab040ee8",
-  "status": "completed",
-  "workflow_version_id": "0199e001-a23b-7c8d-1234-567890abcdef",
-  "query": { ... },
-  "output": { ... },
-  "created_at": "2025-10-22T12:15:30Z"
-}
+## SSE Streaming
+
+SSE endpoints (`/listen`) use standard Server-Sent Events format:
+
+```
+data: {"workflow_request": {...}, "node_execution": {...}}
+
+data: keepalive
 ```
 
-## Support
+- Keepalive messages sent every **3 seconds**
+- Connection timeout: **30 minutes** (reconnect if needed)
 
-Need help with the API? Reach out to us:
+## Rate Limits
+
+| Endpoint | Limit |
+|----------|-------|
+| `POST /workflow-requests/run` | 20 per minute per user |
+
+## Support
 
 - **Community**: [community.splox.io](https://community.splox.io/)
 - **Email**: support@splox.io

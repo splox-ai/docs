@@ -3,7 +3,7 @@ title: 'Create Chat'
 openapi: 'POST /chats'
 ---
 
-Creates a new chat session for a workflow or other resource.
+Creates a new chat session. A chat is required before running a workflow via the API — the chat ID is passed to `POST /workflow-requests/run`.
 
 ## Usage
 
@@ -12,31 +12,31 @@ curl -X POST https://app.splox.io/api/v1/chats \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
+    "name": "My Chat Session",
     "resource_type": "workflow",
-    "resource_id": "0199e001-a23b-7c8d-1234-567890abcdef",
-    "title": "My Workflow Chat"
+    "resource_id": "0199e001-a23b-7c8d-1234-567890abcdef"
   }'
 ```
 
 ## Request Body
 
-```json
-{
-  "resource_type": "workflow",
-  "resource_id": "0199e001-a23b-7c8d-1234-567890abcdef",
-  "title": "My Workflow Chat"
-}
-```
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Display name for the chat session |
+| `resource_type` | string | Yes | Type of resource: `workflow`, `gui`, `api`, or `agent` |
+| `resource_id` | string | Yes | ID of the resource (workflow ID, agent ID, etc.) |
+| `metadata` | object | No | Optional metadata |
 
 ## Response
 
 ```json
 {
   "id": "0199f200-a11b-7c8d-4444-888890abcdef",
+  "name": "My Chat Session",
   "user_id": "0199d001-c45d-9e0f-3456-789012cdef01",
   "resource_type": "workflow",
   "resource_id": "0199e001-a23b-7c8d-1234-567890abcdef",
-  "title": "My Workflow Chat",
+  "is_public": false,
   "created_at": "2025-10-22T10:00:00Z",
   "updated_at": "2025-10-22T10:00:00Z"
 }
@@ -44,18 +44,15 @@ curl -X POST https://app.splox.io/api/v1/chats \
 
 ## Resource Types
 
-- `workflow` - Chat with a workflow
-- `gui` - Chat from desktop/GUI application
-- `api` - Chat via API integration
-
-## Use Cases
-
-- **Start conversations** - Create new chat sessions
-- **Desktop app** - Initialize chat on app launch
-- **Web app** - Create chats from workflow builder
+| Type | Description |
+|------|-------------|
+| `workflow` | Chat associated with a specific workflow |
+| `gui` | Chat from the desktop/GUI application |
+| `api` | Chat created via API integration |
+| `agent` | Chat with a published agent |
 
 ## Notes
 
 <Info>
-**Authentication required:** Chat will be associated with the authenticated user
+**Authentication required:** The chat is automatically associated with the authenticated user.
 </Info>

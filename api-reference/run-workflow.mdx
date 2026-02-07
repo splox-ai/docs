@@ -1,0 +1,54 @@
+---
+title: 'Run Workflow'
+openapi: 'POST /workflow-requests/run'
+---
+
+Triggers a workflow execution. This is the primary way to run workflows programmatically.
+
+## Usage
+
+```bash
+curl -X POST https://app.splox.io/api/v1/workflow-requests/run \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "workflow_version_id": "your-workflow-version-id",
+    "chat_id": "your-chat-id",
+    "start_node_id": "your-start-node-id",
+    "query": "Your message or instruction",
+    "files": []
+  }'
+```
+
+## How It Works
+
+1. The API creates a `WorkflowRequest` with status `pending`
+2. The request is enqueued for processing
+3. Execution begins at the specified Start node
+4. The Start node receives a payload: `{ "text": "<query>", "chat_id": "<chat_id>", "files": [...] }`
+5. Downstream nodes access this via `{{ start.text }}`, `{{ start.chat_id }}`, etc.
+
+## Prerequisites
+
+Before running a workflow, you need:
+
+1. **A chat session** — Create one via [Create Chat](/api-reference/create-chat)
+2. **A workflow version ID** — The ID of the workflow version to execute
+3. **A start node ID** — The ID of the Start node to begin execution at
+
+## Response
+
+Returns a `workflow_request_id` you can use to:
+- **Stream results in real-time:** [Listen to Execution (SSE)](/api-reference/listen-workflow-execution)
+- **Get the full execution tree:** [Get Execution Tree](/api-reference/get-execution-tree)
+- **View execution history:** [Get History](/api-reference/get-workflow-history)
+
+## Rate Limit
+
+**20 workflow executions per minute** per user.
+
+## Notes
+
+<Info>
+**Authentication required:** The authenticated user must own the workflow or have access via a published agent.
+</Info>

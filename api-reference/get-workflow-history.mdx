@@ -3,58 +3,50 @@ title: 'Get Workflow Request History'
 openapi: 'GET /workflow-requests/{id}/history'
 ---
 
-Retrieves paginated execution history for a workflow request.
+Retrieves cursor-based paginated execution history for a workflow.
 
 ## Usage
 
 ```bash
 curl -H "Authorization: Bearer YOUR_TOKEN" \
-  https://app.splox.io/api/v1/workflow-requests/{workflow_request_id}/history?page=1&limit=20
+  "https://app.splox.io/api/v1/workflow-requests/{workflow_request_id}/history?limit=10"
 ```
 
 ## Query Parameters
 
-- `page` (optional) - Page number, default: 1
-- `limit` (optional) - Items per page, default: 20, max: 100
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `limit` | integer | 10 | Items per page (max: 100) |
+| `cursor` | uuid | — | Cursor from previous response for next page |
+| `search` | string | — | Search string to filter results |
 
 ## Response
 
 ```json
 {
-  "history": [
+  "data": [
     {
       "id": "0199f123-d60e-7ffd-9131-4cc5ab040ee8",
+      "workflow_version_id": "0199e001-a23b-7c8d-1234-567890abcdef",
+      "start_node_id": "0199e002-b34c-8d9e-2345-678901bcdef0",
       "status": "completed",
-      "created_at": "2025-10-22T12:15:30Z",
+      "payload": { "text": "Hello", "chat_id": "..." },
       "started_at": "2025-10-22T12:15:32Z",
       "completed_at": "2025-10-22T12:15:47Z",
-      "query": {
-        "event": "user.signup",
-        "email": "user@example.com"
-      },
-      "output": {
-        "result": "success"
-      }
+      "created_at": "2025-10-22T12:15:30Z"
     }
   ],
   "pagination": {
-    "page": 1,
-    "limit": 20,
-    "total": 45,
-    "total_pages": 3
+    "limit": 10,
+    "next_cursor": "0199f122-c50d-6eec-8020-3bb4a9f30dd7"
   }
 }
 ```
 
-## Use Cases
-
-- **Execution logs** - View past executions
-- **Performance tracking** - Analyze execution times
-- **Debugging** - Find failed executions
-- **Auditing** - Track workflow usage
+**Pagination:** If `next_cursor` is present, pass it as `?cursor=<value>` to get the next page. If `next_cursor` is absent, there are no more results.
 
 ## Notes
 
 <Info>
-**Authentication required:** Include Bearer token in Authorization header
+**Authentication required:** Include Bearer token in Authorization header.
 </Info>

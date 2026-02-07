@@ -113,6 +113,7 @@
             "group": "Endpoints",
             "icon": "code",
             "pages": [
+              "api-reference/run-workflow",
               "api-reference/trigger-webhook",
               "api-reference/listen-workflow-execution",
               "api-reference/get-execution-tree",

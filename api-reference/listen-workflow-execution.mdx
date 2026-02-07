@@ -7,16 +7,32 @@ Streams real-time execution updates via Server-Sent Events (SSE) as the workflow
 
 ## Usage
 
-This endpoint provides a persistent connection that streams execution events as they happen:
-
 ```bash
 curl -N -H "Authorization: Bearer YOUR_TOKEN" \
   https://app.splox.io/api/v1/workflow-requests/{workflow_request_id}/listen
 ```
 
+## How It Works
+
+1. On connection, all existing node executions are sent immediately
+2. Then the stream subscribes to real-time updates via Redis PubSub
+3. Each event contains a `workflow_request` and/or `node_execution` update
+4. Keepalive messages (`data: keepalive`) are sent every 3 seconds
+5. The stream closes when the workflow completes, fails, or stops
+
 ## Response Format
 
-Server-Sent Events (SSE) stream with each event containing:
+Standard SSE format — each event is a `data:` line followed by two newlines:
+
+```
+data: {"workflow_request":{...},"node_execution":{...}}
+
+data: keepalive
+
+data: {"workflow_request":{"id":"...","status":"completed",...}}
+```
+
+Each event payload contains:
 
 ```json
 {
@@ -29,7 +45,7 @@ Server-Sent Events (SSE) stream with each event containing:
     "id": "0199f124-e70f-8gge-2242-5dd6bc151ff9",
     "node_id": "0199e002-b34c-8d9e-2345-678901bcdef0",
     "status": "completed",
-    "output": { "result": "success" }
+    "output_data": { "text": "Here is the result..." }
   }
 }
 ```
@@ -37,31 +53,27 @@ Server-Sent Events (SSE) stream with each event containing:
 ## Status Values
 
 **Workflow Request:**
-- `pending` - Request received, waiting to start
-- `in_progress` - Currently executing
-- `waiting` - Paused, waiting for input
-- `completed` - Finished successfully
-- `failed` - Execution failed
-- `stopped` - Manually stopped
+- `pending` — Request received, waiting to start
+- `in_progress` — Currently executing
+- `waiting` — Paused, waiting for input (e.g., tool approval)
+- `completed` — Finished successfully
+- `failed` — Execution failed
+- `stopped` — Manually stopped
 
 **Node Execution:**
-- `pending` - Queued
-- `running` - Currently executing
-- `completed` - Finished successfully
-- `failed` - Execution failed
-- `blocked` - Waiting for dependencies
-
-## Use Cases
-
-- **Real-time UI updates** - Update workflow execution UI as nodes complete
-- **Progress tracking** - Show live progress to users
-- **Debugging** - Monitor execution flow in real-time
-- **Webhooks** - Trigger actions based on specific execution events
+- `pending` — Queued
+- `in_progress` — Currently executing
+- `completed` — Finished successfully
+- `failed` — Execution failed
+- `blocked` — Waiting for dependencies
+- `skipped` — Skipped (conditional branch not taken)
+- `stopped` — Manually stopped
+- `waiting` — Paused, waiting for input
 
 ## Notes
 
 <Info>
-**Authentication required:** Include Bearer token in Authorization header
+**Authentication required:** Include Bearer token in Authorization header.
 </Info>
 
 <Warning>

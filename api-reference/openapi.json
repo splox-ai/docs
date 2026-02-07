@@ -1,8 +1,8 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Splox Webhook API",
-    "description": "Trigger workflows via webhooks and retrieve execution status",
+    "title": "Splox API",
+    "description": "Run workflows, manage chats, receive events, and monitor execution via the Splox API",
     "version": "1.0.0",
     "contact": {
       "name": "Splox Support",
@@ -17,46 +17,67 @@
     }
   ],
   "paths": {
-    "/workflow-webhooks/{id}": {
+    "/workflow-requests/run": {
       "post": {
-        "summary": "Trigger Workflow via Webhook",
-        "description": "Triggers a workflow execution by sending data to its unique webhook URL. The webhook processes the payload and creates a workflow request.",
-        "operationId": "triggerWebhook",
-        "tags": ["Webhooks"],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Unique webhook identifier (UUID format)",
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "example": "0199eeeb-d60e-7ffd-9131-4cc5ab040ee7"
-            }
-          }
-        ],
+        "summary": "Run Workflow",
+        "description": "Triggers a workflow execution. Creates a workflow request with the given payload, enqueues it for processing, and returns a workflow_request_id for tracking.",
+        "operationId": "runWorkflow",
+        "tags": ["Workflow Requests"],
+        "security": [{"bearerAuth": []}],
         "requestBody": {
-          "description": "Webhook payload - any JSON data that will be passed to the workflow",
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true,
-                "example": {
-                  "user_id": "12345",
-                  "event": "user.signup",
-                  "email": "user@example.com",
-                  "name": "John Doe"
+                "required": ["workflow_version_id", "chat_id", "start_node_id", "query"],
+                "properties": {
+                  "workflow_version_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "ID of the workflow version to execute"
+                  },
+                  "chat_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Chat session ID (used for context memory and SSE streaming)"
+                  },
+                  "start_node_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "ID of the Start node to begin execution at"
+                  },
+                  "query": {
+                    "type": "string",
+                    "description": "The user message or query text. Available as {{ start.text }} in the workflow."
+                  },
+                  "files": {
+                    "type": "array",
+                    "description": "Optional file attachments. Available as {{ start.files }} in the workflow.",
+                    "items": {
+                      "$ref": "#/components/schemas/WorkflowRequestFile"
+                    }
+                  },
+                  "additional_params": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Optional extra parameters merged into the payload"
+                  }
                 }
+              },
+              "example": {
+                "workflow_version_id": "0199e001-a23b-7c8d-1234-567890abcdef",
+                "chat_id": "0199f200-a11b-7c8d-4444-888890abcdef",
+                "start_node_id": "0199e002-b34c-8d9e-2345-678901bcdef0",
+                "query": "Summarize the latest sales report",
+                "files": []
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Webhook processed successfully",
+            "description": "Workflow execution started successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -65,45 +86,120 @@
                     "workflow_request_id": {
                       "type": "string",
                       "format": "uuid",
-                      "description": "ID of the created workflow request - use this to check execution status",
-                      "example": "0199f123-d60e-7ffd-9131-4cc5ab040ee8"
-                    },
-                    "note": {
-                      "type": "string",
-                      "description": "Present only if webhook didn't match any event configurations",
-                      "example": "Webhook received but did not match any event configurations"
+                      "description": "ID of the created workflow request. Use this to listen for results, get the execution tree, or check status."
                     }
-                  },
-                  "additionalProperties": true,
-                  "description": "Response includes workflow_request_id and echoes back the processed payload"
+                  }
+                },
+                "example": {
+                  "workflow_request_id": "0199f123-d60e-7ffd-9131-4cc5ab040ee8"
                 }
               }
             }
           },
           "400": {
-            "description": "Bad request - Invalid webhook ID or payload",
+            "description": "Bad request — invalid input or unauthorized",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "examples": {
-                  "invalid_id": {
-                    "value": {
-                      "error": "invalid webhook ID"
-                    }
-                  },
-                  "inactive": {
-                    "value": {
-                      "error": "integration is not active"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded (max 20 per minute per user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/events/{webhook_id}": {
+      "post": {
+        "summary": "Send Event via Webhook",
+        "description": "Receives an event from an external service via the Event Hub. The event is stored and routed to subscribed agents. Supports verification challenges for Slack and Facebook/Instagram.",
+        "operationId": "sendEvent",
+        "tags": ["Events"],
+        "parameters": [
+          {
+            "name": "webhook_id",
+            "in": "path",
+            "required": true,
+            "description": "Event webhook ID (UUID format)",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Any JSON payload from the external service. Stored as-is and routed to subscribed agents.",
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event received and stored successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "description": "Whether the event was stored successfully"
+                    },
+                    "event_id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "ID of the stored event"
                     }
                   }
+                },
+                "example": {
+                  "ok": true,
+                  "event_id": "0199f456-a12b-3c4d-5e6f-789012abcdef"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid webhook secret",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Webhook is disabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
           },
           "404": {
-            "description": "Webhook not found",
+            "description": "Webhook not found"
+          },
+          "410": {
+            "description": "Webhook has expired",
             "content": {
               "application/json": {
                 "schema": {
@@ -118,7 +214,7 @@
     "/workflow-requests/{id}/listen": {
       "get": {
         "summary": "Listen to Workflow Execution (SSE)",
-        "description": "Streams real-time execution updates via Server-Sent Events as the workflow runs",
+        "description": "Streams real-time execution updates via Server-Sent Events as the workflow runs. First sends all existing node executions, then streams updates in real-time via Redis PubSub.",
         "operationId": "listenWorkflowExecution",
         "tags": ["Workflow Requests"],
         "security": [{"bearerAuth": []}],
@@ -136,11 +232,19 @@
         ],
         "responses": {
           "200": {
-            "description": "SSE stream of execution events",
+            "description": "SSE stream of execution events. Each event contains a workflow_request and/or node_execution update. Keepalive messages sent every 3 seconds. Connection times out after 30 minutes.",
             "content": {
               "text/event-stream": {
                 "schema": {
-                  "type": "string"
+                  "type": "object",
+                  "properties": {
+                    "workflow_request": {
+                      "$ref": "#/components/schemas/WorkflowRequest"
+                    },
+                    "node_execution": {
+                      "$ref": "#/components/schemas/NodeExecution"
+                    }
+                  }
                 }
               }
             }
@@ -151,7 +255,7 @@
     "/workflow-requests/{id}/execution-tree": {
       "get": {
         "summary": "Get Workflow Execution Tree",
-        "description": "Retrieves the complete execution tree showing all nodes, their status, and hierarchy",
+        "description": "Retrieves the complete execution tree showing all nodes, their status, inputs, outputs, and child agent executions. Max recursion depth: 10.",
         "operationId": "getExecutionTree",
         "tags": ["Workflow Requests"],
         "security": [{"bearerAuth": []}],
@@ -189,7 +293,7 @@
     "/workflow-requests/{id}/history": {
       "get": {
         "summary": "Get Workflow Request History",
-        "description": "Retrieves paginated execution history for a workflow request",
+        "description": "Retrieves cursor-based paginated execution history for a workflow.",
         "operationId": "getWorkflowHistory",
         "tags": ["Workflow Requests"],
         "security": [{"bearerAuth": []}],
@@ -205,22 +309,30 @@
             }
           },
           {
-            "name": "page",
+            "name": "limit",
             "in": "query",
-            "description": "Page number",
+            "description": "Items per page (default: 10, max: 100)",
             "schema": {
               "type": "integer",
-              "default": 1
+              "default": 10,
+              "maximum": 100
             }
           },
           {
-            "name": "limit",
+            "name": "cursor",
             "in": "query",
-            "description": "Items per page",
+            "description": "Cursor for pagination (UUID of last item from previous page)",
             "schema": {
-              "type": "integer",
-              "default": 20,
-              "maximum": 100
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search string to filter results",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -232,16 +344,110 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "history": {
+                    "data": {
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/WorkflowRequest"
                       }
                     },
                     "pagination": {
-                      "$ref": "#/components/schemas/Pagination"
+                      "type": "object",
+                      "properties": {
+                        "limit": {
+                          "type": "integer"
+                        },
+                        "next_cursor": {
+                          "type": "string",
+                          "format": "uuid",
+                          "nullable": true,
+                          "description": "Cursor for next page. Null if no more results."
+                        }
+                      }
                     }
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workflow-requests/{id}/stop": {
+      "post": {
+        "summary": "Stop Workflow Execution",
+        "description": "Stops a running workflow execution.",
+        "operationId": "stopWorkflow",
+        "tags": ["Workflow Requests"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Workflow request ID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Workflow stopped successfully"
+          }
+        }
+      }
+    },
+    "/chats": {
+      "post": {
+        "summary": "Create Chat",
+        "description": "Creates a new chat session for a workflow or other resource. The chat ID is required when running workflows via the API.",
+        "operationId": "createChat",
+        "tags": ["Chats"],
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "resource_type", "resource_id"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Display name for the chat session"
+                  },
+                  "resource_type": {
+                    "type": "string",
+                    "enum": ["workflow", "gui", "api", "agent"],
+                    "description": "Type of resource this chat is associated with"
+                  },
+                  "resource_id": {
+                    "type": "string",
+                    "description": "ID of the resource (workflow ID, agent ID, etc.)"
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Optional metadata for the chat"
+                  }
+                }
+              },
+              "example": {
+                "name": "Support Chat",
+                "resource_type": "workflow",
+                "resource_id": "0199e001-a23b-7c8d-1234-567890abcdef"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Chat created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Chat"
                 }
               }
             }
@@ -252,7 +458,7 @@
     "/chats/{id}": {
       "get": {
         "summary": "Get Chat",
-        "description": "Retrieves a chat session by ID",
+        "description": "Retrieves a chat session by ID. Users can only access their own chats.",
         "operationId": "getChat",
         "tags": ["Chats"],
         "security": [{"bearerAuth": []}],
@@ -278,54 +484,9 @@
                 }
               }
             }
-          }
-        }
-      }
-    },
-    "/chats": {
-      "post": {
-        "summary": "Create Chat",
-        "description": "Creates a new chat session for a workflow or other resource",
-        "operationId": "createChat",
-        "tags": ["Chats"],
-        "security": [{"bearerAuth": []}],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["resource_type", "resource_id"],
-                "properties": {
-                  "resource_type": {
-                    "type": "string",
-                    "enum": ["workflow", "gui", "api"],
-                    "description": "Type of resource"
-                  },
-                  "resource_id": {
-                    "type": "string",
-                    "format": "uuid",
-                    "description": "ID of the resource"
-                  },
-                  "title": {
-                    "type": "string",
-                    "description": "Chat title"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Chat created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Chat"
-                }
-              }
-            }
+          },
+          "404": {
+            "description": "Chat not found"
           }
         }
       }
@@ -333,7 +494,7 @@
     "/chat-internal-messages/{chatId}/listen": {
       "get": {
         "summary": "Listen to Chat Messages (SSE)",
-        "description": "Streams real-time chat messages via Server-Sent Events",
+        "description": "Streams real-time chat updates via Server-Sent Events. Subscribes to the chat's Redis channel and streams workflow request updates and node execution events for the chat session. Keepalive every 3 seconds, 30-minute timeout.",
         "operationId": "listenChatMessages",
         "tags": ["Chats"],
         "security": [{"bearerAuth": []}],
@@ -351,64 +512,11 @@
         ],
         "responses": {
           "200": {
-            "description": "SSE stream of chat messages",
+            "description": "SSE stream of chat events. Includes workflow request status updates and node execution events for the chat session.",
             "content": {
               "text/event-stream": {
                 "schema": {
                   "type": "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/workflow-requests/{id}": {
-      "get": {
-        "summary": "Get Workflow Request Status",
-        "description": "Retrieves detailed information about a workflow request, including status, input data, output results, and execution metadata.",
-        "operationId": "getWorkflowRequest",
-        "tags": ["Workflow Requests"],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Workflow request ID (UUID format) returned from webhook trigger",
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "example": "0199f123-d60e-7ffd-9131-4cc5ab040ee8"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Workflow request details retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WorkflowRequest"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid workflow request ID format",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -426,118 +534,131 @@
           "id": {
             "type": "string",
             "format": "uuid",
-            "description": "Unique workflow request identifier",
-            "example": "0199f123-d60e-7ffd-9131-4cc5ab040ee8"
+            "description": "Unique workflow request identifier"
           },
           "workflow_version_id": {
             "type": "string",
             "format": "uuid",
-            "description": "ID of the workflow version being executed",
-            "example": "0199e001-a23b-7c8d-1234-567890abcdef"
+            "description": "ID of the workflow version being executed"
           },
           "start_node_id": {
             "type": "string",
             "format": "uuid",
-            "description": "ID of the starting node in the workflow",
-            "example": "0199e002-b34c-8d9e-2345-678901bcdef0"
+            "description": "ID of the Start node execution began at"
           },
           "user_id": {
             "type": "string",
             "format": "uuid",
-            "description": "ID of the user who owns this workflow",
-            "example": "0199d001-c45d-9e0f-3456-789012cdef01"
+            "description": "ID of the user who owns the workflow"
+          },
+          "billing_user_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "ID of the user being billed for this execution"
           },
           "parent_node_execution_id": {
             "type": "string",
             "format": "uuid",
             "nullable": true,
-            "description": "ID of parent node execution (for subflows)",
-            "example": null
+            "description": "ID of parent node execution (for child agent invocations)"
           },
           "parent_workflow_request_id": {
             "type": "string",
             "format": "uuid",
-            "description": "ID of parent workflow request (same as id for root requests)",
-            "example": "0199f123-d60e-7ffd-9131-4cc5ab040ee8"
+            "description": "ID of parent workflow request (same as id for root requests)"
           },
-          "query": {
-            "type": "object",
-            "additionalProperties": true,
-            "description": "Input data from webhook payload",
-            "example": {
-              "user_id": "12345",
-              "event": "user.signup",
-              "email": "user@example.com"
-            }
-          },
-          "iteration_array": {
-            "type": "array",
+          "chat_id": {
+            "type": "string",
             "nullable": true,
-            "description": "Array data for loop iterations",
-            "items": {},
-            "example": null
-          },
-          "iteration_data": {
-            "type": "object",
-            "nullable": true,
-            "description": "Current iteration context data",
-            "additionalProperties": true,
-            "example": null
+            "description": "Chat session ID associated with this execution"
           },
           "status": {
             "type": "string",
             "enum": ["pending", "in_progress", "waiting", "completed", "failed", "stopped"],
-            "description": "Current status of the workflow request",
-            "example": "completed"
+            "description": "Current execution status"
           },
-          "files": {
-            "type": "array",
-            "description": "Files attached to the workflow request",
-            "items": {
-              "$ref": "#/components/schemas/WorkflowRequestFile"
-            },
-            "example": []
-          },
-          "output": {
+          "payload": {
             "type": "object",
-            "nullable": true,
             "additionalProperties": true,
-            "description": "Output data from completed workflow (null if not completed)",
-            "example": {
-              "result": "success",
-              "user_created": true,
-              "welcome_email_sent": true
-            }
+            "description": "Input payload passed to the Start node"
           },
           "metadata": {
             "type": "object",
             "nullable": true,
             "additionalProperties": true,
-            "description": "Additional metadata for the workflow request",
-            "example": {}
+            "description": "Additional metadata"
           },
           "started_at": {
             "type": "string",
             "format": "date-time",
             "nullable": true,
-            "description": "Timestamp when execution started (null if not started)",
-            "example": "2025-10-22T12:15:32Z"
+            "description": "When execution started"
           },
           "completed_at": {
             "type": "string",
             "format": "date-time",
             "nullable": true,
-            "description": "Timestamp when execution completed (null if not completed)",
-            "example": "2025-10-22T12:15:47Z"
+            "description": "When execution completed"
           },
           "created_at": {
             "type": "string",
             "format": "date-time",
-            "description": "Timestamp when request was created",
-            "example": "2025-10-22T12:15:30Z"
+            "description": "When the request was created"
           }
         },
         "required": ["id", "workflow_version_id", "start_node_id", "status", "created_at"]
+      },
+      "NodeExecution": {
+        "type": "object",
+        "description": "Represents the execution state of a single node",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workflow_request_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "node_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workflow_version_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "in_progress", "completed", "failed", "blocked", "skipped", "stopped", "waiting"]
+          },
+          "input_data": {
+            "type": "object",
+            "nullable": true
+          },
+          "output_data": {
+            "type": "object",
+            "nullable": true
+          },
+          "attempt_count": {
+            "type": "integer"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "failed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
       },
       "ExecutionTree": {
         "type": "object",
@@ -547,7 +668,8 @@
             "format": "uuid"
           },
           "status": {
-            "type": "string"
+            "type": "string",
+            "enum": ["pending", "in_progress", "waiting", "completed", "failed", "stopped"]
           },
           "created_at": {
             "type": "string",
@@ -584,13 +706,16 @@
             "type": "string"
           },
           "status": {
-            "type": "string"
+            "type": "string",
+            "enum": ["pending", "in_progress", "completed", "failed", "blocked", "skipped", "stopped", "waiting"]
           },
           "input_data": {
-            "type": "object"
+            "type": "object",
+            "nullable": true
           },
           "output_data": {
-            "type": "object"
+            "type": "object",
+            "nullable": true
           },
           "created_at": {
             "type": "string",
@@ -614,6 +739,12 @@
             "items": {
               "$ref": "#/components/schemas/ChildExecution"
             }
+          },
+          "total_children": {
+            "type": "integer"
+          },
+          "has_more_children": {
+            "type": "boolean"
           }
         }
       },
@@ -660,20 +791,31 @@
             "type": "string",
             "format": "uuid"
           },
+          "name": {
+            "type": "string"
+          },
           "user_id": {
             "type": "string",
             "format": "uuid"
           },
           "resource_type": {
             "type": "string",
-            "enum": ["workflow", "gui", "api"]
+            "enum": ["workflow", "gui", "api", "agent"]
           },
           "resource_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "title": {
             "type": "string"
+          },
+          "is_public": {
+            "type": "boolean"
+          },
+          "public_share_token": {
+            "type": "string",
+            "nullable": true
+          },
+          "metadata": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true
           },
           "created_at": {
             "type": "string",
@@ -685,54 +827,32 @@
           }
         }
       },
-      "Pagination": {
-        "type": "object",
-        "properties": {
-          "page": {
-            "type": "integer"
-          },
-          "limit": {
-            "type": "integer"
-          },
-          "total": {
-            "type": "integer"
-          },
-          "total_pages": {
-            "type": "integer"
-          }
-        }
-      },
       "WorkflowRequestFile": {
         "type": "object",
         "description": "File attached to a workflow request",
         "properties": {
           "content_type": {
             "type": "string",
-            "description": "MIME type of the file",
-            "example": "image/png"
+            "description": "MIME type of the file"
           },
           "url": {
             "type": "string",
             "format": "uri",
-            "description": "URL to access the file",
-            "example": "https://storage.splox.io/files/abc123.png"
+            "description": "URL to access the file"
           },
           "file_name": {
             "type": "string",
-            "description": "Original file name",
-            "example": "screenshot.png"
+            "description": "Original file name"
           },
           "file_size": {
             "type": "integer",
             "format": "int64",
-            "description": "File size in bytes",
-            "example": 245678
+            "description": "File size in bytes"
           },
           "metadata": {
             "type": "object",
             "additionalProperties": true,
-            "description": "Additional file metadata",
-            "example": {}
+            "description": "Additional file metadata"
           }
         },
         "required": ["url"]
@@ -742,8 +862,7 @@
         "properties": {
           "error": {
             "type": "string",
-            "description": "Error message describing what went wrong",
-            "example": "invalid webhook ID"
+            "description": "Error message"
           }
         }
       }
@@ -752,22 +871,22 @@
       "bearerAuth": {
         "type": "http",
         "scheme": "bearer",
-        "description": "JWT token from Splox account"
+        "description": "API token generated from your Splox account settings. Create tokens at https://app.splox.io/account?tab=settings"
       }
     }
   },
   "tags": [
     {
-      "name": "Webhooks",
-      "description": "Trigger workflows via unique webhook URLs"
+      "name": "Workflow Requests",
+      "description": "Run workflows, monitor execution, and retrieve results"
     },
     {
-      "name": "Workflow Requests",
-      "description": "Monitor and retrieve workflow execution status and results"
+      "name": "Events",
+      "description": "Receive external events via Event Hub webhooks"
     },
     {
       "name": "Chats",
-      "description": "Manage chat sessions and messages"
+      "description": "Manage chat sessions for workflow interactions"
     }
   ]
 }
