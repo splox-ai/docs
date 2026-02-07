@@ -17,9 +17,9 @@ Parallel edges are the default connection type. When a node completes, execution
 
 **In this example:**
 - The **Start Node** has one PARALLEL output handle
-- Three **parallel edges** connect to three different Template nodes
-- All three Template nodes execute **simultaneously** when Start completes
-- Each Template receives a copy of the Start node's output data
+- A **parallel edge** connects to the **Agent Node**
+- The Agent Node executes when Start completes
+- The Agent receives the Start node's output data
 
 **Characteristics:**
 - **Concurrent Execution:** All target nodes run in parallel
