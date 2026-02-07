@@ -136,33 +136,29 @@ Once mapped, use Jinja2 syntax to access the data:
 **All node types support variable mappings**, allowing you to reference data from previous nodes throughout your entire workflow.
 
 <AccordionGroup>
-  <Accordion title="Core Execution Nodes" icon="play">
-    - **Start Node:** Access trigger data and workflow inputs
-    - **End Node:** Format final output data
-    - **Stop Node:** Access data before force-terminating subflows
+  <Accordion title="Start Node" icon="play">
+    - Access trigger data (`{{ start.text }}`, `{{ start.chat_id }}`, `{{ start.files }}`)
+    - Reference workflow inputs and webhook payloads
   </Accordion>
   
-  <Accordion title="AI & Tool Nodes" icon="robot">
-    - **LLM Node:** Include context in system prompts and user messages
-    - **Tool Node:** Pass data as tool parameters and inputs
+  <Accordion title="Agent Node" icon="robot">
+    - Include context in system prompts and user messages
+    - Reference outputs from previous nodes for dynamic instructions
   </Accordion>
   
-  <Accordion title="Memory Nodes" icon="database">
-    - **Chat Memory Node:** Dynamic chat ID generation and context
-    - **Add Memory Node:** Access data to store in conversation history
-    - **Delete Memory Node:** Reference data for selective deletion
-    - **Get Memory Data Node:** Build query parameters dynamically
+  <Accordion title="Tool Node" icon="wrench">
+    - Pass data as tool parameters and inputs
+    - Reference upstream outputs for dynamic tool arguments
   </Accordion>
   
-  <Accordion title="Flow Control Nodes" icon="code-branch">
-    - **Switch Node:** Use in condition evaluation and branching logic
-    - **Merge Node:** Access merged data for processing
-    - **Subflow Node:** Pass data to nested workflows
+  <Accordion title="Switch Node" icon="code-branch">
+    - Use in condition evaluation and branching logic
+    - Reference data to determine which branch to follow
   </Accordion>
   
-  <Accordion title="Data Processing Nodes" icon="gear">
-    - **Template Node:** Access data for text formatting and generation
-    - **Transform Node:** Reference data for transformation operations
+  <Accordion title="Merge Node" icon="code-merge">
+    - Access merged data from parallel branches
+    - Reference outputs from all converging paths
   </Accordion>
 </AccordionGroup>
 
@@ -217,19 +213,19 @@ Once mapped, use Jinja2 syntax to access the data:
 ## What's Next?
 
 <CardGroup cols={2}>
-  <Card title="Data Nodes" icon="gear" href="/concepts/nodes/data-nodes">
-    See Template nodes in action
+  <Card title="Agent Node" icon="robot" href="/nodes/agent-node">
+    Use variable mappings in Agent system prompts
   </Card>
   
-  <Card title="AI Nodes" icon="robot" href="/concepts/nodes/ai-nodes">
-    Use variable mappings in LLM prompts
+  <Card title="Tool Node" icon="wrench" href="/nodes/tool-node">
+    Pass dynamic data to tool parameters
   </Card>
   
-  <Card title="Flow Control" icon="code-branch" href="/concepts/nodes/flow-control-nodes">
+  <Card title="Switch Node" icon="code-branch" href="/nodes/switch-node">
     Reference data in Switch node conditions
   </Card>
   
-  <Card title="Back to Overview" icon="cube" href="/concepts/nodes">
-    Return to nodes overview
+  <Card title="Start Node" icon="play" href="/nodes/start-node">
+    See what data the Start node provides
   </Card>
 </CardGroup>
