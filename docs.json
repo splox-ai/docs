@@ -30,7 +30,8 @@
             "icon": "book-open",
             "pages": [
               "introduction",
-              "quickstart"
+              "quickstart",
+              "sdks"
             ]
           },
           {
