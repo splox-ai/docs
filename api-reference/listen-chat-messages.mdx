@@ -7,10 +7,70 @@ Streams real-time events for a chat session via Server-Sent Events (SSE). This i
 
 ## Usage
 
-```bash
+<CodeGroup>
+
+```bash cURL
 curl -N -H "Authorization: Bearer YOUR_TOKEN" \
   https://app.splox.io/api/v1/chat-internal-messages/{chat_id}/listen
 ```
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient(api_key="YOUR_API_KEY")
+
+for event in client.chats.listen("CHAT_ID"):
+    if event.is_keepalive:
+        continue
+    if event.node_execution:
+        print(f"[{event.node_execution.status}] {event.node_execution.node_id}")
+    if event.workflow_request and event.workflow_request.status == "completed":
+        print("Done!")
+        break
+```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+
+const stream = await client.chats.listen("CHAT_ID");
+for await (const event of stream) {
+  if (event.isKeepalive) continue;
+  if (event.node_execution) {
+    console.log(`[${event.node_execution.status}] ${event.node_execution.node_id}`);
+  }
+  if (event.workflow_request?.status === "completed") {
+    console.log("Done!");
+    break;
+  }
+}
+```
+
+```go Go
+client := splox.NewClient("YOUR_API_KEY")
+iter, err := client.Chats.Listen(ctx, "CHAT_ID")
+if err != nil {
+    log.Fatal(err)
+}
+defer iter.Close()
+
+for iter.Next() {
+    ev := iter.Event()
+    if ev.IsKeepalive {
+        continue
+    }
+    if ev.NodeExecution != nil {
+        fmt.Printf("[%s] %s\n", ev.NodeExecution.Status, ev.NodeExecution.NodeID)
+    }
+    if ev.WorkflowRequest != nil && ev.WorkflowRequest.Status == "completed" {
+        fmt.Println("Done!")
+        break
+    }
+}
+```
+
+</CodeGroup>
 
 ## How It Works
 

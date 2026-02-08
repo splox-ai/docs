@@ -7,10 +7,60 @@ Retrieves paginated chat message history for a chat session. Messages are return
 
 ## Usage
 
-```bash
+<CodeGroup>
+
+```bash cURL
 curl "https://app.splox.io/api/v1/chat-history/0199f200-a11b-7c8d-4444-888890abcdef/paginated?limit=20" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient(api_key="YOUR_API_KEY")
+result = client.chats.get_history("CHAT_ID", limit=20)
+for msg in result.messages:
+    text = msg.content[0].text if msg.content else ""
+    print(f"[{msg.role}] {text}")
+
+# Paginate backward
+if result.has_more:
+    oldest = result.messages[-1].created_at
+    older = client.chats.get_history("CHAT_ID", limit=20, before=oldest)
+```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+const result = await client.chats.getHistory("CHAT_ID", { limit: 20 });
+for (const msg of result.messages) {
+  const text = msg.content?.[0]?.text ?? "";
+  console.log(`[${msg.role}] ${text}`);
+}
+
+// Paginate backward
+if (result.has_more) {
+  const oldest = result.messages.at(-1)!.created_at!;
+  const older = await client.chats.getHistory("CHAT_ID", { limit: 20, before: oldest });
+}
+```
+
+```go Go
+client := splox.NewClient("YOUR_API_KEY")
+result, err := client.Chats.GetHistory(ctx, "CHAT_ID", &splox.ChatHistoryParams{
+    Limit: 20,
+})
+for _, msg := range result.Messages {
+    text := ""
+    if len(msg.Content) > 0 {
+        text = msg.Content[0].Text
+    }
+    fmt.Printf("[%s] %s\n", msg.Role, text)
+}
+```
+
+</CodeGroup>
 
 ## Path Parameters
 

@@ -7,7 +7,9 @@ Creates a new chat session. A chat is required before running a workflow via the
 
 ## Usage
 
-```bash
+<CodeGroup>
+
+```bash cURL
 curl -X POST https://app.splox.io/api/v1/chats \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
@@ -17,6 +19,39 @@ curl -X POST https://app.splox.io/api/v1/chats \
     "resource_id": "0199e001-a23b-7c8d-1234-567890abcdef"
   }'
 ```
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient(api_key="YOUR_API_KEY")
+chat = client.chats.create(
+    name="My Chat Session",
+    resource_id="0199e001-a23b-7c8d-1234-567890abcdef",
+)
+print(chat.id)
+```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+const chat = await client.chats.create({
+  name: "My Chat Session",
+  resource_id: "0199e001-a23b-7c8d-1234-567890abcdef",
+});
+console.log(chat.id);
+```
+
+```go Go
+client := splox.NewClient("YOUR_API_KEY")
+chat, err := client.Chats.Create(ctx, splox.CreateChatParams{
+    Name:       "My Chat Session",
+    ResourceID: "0199e001-a23b-7c8d-1234-567890abcdef",
+})
+fmt.Println(chat.ID)
+```
+
+</CodeGroup>
 
 ## Request Body
 

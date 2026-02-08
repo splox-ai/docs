@@ -9,9 +9,50 @@ Sends an event to a workflow via its Event Hub webhook URL.
 
 Event webhooks allow external services (Telegram, Slack, Stripe, GitHub, etc.) to trigger workflow execution:
 
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://app.splox.io/api/v1/events/{webhook_id} \
+  -H "Content-Type: application/json" \
+  -H "X-Webhook-Secret: your-secret" \
+  -d '{"key": "value"}'
 ```
-POST https://app.splox.io/api/v1/events/{webhook_id}
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient()  # No API key required for webhooks
+result = client.events.send(
+    webhook_id="WEBHOOK_ID",
+    payload={"key": "value"},
+    secret="your-secret",  # optional
+)
+print(result.ok, result.event_id)
 ```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox();  // No API key required for webhooks
+const result = await client.events.send({
+  webhookId: "WEBHOOK_ID",
+  payload: { key: "value" },
+  secret: "your-secret",  // optional
+});
+console.log(result.ok, result.event_id);
+```
+
+```go Go
+client := splox.NewClient("")  // No API key required for webhooks
+result, err := client.Events.Send(ctx, splox.SendEventParams{
+    WebhookID: "WEBHOOK_ID",
+    Payload:   map[string]any{"key": "value"},
+    Secret:    "your-secret",  // optional
+})
+fmt.Println(result.OK, result.EventID)
+```
+
+</CodeGroup>
 
 ## Authentication
 

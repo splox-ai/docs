@@ -7,10 +7,33 @@ Deletes all message history for a chat session. The chat session itself is prese
 
 ## Usage
 
-```bash
+<CodeGroup>
+
+```bash cURL
 curl -X DELETE https://app.splox.io/api/v1/chat-history/0199f200-a11b-7c8d-4444-888890abcdef \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient(api_key="YOUR_API_KEY")
+client.chats.delete_history("CHAT_ID")
+```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+await client.chats.deleteHistory("CHAT_ID");
+```
+
+```go Go
+client := splox.NewClient("YOUR_API_KEY")
+err := client.Chats.DeleteHistory(ctx, "CHAT_ID")
+```
+
+</CodeGroup>
 
 ## Path Parameters
 

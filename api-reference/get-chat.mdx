@@ -7,10 +7,36 @@ Retrieves a chat session by ID. Users can only access their own chats.
 
 ## Usage
 
-```bash
+<CodeGroup>
+
+```bash cURL
 curl -H "Authorization: Bearer YOUR_TOKEN" \
   https://app.splox.io/api/v1/chats/{chat_id}
 ```
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient(api_key="YOUR_API_KEY")
+chat = client.chats.get("CHAT_ID")
+print(chat.name, chat.resource_type, chat.created_at)
+```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+const chat = await client.chats.get("CHAT_ID");
+console.log(chat.name, chat.resource_type, chat.created_at);
+```
+
+```go Go
+client := splox.NewClient("YOUR_API_KEY")
+chat, err := client.Chats.Get(ctx, "CHAT_ID")
+fmt.Println(chat.Name, chat.ResourceType, chat.CreatedAt)
+```
+
+</CodeGroup>
 
 ## Response
 
