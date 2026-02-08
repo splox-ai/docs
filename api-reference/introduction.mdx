@@ -36,6 +36,7 @@ The Splox API provides these endpoints:
 | GET | `/workflows` | List all workflows |
 | GET | `/workflows/{id}` | Get a workflow with nodes and edges |
 | GET | `/workflows/{id}/versions/latest` | Get the latest workflow version |
+| GET | `/workflows/{id}/versions` | List all workflow versions |
 | GET | `/workflows/{id}/start-nodes` | Get start nodes for a version |
 
 ### Workflow Execution
@@ -53,7 +54,11 @@ The Splox API provides these endpoints:
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/chats` | Create a new chat session |
+| GET | `/chats/{resourceType}/{resourceId}` | List chats for a resource |
 | GET | `/chats/{id}` | Get a chat session |
+| DELETE | `/chats/{id}` | Delete a chat session |
+| GET | `/chat-history/{chatId}/paginated` | Get paginated message history |
+| DELETE | `/chat-history/{chatId}` | Delete all message history |
 | GET | `/chat-internal-messages/{chatId}/listen` | Stream chat events (SSE) |
 
 ### Events

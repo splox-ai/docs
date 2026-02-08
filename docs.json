@@ -116,6 +116,7 @@
               "api-reference/list-workflows",
               "api-reference/get-workflow",
               "api-reference/get-workflow-version",
+              "api-reference/list-workflow-versions",
               "api-reference/get-start-nodes"
             ]
           },
@@ -134,7 +135,11 @@
             "icon": "comments",
             "pages": [
               "api-reference/create-chat",
+              "api-reference/list-chats",
               "api-reference/get-chat",
+              "api-reference/delete-chat",
+              "api-reference/get-chat-history",
+              "api-reference/delete-chat-history",
               "api-reference/listen-chat-messages"
             ]
           },
