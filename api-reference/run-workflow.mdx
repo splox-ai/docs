@@ -32,9 +32,9 @@ curl -X POST https://app.splox.io/api/v1/workflow-requests/run \
 
 Before running a workflow, you need:
 
-1. **A chat session** — Create one via [Create Chat](/api-reference/create-chat)
-2. **A workflow version ID** — The ID of the workflow version to execute
-3. **A start node ID** — The ID of the Start node to begin execution at
+1. **A workflow version ID** — Get it via [List Workflows](/api-reference/list-workflows) or [Get Latest Version](/api-reference/get-workflow-version)
+2. **A start node ID** — Get it via [Get Start Nodes](/api-reference/get-start-nodes)
+3. **A chat session** — Create one via [Create Chat](/api-reference/create-chat)
 
 ## Response
 

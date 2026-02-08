@@ -1,0 +1,74 @@
+---
+title: 'List Workflows'
+openapi: 'GET /workflows'
+---
+
+Lists all workflows owned by the authenticated user. Supports cursor-based pagination and search.
+
+## Usage
+
+```bash
+curl https://app.splox.io/api/v1/workflows?limit=10 \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### With Search
+
+```bash
+curl "https://app.splox.io/api/v1/workflows?search=customer+support&limit=5" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+## Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `limit` | integer | 20 | Items per page (1–100) |
+| `cursor` | string (uuid) | — | Cursor from `pagination.next_cursor` of previous response |
+| `search` | string | — | Filter by workflow name or description |
+
+## Response
+
+```json
+{
+  "workflows": [
+    {
+      "id": "019c3221-29d7-70e1-aa1e-dee02589289b",
+      "user_id": "0199d001-c45d-9e0f-3456-789012cdef01",
+      "latest_version": {
+        "id": "019c3221-29da-7d08-93fa-c48dbaa8b1db",
+        "workflow_id": "019c3221-29d7-70e1-aa1e-dee02589289b",
+        "version_number": 1,
+        "name": "My Workflow",
+        "description": "A workflow for processing orders",
+        "status": "draft",
+        "created_at": "2025-10-22T10:00:00Z",
+        "updated_at": "2025-10-22T10:00:00Z"
+      },
+      "created_at": "2025-10-22T10:00:00Z",
+      "updated_at": "2025-10-22T10:00:00Z"
+    }
+  ],
+  "pagination": {
+    "limit": 20,
+    "next_cursor": "019c3221-29d7-70e1-aa1e-dee02589289b"
+  }
+}
+```
+
+### Pagination
+
+If `next_cursor` is present, pass it as the `cursor` query parameter to fetch the next page:
+
+```bash
+curl "https://app.splox.io/api/v1/workflows?limit=10&cursor=019c3221-29d7-70e1-aa1e-dee02589289b" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+When `next_cursor` is `null`, there are no more results.
+
+## Notes
+
+<Info>
+**Authentication required:** Only workflows owned by the authenticated user are returned.
+</Info>

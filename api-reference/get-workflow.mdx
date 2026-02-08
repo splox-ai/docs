@@ -1,0 +1,115 @@
+---
+title: 'Get Workflow'
+openapi: 'GET /workflows/{id}'
+---
+
+Retrieves a workflow with its draft version, all nodes, and all edges. This gives you the complete workflow structure.
+
+## Usage
+
+```bash
+curl https://app.splox.io/api/v1/workflows/019c3221-29d7-70e1-aa1e-dee02589289b \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+## Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | string (uuid) | Workflow ID |
+
+## Response
+
+```json
+{
+  "workflow": {
+    "id": "019c3221-29d7-70e1-aa1e-dee02589289b",
+    "user_id": "0199d001-c45d-9e0f-3456-789012cdef01",
+    "latest_version": {
+      "id": "019c3221-29da-7d08-93fa-c48dbaa8b1db",
+      "workflow_id": "019c3221-29d7-70e1-aa1e-dee02589289b",
+      "version_number": 1,
+      "name": "My Workflow",
+      "status": "draft",
+      "created_at": "2025-10-22T10:00:00Z",
+      "updated_at": "2025-10-22T10:00:00Z"
+    },
+    "created_at": "2025-10-22T10:00:00Z",
+    "updated_at": "2025-10-22T10:00:00Z"
+  },
+  "workflow_version": {
+    "id": "019c3221-29da-7d08-93fa-c48dbaa8b1db",
+    "workflow_id": "019c3221-29d7-70e1-aa1e-dee02589289b",
+    "version_number": 1,
+    "name": "My Workflow",
+    "status": "draft",
+    "created_at": "2025-10-22T10:00:00Z",
+    "updated_at": "2025-10-22T10:00:00Z"
+  },
+  "nodes": [
+    {
+      "id": "019c3221-29dc-7735-a4e3-b42ebb1a0cf1",
+      "workflow_version_id": "019c3221-29da-7d08-93fa-c48dbaa8b1db",
+      "node_type": "start",
+      "label": "Basic Agent",
+      "pos_x": 100.0,
+      "pos_y": 200.0,
+      "data": {},
+      "created_at": "2025-10-22T10:00:00Z",
+      "updated_at": "2025-10-22T10:00:00Z"
+    },
+    {
+      "id": "019c3221-29dc-7735-a4e3-b42ebb1a0cf2",
+      "workflow_version_id": "019c3221-29da-7d08-93fa-c48dbaa8b1db",
+      "node_type": "agent",
+      "label": "Agent",
+      "pos_x": 400.0,
+      "pos_y": 200.0,
+      "data": {},
+      "created_at": "2025-10-22T10:00:00Z",
+      "updated_at": "2025-10-22T10:00:00Z"
+    }
+  ],
+  "edges": [
+    {
+      "id": "019c3221-29dd-1234-a4e3-b42ebb1a0cf3",
+      "workflow_version_id": "019c3221-29da-7d08-93fa-c48dbaa8b1db",
+      "source": "019c3221-29dc-7735-a4e3-b42ebb1a0cf1",
+      "target": "019c3221-29dc-7735-a4e3-b42ebb1a0cf2",
+      "edge_type": "condition",
+      "created_at": "2025-10-22T10:00:00Z",
+      "updated_at": "2025-10-22T10:00:00Z"
+    }
+  ]
+}
+```
+
+### Node Types
+
+| Type | Description |
+|------|-------------|
+| `start` | Start node — entry point for workflow execution |
+| `agent` | AI Agent node — processes input with an LLM |
+| `tool` | Tool node — executes an external tool or function |
+| `switch` | Switch node — conditional branching |
+| `merge` | Merge node — combines parallel branches |
+| `end` | End node — terminates the workflow |
+
+### Edge Types
+
+| Type | Description |
+|------|-------------|
+| `condition` | Conditional edge — follows based on a condition |
+| `parallel` | Parallel edge — executes branches concurrently |
+| `tool` | Tool edge — connects agent to tool nodes |
+| `error` | Error edge — followed when a node fails |
+
+## Notes
+
+<Info>
+**Authentication required:** The authenticated user must own the workflow.
+</Info>
+
+<Info>
+The `workflow_version` at the top level is the **draft** version (for editing). The `latest_version` nested inside `workflow` is the latest by version number and may differ if a version has been published.
+</Info>

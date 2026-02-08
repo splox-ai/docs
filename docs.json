@@ -110,17 +110,39 @@
             ]
           },
           {
-            "group": "Endpoints",
-            "icon": "code",
+            "group": "Workflows",
+            "icon": "diagram-project",
+            "pages": [
+              "api-reference/list-workflows",
+              "api-reference/get-workflow",
+              "api-reference/get-workflow-version",
+              "api-reference/get-start-nodes"
+            ]
+          },
+          {
+            "group": "Workflow Execution",
+            "icon": "play",
             "pages": [
               "api-reference/run-workflow",
-              "api-reference/trigger-webhook",
               "api-reference/listen-workflow-execution",
               "api-reference/get-execution-tree",
-              "api-reference/get-workflow-history",
-              "api-reference/get-chat",
+              "api-reference/get-workflow-history"
+            ]
+          },
+          {
+            "group": "Chats",
+            "icon": "comments",
+            "pages": [
               "api-reference/create-chat",
+              "api-reference/get-chat",
               "api-reference/listen-chat-messages"
+            ]
+          },
+          {
+            "group": "Events",
+            "icon": "bolt",
+            "pages": [
+              "api-reference/trigger-webhook"
             ]
           }
         ]

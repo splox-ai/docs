@@ -1,0 +1,76 @@
+---
+title: 'Get Start Nodes'
+openapi: 'GET /workflows/{id}/start-nodes'
+---
+
+Retrieves the start nodes for a workflow version. The start node ID is required when running a workflow via `POST /workflow-requests/run`.
+
+## Usage
+
+```bash
+curl https://app.splox.io/api/v1/workflows/019c3221-29da-7d08-93fa-c48dbaa8b1db/start-nodes \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+<Warning>
+The `id` path parameter is a **workflow version ID** (not a workflow ID). Get the version ID from [Get Latest Version](/api-reference/get-workflow-version) or [List Workflows](/api-reference/list-workflows).
+</Warning>
+
+## Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | string (uuid) | **Workflow version ID** |
+
+## Response
+
+```json
+{
+  "nodes": [
+    {
+      "id": "019c3221-29dc-7735-a4e3-b42ebb1a0cf1",
+      "workflow_version_id": "019c3221-29da-7d08-93fa-c48dbaa8b1db",
+      "node_type": "start",
+      "label": "Basic Agent",
+      "pos_x": 100.0,
+      "pos_y": 200.0,
+      "data": {},
+      "created_at": "2025-10-22T10:00:00Z",
+      "updated_at": "2025-10-22T10:00:00Z"
+    }
+  ]
+}
+```
+
+Most workflows have a single start node. Workflows with multiple entry points will return all top-level start nodes.
+
+## Typical Usage
+
+Use this endpoint to discover the `start_node_id` needed for [Run Workflow](/api-reference/run-workflow):
+
+```bash
+# 1. Get latest version
+VERSION_ID=$(curl -s https://app.splox.io/api/v1/workflows/$WORKFLOW_ID/versions/latest \
+  -H "Authorization: Bearer $TOKEN" | jq -r '.id')
+
+# 2. Get start node
+START_NODE_ID=$(curl -s https://app.splox.io/api/v1/workflows/$VERSION_ID/start-nodes \
+  -H "Authorization: Bearer $TOKEN" | jq -r '.nodes[0].id')
+
+# 3. Run workflow
+curl -X POST https://app.splox.io/api/v1/workflow-requests/run \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"workflow_version_id\": \"$VERSION_ID\",
+    \"chat_id\": \"$CHAT_ID\",
+    \"start_node_id\": \"$START_NODE_ID\",
+    \"query\": \"Hello!\"
+  }"
+```
+
+## Notes
+
+<Info>
+**Authentication required:** The authenticated user must own the workflow.
+</Info>

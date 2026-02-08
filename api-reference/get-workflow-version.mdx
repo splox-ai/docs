@@ -1,0 +1,49 @@
+---
+title: 'Get Latest Workflow Version'
+openapi: 'GET /workflows/{id}/versions/latest'
+---
+
+Retrieves the latest version of a workflow (by highest version number). Use the returned version ID when running workflows via `POST /workflow-requests/run`.
+
+## Usage
+
+```bash
+curl https://app.splox.io/api/v1/workflows/019c3221-29d7-70e1-aa1e-dee02589289b/versions/latest \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+## Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | string (uuid) | Workflow ID |
+
+## Response
+
+```json
+{
+  "id": "019c3221-29da-7d08-93fa-c48dbaa8b1db",
+  "workflow_id": "019c3221-29d7-70e1-aa1e-dee02589289b",
+  "version_number": 1,
+  "name": "My Workflow",
+  "description": "A workflow for processing orders",
+  "metadata": {},
+  "status": "draft",
+  "created_at": "2025-10-22T10:00:00Z",
+  "updated_at": "2025-10-22T10:00:00Z"
+}
+```
+
+### Version Status
+
+| Status | Description |
+|--------|-------------|
+| `draft` | Work in progress — can be edited |
+| `published` | Published and immutable — ready for production use |
+| `archived` | No longer active |
+
+## Notes
+
+<Info>
+**Authentication required:** The authenticated user must own the workflow.
+</Info>

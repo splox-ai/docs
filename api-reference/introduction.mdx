@@ -29,6 +29,15 @@ Generate API tokens from your [account settings](https://app.splox.io/account?ta
 
 The Splox API provides these endpoints:
 
+### Workflows
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/workflows` | List all workflows |
+| GET | `/workflows/{id}` | Get a workflow with nodes and edges |
+| GET | `/workflows/{id}/versions/latest` | Get the latest workflow version |
+| GET | `/workflows/{id}/start-nodes` | Get start nodes for a version |
+
 ### Workflow Execution
 
 | Method | Endpoint | Description |
@@ -56,12 +65,16 @@ The Splox API provides these endpoints:
 ## Typical API Flow
 
 <Steps>
+  <Step title="Discover Your Workflow">
+    `GET /workflows` — List your workflows (or search by name). Then get the latest version with `GET /workflows/{id}/versions/latest` and its start node with `GET /workflows/{versionId}/start-nodes`.
+  </Step>
+
   <Step title="Create a Chat">
-    `POST /chats` — Create a chat session for the workflow you want to run. The chat ID is used for context memory and SSE streaming.
+    `POST /chats` — Create a chat session for the workflow. The chat ID is used for context memory and SSE streaming.
   </Step>
   
   <Step title="Run the Workflow">
-    `POST /workflow-requests/run` — Trigger the workflow with your query, chat ID, and start node ID. Returns a `workflow_request_id`.
+    `POST /workflow-requests/run` — Trigger the workflow with your query, chat ID, workflow version ID, and start node ID. Returns a `workflow_request_id`.
   </Step>
   
   <Step title="Listen for Results">
