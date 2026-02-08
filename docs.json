@@ -145,6 +145,15 @@
             ]
           },
           {
+            "group": "Memory",
+            "icon": "brain",
+            "pages": [
+              "api-reference/list-memory-instances",
+              "api-reference/get-memory-messages",
+              "api-reference/memory-actions"
+            ]
+          },
+          {
             "group": "Events",
             "icon": "bolt",
             "pages": [

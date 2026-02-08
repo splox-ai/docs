@@ -1,0 +1,71 @@
+---
+title: 'List Memory Instances'
+openapi: 'GET /chat-memories/{workflowVersionId}'
+---
+
+Lists all unique context memory instances for a workflow version. Each instance represents a distinct `(context_memory_id, agent_node_id)` pair.
+
+## Usage
+
+<CodeGroup>
+
+```bash cURL
+curl "https://app.splox.io/api/v1/chat-memories/WORKFLOW_VERSION_ID" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient(api_key="YOUR_API_KEY")
+result = client.memory.list("WORKFLOW_VERSION_ID")
+for inst in result.chats:
+    print(f"{inst.memory_node_label}: {inst.message_count} messages")
+```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+const result = await client.memory.list("WORKFLOW_VERSION_ID");
+for (const inst of result.chats) {
+  console.log(`${inst.memory_node_label}: ${inst.message_count} messages`);
+}
+```
+
+```go Go
+client := splox.NewClient("YOUR_API_KEY")
+result, err := client.Memory.List(ctx, "WORKFLOW_VERSION_ID")
+for _, inst := range result.Chats {
+    fmt.Printf("%s: %d messages\n", inst.MemoryNodeLabel, inst.MessageCount)
+}
+```
+
+</CodeGroup>
+
+## Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `workflowVersionId` | string (uuid) | The workflow version ID |
+
+## Response
+
+```json
+{
+  "chats": [
+    {
+      "id": "user-session-abc",
+      "name": "user-session-abc",
+      "workflow_version_id": "019c3221-...",
+      "chat_id": "user-session-abc",
+      "memory_node_id": "019c3221-...",
+      "memory_node_label": "Research Agent",
+      "context_size": 4096,
+      "message_count": 24,
+      "created_at": "2025-10-22T10:00:00Z",
+      "updated_at": "2025-10-22T12:30:00Z"
+    }
+  ]
+}
+```

@@ -1,0 +1,231 @@
+---
+title: 'Memory Actions'
+openapi: 'POST /chat-memory/{agentNodeId}/actions'
+---
+
+Perform actions on an agent node's context memory. Supports **summarize**, **trim**, **clear**, and **export**.
+
+## Actions Overview
+
+| Action | Description |
+|--------|-------------|
+| `summarize` | Compress older messages into an LLM-generated summary, keeping recent messages intact. |
+| `trim` | Drop the oldest messages to bring the count under a limit. |
+| `clear` | Remove all messages from the memory instance. |
+| `export` | Return all messages without modifying them. |
+
+---
+
+## Summarize
+
+Replaces older messages with a concise LLM-generated summary. The agent node's configured LLM provider and model are used for summarization.
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://app.splox.io/api/v1/chat-memory/AGENT_NODE_ID/actions" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "summarize",
+    "context_memory_id": "SESSION_ID",
+    "workflow_version_id": "VERSION_ID",
+    "keep_last_n": 5
+  }'
+```
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient(api_key="YOUR_API_KEY")
+result = client.memory.summarize(
+    "AGENT_NODE_ID",
+    context_memory_id="SESSION_ID",
+    workflow_version_id="VERSION_ID",
+    keep_last_n=5,
+)
+print(f"Summarized {result.deleted_count} messages")
+print(f"Summary: {result.summary}")
+```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+const result = await client.memory.summarize("AGENT_NODE_ID", {
+  context_memory_id: "SESSION_ID",
+  workflow_version_id: "VERSION_ID",
+  keep_last_n: 5,
+});
+console.log(`Summarized ${result.deleted_count} messages`);
+console.log(`Summary: ${result.summary}`);
+```
+
+```go Go
+keepN := 5
+client := splox.NewClient("YOUR_API_KEY")
+result, err := client.Memory.Summarize(ctx, "AGENT_NODE_ID", splox.MemorySummarizeParams{
+    ContextMemoryID:   "SESSION_ID",
+    WorkflowVersionID: "VERSION_ID",
+    KeepLastN:         &keepN,
+})
+fmt.Printf("Summarized %d messages\n", result.DeletedCount)
+fmt.Println("Summary:", result.Summary)
+```
+
+</CodeGroup>
+
+### Summarize Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `action` | string | ✅ | Must be `"summarize"`. |
+| `context_memory_id` | string | ✅ | The context memory ID (resolved chat/session ID). |
+| `workflow_version_id` | string (uuid) | ✅ | The workflow version ID. |
+| `keep_last_n` | integer | — | Keep this many recent messages; summarize the rest. Defaults to keeping the last 2. |
+| `summarize_prompt` | string | — | Custom summarization prompt. Falls back to the agent's configured prompt. |
+
+---
+
+## Trim
+
+Removes the oldest messages to bring the total count under the specified limit.
+
+<CodeGroup>
+
+```python Python
+result = client.memory.trim(
+    "AGENT_NODE_ID",
+    context_memory_id="SESSION_ID",
+    workflow_version_id="VERSION_ID",
+    max_messages=20,
+)
+print(f"Trimmed {result.deleted_count}, {result.remaining_count} remaining")
+```
+
+```typescript Node.js
+const result = await client.memory.trim("AGENT_NODE_ID", {
+  context_memory_id: "SESSION_ID",
+  workflow_version_id: "VERSION_ID",
+  max_messages: 20,
+});
+```
+
+```go Go
+maxMsgs := 20
+result, _ := client.Memory.Trim(ctx, "AGENT_NODE_ID", splox.MemoryTrimParams{
+    ContextMemoryID:   "SESSION_ID",
+    WorkflowVersionID: "VERSION_ID",
+    MaxMessages:       &maxMsgs,
+})
+```
+
+</CodeGroup>
+
+### Trim Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `action` | string | ✅ | Must be `"trim"`. |
+| `context_memory_id` | string | ✅ | The context memory ID. |
+| `workflow_version_id` | string (uuid) | ✅ | The workflow version ID. |
+| `max_messages` | integer | — | Maximum messages to keep (default 10). |
+
+---
+
+## Clear
+
+Removes all messages from the memory instance and resets the context window size to 0.
+
+<CodeGroup>
+
+```python Python
+result = client.memory.clear(
+    "AGENT_NODE_ID",
+    context_memory_id="SESSION_ID",
+    workflow_version_id="VERSION_ID",
+)
+print(f"Cleared {result.deleted_count} messages")
+```
+
+```typescript Node.js
+const result = await client.memory.clear("AGENT_NODE_ID", {
+  context_memory_id: "SESSION_ID",
+  workflow_version_id: "VERSION_ID",
+});
+```
+
+```go Go
+result, _ := client.Memory.Clear(ctx, "AGENT_NODE_ID", splox.MemoryClearParams{
+    ContextMemoryID:   "SESSION_ID",
+    WorkflowVersionID: "VERSION_ID",
+})
+```
+
+</CodeGroup>
+
+---
+
+## Export
+
+Returns all memory messages without modifying them.
+
+<CodeGroup>
+
+```python Python
+result = client.memory.export(
+    "AGENT_NODE_ID",
+    context_memory_id="SESSION_ID",
+    workflow_version_id="VERSION_ID",
+)
+for msg in result.messages:
+    print(f"[{msg.role}] {msg.content}")
+```
+
+```typescript Node.js
+const result = await client.memory.export("AGENT_NODE_ID", {
+  context_memory_id: "SESSION_ID",
+  workflow_version_id: "VERSION_ID",
+});
+for (const msg of result.messages ?? []) {
+  console.log(`[${msg.role}] ${msg.content}`);
+}
+```
+
+```go Go
+result, _ := client.Memory.Export(ctx, "AGENT_NODE_ID", splox.MemoryExportParams{
+    ContextMemoryID:   "SESSION_ID",
+    WorkflowVersionID: "VERSION_ID",
+})
+for _, msg := range result.Messages {
+    fmt.Printf("[%s] %v\n", msg.Role, msg.Content)
+}
+```
+
+</CodeGroup>
+
+---
+
+## Response
+
+All actions return the same response shape:
+
+```json
+{
+  "action": "summarize",
+  "message": "Memory summarized successfully",
+  "deleted_count": 18,
+  "summary": "[Previous Conversation Summary]\nThe user asked about...",
+  "remaining_count": 6,
+  "messages": null
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `action` | string | The action that was performed. |
+| `message` | string | Human-readable status message. |
+| `deleted_count` | integer | Number of messages removed. |
+| `summary` | string | The generated summary text (only for `summarize`). |
+| `messages` | array | Full message list (only for `export`). |
+| `remaining_count` | integer | Messages remaining after the action. |

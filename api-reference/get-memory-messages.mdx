@@ -1,0 +1,88 @@
+---
+title: 'Get Memory Messages'
+openapi: 'GET /chat-memory/{agentNodeId}'
+---
+
+Retrieves paginated context memory messages for a specific agent node and memory instance.
+
+## Usage
+
+<CodeGroup>
+
+```bash cURL
+curl "https://app.splox.io/api/v1/chat-memory/AGENT_NODE_ID?chat_id=SESSION_ID&limit=20" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient(api_key="YOUR_API_KEY")
+result = client.memory.get("AGENT_NODE_ID", chat_id="SESSION_ID", limit=20)
+for msg in result.messages:
+    print(f"[{msg.role}] {msg.content}")
+
+# Paginate
+if result.has_more:
+    more = client.memory.get("AGENT_NODE_ID", chat_id="SESSION_ID", cursor=result.next_cursor)
+```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+const result = await client.memory.get("AGENT_NODE_ID", {
+  chat_id: "SESSION_ID",
+  limit: 20,
+});
+for (const msg of result.messages) {
+  console.log(`[${msg.role}] ${msg.content}`);
+}
+```
+
+```go Go
+client := splox.NewClient("YOUR_API_KEY")
+result, err := client.Memory.Get(ctx, "AGENT_NODE_ID", &splox.MemoryGetParams{
+    ChatID: "SESSION_ID",
+    Limit:  20,
+})
+for _, msg := range result.Messages {
+    fmt.Printf("[%s] %v\n", msg.Role, msg.Content)
+}
+```
+
+</CodeGroup>
+
+## Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `agentNodeId` | string (uuid) | The agent node ID |
+
+## Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `chat_id` | string | — | **Required.** The context memory ID (resolved chat/session ID). |
+| `limit` | integer | 20 | Messages per page (1–100). |
+| `cursor` | string | — | Pagination cursor from previous response. |
+
+## Response
+
+```json
+{
+  "messages": [
+    {
+      "id": "019c3221-...",
+      "role": "user",
+      "content": "What is the weather today?",
+      "context_memory_id": "session-abc",
+      "agent_node_id": "019c3221-...",
+      "created_at": "2025-10-22T10:00:00Z"
+    }
+  ],
+  "next_cursor": "2025-10-22T09:50:00Z",
+  "has_more": true,
+  "limit": 20
+}
+```
