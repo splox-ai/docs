@@ -195,6 +195,50 @@
         }
       }
     },
+    "/workflows/{id}/versions": {
+      "get": {
+        "summary": "List Workflow Versions",
+        "description": "Lists all versions of a workflow.",
+        "operationId": "listWorkflowVersions",
+        "tags": ["Workflows"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Workflow ID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Versions retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "versions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/WorkflowVersion"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Workflow not found"
+          }
+        }
+      }
+    },
     "/workflow-requests/run": {
       "post": {
         "summary": "Run Workflow",
@@ -576,6 +620,57 @@
         }
       }
     },
+    "/chats/{resourceType}/{resourceId}": {
+      "get": {
+        "summary": "List Chats for Resource",
+        "description": "Lists all chat sessions for a specific resource (workflow, agent, etc.).",
+        "operationId": "listChats",
+        "tags": ["Chats"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "resourceType",
+            "in": "path",
+            "required": true,
+            "description": "Resource type",
+            "schema": {
+              "type": "string",
+              "enum": ["api", "workflow", "agent", "gui"]
+            }
+          },
+          {
+            "name": "resourceId",
+            "in": "path",
+            "required": true,
+            "description": "Resource ID (e.g., workflow ID)",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chats retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "chats": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Chat"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/chats": {
       "post": {
         "summary": "Create Chat",
@@ -665,6 +760,126 @@
           },
           "404": {
             "description": "Chat not found"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Chat",
+        "description": "Deletes a chat session by ID.",
+        "operationId": "deleteChat",
+        "tags": ["Chats"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Chat ID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Chat deleted successfully (empty body)"
+          },
+          "404": {
+            "description": "Chat not found"
+          }
+        }
+      }
+    },
+    "/chat-history/{chatId}/paginated": {
+      "get": {
+        "summary": "Get Chat History",
+        "description": "Retrieves paginated chat message history. Returns a bare JSON array of messages, newest first.",
+        "operationId": "getChatHistory",
+        "tags": ["Chats"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "description": "Chat ID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Messages per page (default: 50, max: 200)",
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "maximum": 200
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "description": "RFC3339 timestamp cursor for backward pagination. Omit to get latest messages.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chat messages retrieved successfully (bare JSON array)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ChatMessage"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat-history/{chatId}": {
+      "delete": {
+        "summary": "Delete Chat History",
+        "description": "Deletes all message history for a chat session. The chat session itself is preserved.",
+        "operationId": "deleteChatHistory",
+        "tags": ["Chats"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "description": "Chat ID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chat history deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -1183,7 +1398,7 @@
           },
           "resource_type": {
             "type": "string",
-            "enum": ["api"]
+            "enum": ["api", "workflow", "agent", "gui"]
           },
           "resource_id": {
             "type": "string"
@@ -1209,6 +1424,104 @@
             "format": "date-time"
           }
         }
+      },
+      "ChatMessage": {
+        "type": "object",
+        "description": "A single message in a chat history",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "chat_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "role": {
+            "type": "string",
+            "enum": ["user", "assistant", "system", "tool"]
+          },
+          "parent_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "status": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true
+          },
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChatMessageContent"
+            }
+          },
+          "files": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/WorkflowRequestFile"
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["id", "chat_id", "role", "content"]
+      },
+      "ChatMessageContent": {
+        "type": "object",
+        "description": "A single content block within a chat message",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["text", "tool-call", "tool-result", "source", "credential-request"],
+            "description": "Content block type"
+          },
+          "text": {
+            "type": "string",
+            "description": "Text content"
+          },
+          "toolCallId": {
+            "type": "string",
+            "description": "Tool call identifier"
+          },
+          "toolName": {
+            "type": "string",
+            "description": "Name of the tool being called"
+          },
+          "args": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Tool call arguments"
+          },
+          "result": {
+            "description": "Tool execution result"
+          },
+          "reasoning": {
+            "type": "string",
+            "description": "Model reasoning text"
+          }
+        },
+        "required": ["type"]
       },
       "WorkflowRequestFile": {
         "type": "object",
