@@ -1,0 +1,137 @@
+---
+title: 'Get Transaction History'
+openapi: 'GET /billing/transactions'
+---
+
+Returns paginated, filterable transaction history for the authenticated user. Supports filtering by type, status, date range, amount range, and search.
+
+## Usage
+
+<CodeGroup>
+
+```bash cURL
+curl "https://app.splox.io/api/v1/billing/transactions?page=1&limit=20&types=debit" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient(api_key="YOUR_API_KEY")
+result = client.billing.get_transaction_history(
+    limit=20,
+    types="debit",
+    start_date="2026-01-01",
+    end_date="2026-01-31",
+)
+for tx in result.transactions:
+    amount_usd = tx.amount / 1_000_000
+    print(f"{tx.created_at[:10]}  {tx.type}  ${amount_usd:.4f}  [{tx.status}]")
+
+print(f"Page {result.pagination.page}/{result.pagination.total_pages}")
+```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+const result = await client.billing.getTransactionHistory({
+  limit: 20,
+  types: "debit",
+  start_date: "2026-01-01",
+  end_date: "2026-01-31",
+});
+for (const tx of result.transactions) {
+  const usd = tx.amount / 1_000_000;
+  console.log(`${tx.created_at.slice(0, 10)}  ${tx.type}  $${usd.toFixed(4)}  [${tx.status}]`);
+}
+console.log(`Page ${result.pagination.page}/${result.pagination.total_pages}`);
+```
+
+```go Go
+client := splox.NewClient("YOUR_API_KEY")
+result, err := client.Billing.GetTransactionHistory(ctx, &splox.TransactionHistoryParams{
+    Limit:     20,
+    Types:     "debit",
+    StartDate: "2026-01-01",
+    EndDate:   "2026-01-31",
+})
+for _, tx := range result.Transactions {
+    usd := float64(tx.Amount) / 1_000_000
+    fmt.Printf("%s  %s  $%.4f  [%s]\n", tx.CreatedAt[:10], tx.Type, usd, tx.Status)
+}
+fmt.Printf("Page %d/%d\n", result.Pagination.Page, result.Pagination.TotalPages)
+```
+
+</CodeGroup>
+
+## Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | integer | 1 | Page number (1-based) |
+| `limit` | integer | 20 | Items per page (1–100) |
+| `types` | string | — | Comma-separated filter: `credit`, `debit`, `refund` |
+| `statuses` | string | — | Comma-separated filter: `pending`, `completed`, `failed` |
+| `start_date` | string | — | Start date (`YYYY-MM-DD`) |
+| `end_date` | string | — | End date (`YYYY-MM-DD`, inclusive) |
+| `min_amount` | number | — | Minimum amount in dollars |
+| `max_amount` | number | — | Maximum amount in dollars |
+| `search` | string | — | Search in description and metadata |
+
+## Response
+
+```json
+{
+  "transactions": [
+    {
+      "id": "0199f123-d60e-7ffd-9131-4cc5ab040ee8",
+      "user_id": "0199d001-c45d-9e0f-3456-789012cdef01",
+      "amount": 8700,
+      "currency": "USD",
+      "type": "debit",
+      "status": "completed",
+      "description": null,
+      "metadata": null,
+      "stripe_payment_intent_id": null,
+      "stripe_charge_id": null,
+      "created_at": "2026-02-08T13:57:39Z",
+      "updated_at": "2026-02-08T13:57:39Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total_count": 73143,
+    "total_pages": 3658,
+    "has_next": true,
+    "has_prev": false
+  }
+}
+```
+
+### Transaction Types
+
+| Type | Description |
+|------|-------------|
+| `credit` | Funds added (top-up, refund) |
+| `debit` | Funds deducted (workflow execution cost) |
+| `refund` | Refund of a previous charge |
+
+### Transaction Statuses
+
+| Status | Description |
+|--------|-------------|
+| `pending` | Transaction is processing |
+| `completed` | Transaction completed successfully |
+| `failed` | Transaction failed |
+
+<Info>
+**Amounts are in microdollars.** Divide by 1,000,000 to get USD. For example, `8700` = $0.0087.
+</Info>
+
+## Notes
+
+<Info>
+**Authentication required.** Only the authenticated user's transactions are returned.
+</Info>

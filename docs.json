@@ -150,6 +150,16 @@
             "pages": [
               "api-reference/trigger-webhook"
             ]
+          },
+          {
+            "group": "Billing",
+            "icon": "credit-card",
+            "pages": [
+              "api-reference/get-balance",
+              "api-reference/get-transaction-history",
+              "api-reference/get-activity-stats",
+              "api-reference/get-daily-activity"
+            ]
           }
         ]
       },

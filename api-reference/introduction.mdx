@@ -89,6 +89,15 @@ The Splox API provides these endpoints:
 |--------|----------|-------------|
 | POST | `/events/{webhook_id}` | Receive external event via webhook |
 
+### Billing
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/billing/balance` | Get current account balance |
+| GET | `/billing/transactions` | Get paginated transaction history |
+| GET | `/activity/stats` | Get aggregate activity statistics |
+| GET | `/activity/daily` | Get daily spending and usage data |
+
 ## Typical API Flow
 
 <Steps>

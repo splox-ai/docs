@@ -1,0 +1,64 @@
+---
+title: 'Get Balance'
+openapi: 'GET /billing/balance'
+---
+
+Returns the authenticated user's current account balance.
+
+## Usage
+
+<CodeGroup>
+
+```bash cURL
+curl https://app.splox.io/api/v1/billing/balance \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient(api_key="YOUR_API_KEY")
+balance = client.billing.get_balance()
+print(f"Balance: ${balance.balance_usd:.2f}")
+print(f"Microdollars: {balance.balance_microdollars}")
+```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+const balance = await client.billing.getBalance();
+console.log(`Balance: $${balance.balance_usd.toFixed(2)}`);
+console.log(`Microdollars: ${balance.balance_microdollars}`);
+```
+
+```go Go
+client := splox.NewClient("YOUR_API_KEY")
+balance, err := client.Billing.GetBalance(ctx)
+fmt.Printf("Balance: $%.2f\n", balance.BalanceUSD)
+fmt.Printf("Microdollars: %d\n", balance.BalanceMicrodollars)
+```
+
+</CodeGroup>
+
+## Response
+
+```json
+{
+  "balance_microdollars": 7818623801,
+  "balance_usd": 7818.6238,
+  "currency": "USD"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `balance_microdollars` | integer | Balance in microdollars (1 USD = 1,000,000 microdollars) |
+| `balance_usd` | number | Balance in US dollars |
+| `currency` | string | Currency code (always `USD`) |
+
+## Notes
+
+<Info>
+**Authentication required.** If the user has no balance record, one is automatically created with a zero balance.
+</Info>

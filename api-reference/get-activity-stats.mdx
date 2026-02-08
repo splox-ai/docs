@@ -1,0 +1,78 @@
+---
+title: 'Get Activity Stats'
+openapi: 'GET /activity/stats'
+---
+
+Returns aggregate activity statistics for the authenticated user, including balance, total requests, total spending, average cost per request, and token usage.
+
+## Usage
+
+<CodeGroup>
+
+```bash cURL
+curl https://app.splox.io/api/v1/activity/stats \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient(api_key="YOUR_API_KEY")
+stats = client.billing.get_activity_stats()
+print(f"Balance:          ${stats.balance:.2f}")
+print(f"Total requests:   {stats.total_requests}")
+print(f"Total spending:   ${stats.total_spending:.2f}")
+print(f"Avg cost/request: ${stats.avg_cost_per_request:.6f}")
+```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+const stats = await client.billing.getActivityStats();
+console.log(`Balance:          $${stats.balance.toFixed(2)}`);
+console.log(`Total requests:   ${stats.total_requests}`);
+console.log(`Total spending:   $${stats.total_spending.toFixed(2)}`);
+console.log(`Avg cost/request: $${stats.avg_cost_per_request.toFixed(6)}`);
+```
+
+```go Go
+client := splox.NewClient("YOUR_API_KEY")
+stats, err := client.Billing.GetActivityStats(ctx)
+fmt.Printf("Balance:          $%.2f\n", stats.Balance)
+fmt.Printf("Total requests:   %d\n", stats.TotalRequests)
+fmt.Printf("Total spending:   $%.2f\n", stats.TotalSpending)
+fmt.Printf("Avg cost/request: $%.6f\n", stats.AvgCostPerRequest)
+```
+
+</CodeGroup>
+
+## Response
+
+```json
+{
+  "balance": 7818.6238,
+  "total_requests": 104284,
+  "total_spending": 2181.3762,
+  "avg_cost_per_request": 0.029824,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "total_tokens": 0
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `balance` | number | Current balance in USD |
+| `total_requests` | integer | Total number of workflow executions |
+| `total_spending` | number | Total amount spent in USD |
+| `avg_cost_per_request` | number | Average cost per workflow execution in USD |
+| `input_tokens` | integer | Total input tokens consumed |
+| `output_tokens` | integer | Total output tokens consumed |
+| `total_tokens` | integer | Total tokens consumed (input + output) |
+
+## Notes
+
+<Info>
+**Authentication required.** Returns lifetime statistics for the authenticated user's account.
+</Info>

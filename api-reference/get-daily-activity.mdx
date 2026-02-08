@@ -1,0 +1,93 @@
+---
+title: 'Get Daily Activity'
+openapi: 'GET /activity/daily'
+---
+
+Returns daily aggregated spending and usage data for the authenticated user. Useful for building usage dashboards and tracking trends.
+
+## Usage
+
+<CodeGroup>
+
+```bash cURL
+curl "https://app.splox.io/api/v1/activity/daily?days=7" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient(api_key="YOUR_API_KEY")
+result = client.billing.get_daily_activity(days=7)
+for day in result.data:
+    print(f"{day.date}  ${day.total_cost:.4f}  {day.request_count} requests")
+```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+const result = await client.billing.getDailyActivity({ days: 7 });
+for (const day of result.data) {
+  console.log(`${day.date}  $${day.total_cost.toFixed(4)}  ${day.request_count} requests`);
+}
+```
+
+```go Go
+client := splox.NewClient("YOUR_API_KEY")
+result, err := client.Billing.GetDailyActivity(ctx, &splox.DailyActivityParams{
+    Days: 7,
+})
+for _, day := range result.Data {
+    fmt.Printf("%s  $%.4f  %d requests\n", day.Date, day.TotalCost, day.RequestCount)
+}
+```
+
+</CodeGroup>
+
+## Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `days` | integer | 30 | Number of days to look back |
+
+## Response
+
+```json
+{
+  "data": [
+    {
+      "date": "2026-02-01",
+      "total_cost": 0.0,
+      "request_count": 0,
+      "node_count": 0
+    },
+    {
+      "date": "2026-02-02",
+      "total_cost": 7.5756,
+      "request_count": 97,
+      "node_count": 97
+    }
+  ],
+  "days": 7
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `data` | array | Array of daily activity objects, sorted by date ascending |
+| `data[].date` | string | Date in `YYYY-MM-DD` format |
+| `data[].total_cost` | number | Total cost in USD for the day |
+| `data[].request_count` | integer | Number of workflow requests |
+| `data[].node_count` | integer | Number of node executions |
+| `days` | integer | Number of days in the response |
+
+<Tip>
+Days with no activity are included with zero values, so you always get a contiguous date range — perfect for charts and graphs.
+</Tip>
+
+## Notes
+
+<Info>
+**Authentication required.** Returns daily data for the authenticated user only.
+</Info>
