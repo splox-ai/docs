@@ -7,10 +7,80 @@ Streams real-time execution updates via Server-Sent Events (SSE) as the workflow
 
 ## Usage
 
-```bash
+<CodeGroup>
+
+```bash cURL
 curl -N -H "Authorization: Bearer YOUR_TOKEN" \
   https://app.splox.io/api/v1/workflow-requests/{workflow_request_id}/listen
 ```
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient(api_key="YOUR_API_KEY")
+
+for event in client.workflows.listen("WORKFLOW_REQUEST_ID"):
+    if event.is_keepalive:
+        continue
+    if event.node_execution:
+        ne = event.node_execution
+        print(f"[{ne.status}] Node {ne.node_id}")
+    if event.workflow_request:
+        wr = event.workflow_request
+        if wr.status in ("completed", "failed", "stopped"):
+            print(f"Workflow {wr.status}")
+            break
+```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+
+const stream = await client.workflows.listen("WORKFLOW_REQUEST_ID");
+for await (const event of stream) {
+  if (event.isKeepalive) continue;
+  if (event.node_execution) {
+    console.log(`[${event.node_execution.status}] Node ${event.node_execution.node_id}`);
+  }
+  if (event.workflow_request) {
+    const status = event.workflow_request.status;
+    if (["completed", "failed", "stopped"].includes(status)) {
+      console.log(`Workflow ${status}`);
+      break;
+    }
+  }
+}
+```
+
+```go Go
+client := splox.NewClient("YOUR_API_KEY")
+
+iter, err := client.Workflows.Listen(ctx, "WORKFLOW_REQUEST_ID")
+if err != nil {
+    log.Fatal(err)
+}
+defer iter.Close()
+
+for iter.Next() {
+    ev := iter.Event()
+    if ev.IsKeepalive {
+        continue
+    }
+    if ev.NodeExecution != nil {
+        fmt.Printf("[%s] Node %s\n", ev.NodeExecution.Status, ev.NodeExecution.NodeID)
+    }
+    if ev.WorkflowRequest != nil {
+        switch ev.WorkflowRequest.Status {
+        case "completed", "failed", "stopped":
+            fmt.Printf("Workflow %s\n", ev.WorkflowRequest.Status)
+            return
+        }
+    }
+}
+```
+
+</CodeGroup>
 
 ## How It Works
 

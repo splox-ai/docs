@@ -7,10 +7,43 @@ Retrieves cursor-based paginated execution history for a workflow.
 
 ## Usage
 
-```bash
+<CodeGroup>
+
+```bash cURL
 curl -H "Authorization: Bearer YOUR_TOKEN" \
   "https://app.splox.io/api/v1/workflow-requests/{workflow_request_id}/history?limit=10"
 ```
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient(api_key="YOUR_API_KEY")
+result = client.workflows.get_history("WORKFLOW_REQUEST_ID", limit=10)
+for req in result.data:
+    print(f"[{req.status}] {req.id} — {req.created_at}")
+```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+const result = await client.workflows.getHistory("WORKFLOW_REQUEST_ID", { limit: 10 });
+for (const req of result.data) {
+  console.log(`[${req.status}] ${req.id} — ${req.created_at}`);
+}
+```
+
+```go Go
+client := splox.NewClient("YOUR_API_KEY")
+result, err := client.Workflows.GetHistory(ctx, "WORKFLOW_REQUEST_ID", &splox.HistoryParams{
+    Limit: 10,
+})
+for _, req := range result.Data {
+    fmt.Printf("[%s] %s — %s\n", req.Status, req.ID, req.CreatedAt)
+}
+```
+
+</CodeGroup>
 
 ## Query Parameters
 

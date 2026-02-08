@@ -7,7 +7,9 @@ Triggers a workflow execution. This is the primary way to run workflows programm
 
 ## Usage
 
-```bash
+<CodeGroup>
+
+```bash cURL
 curl -X POST https://app.splox.io/api/v1/workflow-requests/run \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
@@ -19,6 +21,73 @@ curl -X POST https://app.splox.io/api/v1/workflow-requests/run \
     "files": []
   }'
 ```
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient(api_key="YOUR_API_KEY")
+result = client.workflows.run(
+    workflow_version_id="your-workflow-version-id",
+    chat_id="your-chat-id",
+    start_node_id="your-start-node-id",
+    query="Your message or instruction",
+)
+print(result.workflow_request_id)
+
+# Or run and wait for completion:
+tree = client.workflows.run_and_wait(
+    workflow_version_id="your-workflow-version-id",
+    chat_id="your-chat-id",
+    start_node_id="your-start-node-id",
+    query="Your message or instruction",
+    timeout=300.0,
+)
+print(tree.execution_tree.status)
+```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+const result = await client.workflows.run({
+  workflow_version_id: "your-workflow-version-id",
+  chat_id: "your-chat-id",
+  start_node_id: "your-start-node-id",
+  query: "Your message or instruction",
+});
+console.log(result.workflow_request_id);
+
+// Or run and wait for completion:
+const tree = await client.workflows.runAndWait({
+  workflow_version_id: "your-workflow-version-id",
+  chat_id: "your-chat-id",
+  start_node_id: "your-start-node-id",
+  query: "Your message or instruction",
+});
+console.log(tree.execution_tree.status);
+```
+
+```go Go
+client := splox.NewClient("YOUR_API_KEY")
+result, err := client.Workflows.Run(ctx, splox.RunParams{
+    WorkflowVersionID: "your-workflow-version-id",
+    ChatID:            "your-chat-id",
+    StartNodeID:       "your-start-node-id",
+    Query:             "Your message or instruction",
+})
+fmt.Println(result.WorkflowRequestID)
+
+// Or run and wait for completion:
+tree, err := client.Workflows.RunAndWait(ctx, splox.RunParams{
+    WorkflowVersionID: "your-workflow-version-id",
+    ChatID:            "your-chat-id",
+    StartNodeID:       "your-start-node-id",
+    Query:             "Your message or instruction",
+}, 5*time.Minute)
+fmt.Println(tree.ExecutionTree.Status)
+```
+
+</CodeGroup>
 
 ## How It Works
 

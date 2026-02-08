@@ -7,10 +7,44 @@ Retrieves the complete execution tree showing all nodes, their status, and hiera
 
 ## Usage
 
-```bash
+<CodeGroup>
+
+```bash cURL
 curl -H "Authorization: Bearer YOUR_TOKEN" \
   https://app.splox.io/api/v1/workflow-requests/{workflow_request_id}/execution-tree
 ```
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient(api_key="YOUR_API_KEY")
+tree = client.workflows.get_execution_tree("WORKFLOW_REQUEST_ID")
+print(f"Status: {tree.execution_tree.status}")
+for node in tree.execution_tree.nodes:
+    print(f"  [{node.status}] {node.node_label} ({node.node_type})")
+```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+const { execution_tree } = await client.workflows.getExecutionTree("WORKFLOW_REQUEST_ID");
+console.log(`Status: ${execution_tree.status}`);
+for (const node of execution_tree.nodes ?? []) {
+  console.log(`  [${node.status}] ${node.node_label} (${node.node_type})`);
+}
+```
+
+```go Go
+client := splox.NewClient("YOUR_API_KEY")
+tree, err := client.Workflows.GetExecutionTree(ctx, "WORKFLOW_REQUEST_ID")
+fmt.Printf("Status: %s\n", tree.ExecutionTree.Status)
+for _, node := range tree.ExecutionTree.Nodes {
+    fmt.Printf("  [%s] %s (%s)\n", node.Status, node.NodeLabel, node.NodeType)
+}
+```
+
+</CodeGroup>
 
 ## Response
 
