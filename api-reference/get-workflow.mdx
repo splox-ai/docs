@@ -7,10 +7,39 @@ Retrieves a workflow with its draft version, all nodes, and all edges. This give
 
 ## Usage
 
-```bash
+<CodeGroup>
+
+```bash cURL
 curl https://app.splox.io/api/v1/workflows/019c3221-29d7-70e1-aa1e-dee02589289b \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient(api_key="YOUR_API_KEY")
+wf = client.workflows.get("019c3221-29d7-70e1-aa1e-dee02589289b")
+print(wf.workflow.id, wf.workflow_version.name)
+print(f"{len(wf.nodes)} nodes, {len(wf.edges)} edges")
+```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+const wf = await client.workflows.get("019c3221-29d7-70e1-aa1e-dee02589289b");
+console.log(wf.workflow.id, wf.workflow_version.name);
+console.log(`${wf.nodes.length} nodes, ${wf.edges.length} edges`);
+```
+
+```go Go
+client := splox.NewClient("YOUR_API_KEY")
+wf, err := client.Workflows.Get(ctx, "019c3221-29d7-70e1-aa1e-dee02589289b")
+fmt.Println(wf.Workflow.ID, wf.WorkflowVersion.Name)
+fmt.Printf("%d nodes, %d edges\n", len(wf.Nodes), len(wf.Edges))
+```
+
+</CodeGroup>
 
 ## Path Parameters
 

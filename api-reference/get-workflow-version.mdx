@@ -7,10 +7,36 @@ Retrieves the latest version of a workflow (by highest version number). Use the 
 
 ## Usage
 
-```bash
+<CodeGroup>
+
+```bash cURL
 curl https://app.splox.io/api/v1/workflows/019c3221-29d7-70e1-aa1e-dee02589289b/versions/latest \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient(api_key="YOUR_API_KEY")
+version = client.workflows.get_latest_version("WORKFLOW_ID")
+print(version.id, version.name, version.status)
+```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+const version = await client.workflows.getLatestVersion("WORKFLOW_ID");
+console.log(version.id, version.name, version.status);
+```
+
+```go Go
+client := splox.NewClient("YOUR_API_KEY")
+version, err := client.Workflows.GetLatestVersion(ctx, "WORKFLOW_ID")
+fmt.Println(version.ID, version.Name, version.Status)
+```
+
+</CodeGroup>
 
 ## Path Parameters
 

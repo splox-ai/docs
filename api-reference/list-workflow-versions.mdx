@@ -7,10 +7,41 @@ Lists all versions of a workflow. Not paginated — returns all versions.
 
 ## Usage
 
-```bash
+<CodeGroup>
+
+```bash cURL
 curl https://app.splox.io/api/v1/workflows/019c3221-29d7-70e1-aa1e-dee02589289b/versions \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient(api_key="YOUR_API_KEY")
+result = client.workflows.list_versions("WORKFLOW_ID")
+for v in result.versions:
+    print(v.version_number, v.name, v.status)
+```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+const { versions } = await client.workflows.listVersions("WORKFLOW_ID");
+for (const v of versions) {
+  console.log(v.version_number, v.name, v.status);
+}
+```
+
+```go Go
+client := splox.NewClient("YOUR_API_KEY")
+result, err := client.Workflows.ListVersions(ctx, "WORKFLOW_ID")
+for _, v := range result.Versions {
+    fmt.Println(v.VersionNumber, v.Name, v.Status)
+}
+```
+
+</CodeGroup>
 
 ## Path Parameters
 

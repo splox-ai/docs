@@ -7,17 +7,55 @@ Lists all workflows owned by the authenticated user. Supports cursor-based pagin
 
 ## Usage
 
-```bash
+<CodeGroup>
+
+```bash cURL
 curl https://app.splox.io/api/v1/workflows?limit=10 \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-### With Search
+```python Python
+from splox import SploxClient
 
-```bash
-curl "https://app.splox.io/api/v1/workflows?search=customer+support&limit=5" \
-  -H "Authorization: Bearer YOUR_TOKEN"
+client = SploxClient(api_key="YOUR_API_KEY")
+result = client.workflows.list(limit=10, search="customer support")
+
+for wf in result.workflows:
+    print(wf.id, wf.latest_version.name)
+
+# Paginate
+if result.pagination.has_more:
+    next_page = client.workflows.list(cursor=result.pagination.next_cursor)
 ```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+const result = await client.workflows.list({ limit: 10, search: "customer support" });
+
+for (const wf of result.workflows) {
+  console.log(wf.id, wf.latest_version?.name);
+}
+
+// Paginate
+if (result.pagination.has_more) {
+  const nextPage = await client.workflows.list({ cursor: result.pagination.next_cursor });
+}
+```
+
+```go Go
+client := splox.NewClient("YOUR_API_KEY")
+result, err := client.Workflows.List(ctx, &splox.ListParams{
+    Limit:  10,
+    Search: "customer support",
+})
+for _, wf := range result.Workflows {
+    fmt.Println(wf.ID, wf.LatestVersion.Name)
+}
+```
+
+</CodeGroup>
 
 ## Query Parameters
 

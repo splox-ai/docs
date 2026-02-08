@@ -7,10 +7,41 @@ Retrieves the start nodes for a workflow version. The start node ID is required 
 
 ## Usage
 
-```bash
+<CodeGroup>
+
+```bash cURL
 curl https://app.splox.io/api/v1/workflows/019c3221-29da-7d08-93fa-c48dbaa8b1db/start-nodes \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient(api_key="YOUR_API_KEY")
+result = client.workflows.get_start_nodes("WORKFLOW_VERSION_ID")
+for node in result.nodes:
+    print(node.id, node.label)
+```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+const { nodes } = await client.workflows.getStartNodes("WORKFLOW_VERSION_ID");
+for (const node of nodes) {
+  console.log(node.id, node.label);
+}
+```
+
+```go Go
+client := splox.NewClient("YOUR_API_KEY")
+result, err := client.Workflows.GetStartNodes(ctx, "WORKFLOW_VERSION_ID")
+for _, node := range result.Nodes {
+    fmt.Println(node.ID, node.Label)
+}
+```
+
+</CodeGroup>
 
 <Warning>
 The `id` path parameter is a **workflow version ID** (not a workflow ID). Get the version ID from [Get Latest Version](/api-reference/get-workflow-version) or [List Workflows](/api-reference/list-workflows).

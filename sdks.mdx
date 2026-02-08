@@ -1,0 +1,270 @@
+---
+title: 'SDKs'
+description: 'Official SDKs for Python, Node.js/TypeScript, and Go'
+---
+
+Splox provides official SDKs so you can integrate workflows, chats, and billing into your applications without hand-rolling HTTP requests.
+
+<CardGroup cols={3}>
+  <Card title="Python" icon="python" href="https://pypi.org/project/splox/">
+    `pip install splox`
+  </Card>
+  <Card title="Node.js / TypeScript" icon="js" href="https://www.npmjs.com/package/splox">
+    `npm install splox`
+  </Card>
+  <Card title="Go" icon="golang" href="https://github.com/splox-ai/go-sdk">
+    `go get github.com/splox-ai/go-sdk`
+  </Card>
+</CardGroup>
+
+## Quick Start
+
+<CodeGroup>
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient(api_key="YOUR_API_KEY")
+
+# List workflows
+workflows = client.workflows.list()
+for wf in workflows.workflows:
+    print(wf.id, wf.latest_version.name)
+
+# Create a chat and run a workflow
+chat = client.chats.create(name="My Session", resource_id=wf.id)
+version = client.workflows.get_latest_version(wf.id)
+start_nodes = client.workflows.get_start_nodes(version.id)
+
+result = client.workflows.run(
+    workflow_version_id=version.id,
+    chat_id=chat.id,
+    start_node_id=start_nodes.nodes[0].id,
+    query="Hello, world!",
+)
+
+# Stream real-time updates
+for event in client.workflows.listen(result.workflow_request_id):
+    if event.node_execution:
+        print(f"[{event.node_execution.status}] {event.node_execution.node_id}")
+
+# Check your balance
+balance = client.billing.get_balance()
+print(f"Balance: ${balance.balance_usd:.2f}")
+```
+
+```typescript Node.js / TypeScript
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+
+// List workflows
+const { workflows } = await client.workflows.list();
+const wf = workflows[0];
+
+// Create a chat and run a workflow
+const chat = await client.chats.create({
+  name: "My Session",
+  resource_id: wf.id,
+});
+const version = await client.workflows.getLatestVersion(wf.id);
+const { nodes } = await client.workflows.getStartNodes(version.id);
+
+const { workflow_request_id } = await client.workflows.run({
+  workflow_version_id: version.id,
+  chat_id: chat.id,
+  start_node_id: nodes[0].id,
+  query: "Hello, world!",
+});
+
+// Stream real-time updates
+const stream = await client.workflows.listen(workflow_request_id);
+for await (const event of stream) {
+  if (event.node_execution) {
+    console.log(`[${event.node_execution.status}] ${event.node_execution.node_id}`);
+  }
+}
+
+// Check your balance
+const balance = await client.billing.getBalance();
+console.log(`Balance: $${balance.balance_usd.toFixed(2)}`);
+```
+
+```go Go
+package main
+
+import (
+    "context"
+    "fmt"
+    splox "github.com/splox-ai/go-sdk"
+)
+
+func main() {
+    client := splox.NewClient("YOUR_API_KEY")
+    ctx := context.Background()
+
+    // List workflows
+    list, _ := client.Workflows.List(ctx, nil)
+    wf := list.Workflows[0]
+
+    // Create a chat and run a workflow
+    chat, _ := client.Chats.Create(ctx, splox.CreateChatParams{
+        Name:       "My Session",
+        ResourceID: wf.ID,
+    })
+    version, _ := client.Workflows.GetLatestVersion(ctx, wf.ID)
+    startNodes, _ := client.Workflows.GetStartNodes(ctx, version.ID)
+
+    result, _ := client.Workflows.Run(ctx, splox.RunParams{
+        WorkflowVersionID: version.ID,
+        ChatID:            chat.ID,
+        StartNodeID:       startNodes.Nodes[0].ID,
+        Query:             "Hello, world!",
+    })
+
+    // Stream real-time updates
+    iter, _ := client.Workflows.Listen(ctx, result.WorkflowRequestID)
+    defer iter.Close()
+    for iter.Next() {
+        ev := iter.Event()
+        if ev.NodeExecution != nil {
+            fmt.Printf("[%s] %s\n", ev.NodeExecution.Status, ev.NodeExecution.NodeID)
+        }
+    }
+
+    // Check your balance
+    balance, _ := client.Billing.GetBalance(ctx)
+    fmt.Printf("Balance: $%.2f\n", balance.BalanceUSD)
+}
+```
+
+</CodeGroup>
+
+## Available Services
+
+Every SDK client exposes the same four service namespaces:
+
+| Service | Description |
+|---------|-------------|
+| **workflows** | List, get, run, listen, stop workflows and inspect execution trees |
+| **chats** | Create, list, get, delete chat sessions and message history |
+| **events** | Trigger workflows via webhooks |
+| **billing** | Check balance, transaction history, activity stats, and daily usage |
+
+## Authentication
+
+All SDKs accept an API key directly or via the `SPLOX_API_KEY` environment variable:
+
+<CodeGroup>
+
+```python Python
+# Explicit
+client = SploxClient(api_key="YOUR_API_KEY")
+
+# From environment variable SPLOX_API_KEY
+client = SploxClient()
+```
+
+```typescript Node.js
+// Explicit
+const client = new Splox("YOUR_API_KEY");
+
+// From environment variable SPLOX_API_KEY
+const client = new Splox();
+```
+
+```go Go
+// Explicit
+client := splox.NewClient("YOUR_API_KEY")
+
+// From environment variable SPLOX_API_KEY
+client := splox.NewClient("")
+```
+
+</CodeGroup>
+
+Generate API tokens from your [account settings](https://app.splox.io/account?tab=settings).
+
+## Async Support
+
+The Python SDK includes a fully async client for use with `asyncio`:
+
+```python
+from splox import AsyncSploxClient
+
+async with AsyncSploxClient(api_key="YOUR_API_KEY") as client:
+    balance = await client.billing.get_balance()
+    print(f"Balance: ${balance.balance_usd:.2f}")
+```
+
+## Error Handling
+
+All SDKs raise typed errors you can catch individually:
+
+<CodeGroup>
+
+```python Python
+from splox import SploxClient
+from splox.exceptions import (
+    AuthenticationError,
+    NotFoundError,
+    RateLimitError,
+)
+
+try:
+    client.workflows.get("nonexistent-id")
+except AuthenticationError:
+    print("Invalid API key")
+except NotFoundError:
+    print("Workflow not found")
+except RateLimitError as e:
+    print(f"Rate limited — retry after {e.retry_after}s")
+```
+
+```typescript Node.js
+import Splox, { AuthenticationError, NotFoundError, RateLimitError } from "splox";
+
+try {
+  await client.workflows.get("nonexistent-id");
+} catch (e) {
+  if (e instanceof AuthenticationError) {
+    console.log("Invalid API key");
+  } else if (e instanceof NotFoundError) {
+    console.log("Workflow not found");
+  } else if (e instanceof RateLimitError) {
+    console.log(`Rate limited — retry after ${e.retryAfter}s`);
+  }
+}
+```
+
+```go Go
+import "errors"
+
+_, err := client.Workflows.Get(ctx, "nonexistent-id")
+if err != nil {
+    var notFound *splox.NotFoundError
+    var rateLimit *splox.RateLimitError
+    switch {
+    case errors.As(err, &notFound):
+        fmt.Println("Workflow not found")
+    case errors.As(err, &rateLimit):
+        fmt.Printf("Rate limited — retry after %v\n", rateLimit.RetryAfter)
+    }
+}
+```
+
+</CodeGroup>
+
+## Source Code
+
+<CardGroup cols={3}>
+  <Card title="Python SDK" icon="github" href="https://github.com/splox-ai/python-sdk">
+    GitHub Repository
+  </Card>
+  <Card title="Node.js SDK" icon="github" href="https://github.com/splox-ai/node-sdk">
+    GitHub Repository
+  </Card>
+  <Card title="Go SDK" icon="github" href="https://github.com/splox-ai/go-sdk">
+    GitHub Repository
+  </Card>
+</CardGroup>
