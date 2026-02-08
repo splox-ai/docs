@@ -1,0 +1,45 @@
+---
+title: 'List Chats'
+openapi: 'GET /chats/{resourceType}/{resourceId}'
+---
+
+Lists all chat sessions for a specific resource (workflow, agent, etc.).
+
+## Usage
+
+```bash
+curl https://app.splox.io/api/v1/chats/api/019c3221-29d7-70e1-aa1e-dee02589289b \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+## Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `resourceType` | string | Resource type: `api`, `workflow`, `agent`, `gui` |
+| `resourceId` | string (uuid) | The resource ID (e.g., workflow ID) |
+
+## Response
+
+```json
+{
+  "chats": [
+    {
+      "id": "0199f200-a11b-7c8d-4444-888890abcdef",
+      "name": "My Chat Session",
+      "user_id": "0199d001-c45d-9e0f-3456-789012cdef01",
+      "resource_type": "api",
+      "resource_id": "019c3221-29d7-70e1-aa1e-dee02589289b",
+      "is_public": false,
+      "created_at": "2025-10-22T10:00:00Z",
+      "updated_at": "2025-10-22T10:00:00Z"
+    }
+  ]
+}
+```
+
+## Notes
+
+<Info>
+**Authentication required.** For `agent` resource type, only the authenticated user's chats are returned. For other types, all chats for the resource are returned.
+</Info>

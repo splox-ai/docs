@@ -1,0 +1,33 @@
+---
+title: 'Delete Chat'
+openapi: 'DELETE /chats/{id}'
+---
+
+Deletes a chat session by ID.
+
+## Usage
+
+```bash
+curl -X DELETE https://app.splox.io/api/v1/chats/0199f200-a11b-7c8d-4444-888890abcdef \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+## Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | string (uuid) | Chat ID to delete |
+
+## Response
+
+Returns **204 No Content** with an empty body on success.
+
+## Notes
+
+<Info>
+**Authentication required.** The authenticated user must own the chat session.
+</Info>
+
+<Warning>
+This permanently deletes the chat session. Chat history (messages) is **not** automatically deleted — use [Delete Chat History](/api-reference/delete-chat-history) first if you want to clear messages.
+</Warning>

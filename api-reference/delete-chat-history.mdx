@@ -1,0 +1,37 @@
+---
+title: 'Delete Chat History'
+openapi: 'DELETE /chat-history/{chatId}'
+---
+
+Deletes all message history for a chat session. The chat session itself is preserved.
+
+## Usage
+
+```bash
+curl -X DELETE https://app.splox.io/api/v1/chat-history/0199f200-a11b-7c8d-4444-888890abcdef \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+## Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `chatId` | string (uuid) | Chat ID |
+
+## Response
+
+```json
+{
+  "message": "Chat history deleted successfully"
+}
+```
+
+## Notes
+
+<Info>
+**Authentication required.** The authenticated user must own the chat session.
+</Info>
+
+<Info>
+This deletes all `chat_history` message rows for the chat. The chat session itself and any node-level memory are not affected.
+</Info>

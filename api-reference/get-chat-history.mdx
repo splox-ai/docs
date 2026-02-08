@@ -1,0 +1,98 @@
+---
+title: 'Get Chat History'
+openapi: 'GET /chat-history/{chatId}/paginated'
+---
+
+Retrieves paginated chat message history for a chat session. Messages are returned newest-first.
+
+## Usage
+
+```bash
+curl "https://app.splox.io/api/v1/chat-history/0199f200-a11b-7c8d-4444-888890abcdef/paginated?limit=20" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+## Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `chatId` | string (uuid) | Chat ID |
+
+## Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `limit` | integer | 50 | Messages per page (1–200) |
+| `before` | string (RFC3339) | — | Timestamp cursor for backward pagination. Omit to get the latest messages. |
+
+## Response
+
+Returns a **bare JSON array** of message objects:
+
+```json
+[
+  {
+    "id": "019c3221-29dc-7735-a4e3-b42ebb1a0cf1",
+    "chat_id": "0199f200-a11b-7c8d-4444-888890abcdef",
+    "role": "assistant",
+    "content": [
+      {
+        "type": "text",
+        "text": "Hello! How can I help you today?"
+      }
+    ],
+    "files": [],
+    "created_at": "2025-10-22T10:01:00Z",
+    "updated_at": "2025-10-22T10:01:00Z"
+  },
+  {
+    "id": "019c3221-29dc-7735-a4e3-b42ebb1a0cf2",
+    "chat_id": "0199f200-a11b-7c8d-4444-888890abcdef",
+    "role": "user",
+    "content": [
+      {
+        "type": "text",
+        "text": "Summarize the latest report"
+      }
+    ],
+    "created_at": "2025-10-22T10:00:00Z",
+    "updated_at": "2025-10-22T10:00:00Z"
+  }
+]
+```
+
+### Message Roles
+
+| Role | Description |
+|------|-------------|
+| `user` | Message from the user |
+| `assistant` | Response from the AI agent |
+| `system` | System-level message |
+| `tool` | Tool execution result |
+
+### Content Types
+
+| Type | Description |
+|------|-------------|
+| `text` | Plain text content |
+| `tool-call` | A tool invocation with `toolName` and `args` |
+| `tool-result` | Result from a tool execution |
+| `source` | Source reference with `url` and `title` |
+
+### Pagination
+
+Use the `created_at` timestamp of the **oldest** message in the current page as the `before` cursor for the next page:
+
+```bash
+# First page (latest messages)
+curl ".../chat-history/{chatId}/paginated?limit=20"
+
+# Next page (older messages)
+curl ".../chat-history/{chatId}/paginated?limit=20&before=2025-10-22T10:00:00Z"
+```
+
+## Notes
+
+<Info>
+**Authentication required.** The authenticated user must own the chat session.
+</Info>
