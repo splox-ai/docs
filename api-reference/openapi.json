@@ -341,6 +341,123 @@
         }
       }
     },
+    "/mcp-tools/execute": {
+      "post": {
+        "summary": "Execute MCP Tool",
+        "description": "Executes a tool directly on an MCP server configured by the authenticated user.",
+        "operationId": "executeMCPTool",
+        "tags": ["MCP"],
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["mcp_server_id", "tool_slug"],
+                "properties": {
+                  "mcp_server_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "ID of the user MCP server to execute against"
+                  },
+                  "tool_slug": {
+                    "type": "string",
+                    "description": "Tool name/slug to execute"
+                  },
+                  "args": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Tool input arguments"
+                  }
+                }
+              },
+              "example": {
+                "mcp_server_id": "0199e001-a23b-7c8d-1234-567890abcdef",
+                "tool_slug": "search_documents",
+                "args": {
+                  "query": "latest release notes"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tool executed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "result": {
+                      "type": "object",
+                      "description": "Raw MCP CallTool result payload",
+                      "properties": {
+                        "content": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": true
+                          }
+                        },
+                        "structuredContent": {
+                          "description": "Optional structured output from MCP tool",
+                          "nullable": true
+                        },
+                        "isError": {
+                          "type": "boolean"
+                        }
+                      },
+                      "additionalProperties": true
+                    },
+                    "is_error": {
+                      "type": "boolean",
+                      "description": "Convenience flag mirroring result.isError"
+                    }
+                  }
+                },
+                "example": {
+                  "result": {
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Found 3 matching documents"
+                      }
+                    ],
+                    "isError": false
+                  },
+                  "is_error": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request — missing or invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "MCP server not found"
+          },
+          "429": {
+            "description": "Rate limit exceeded (max 30 per minute per user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/events/{webhook_id}": {
       "post": {
         "summary": "Send Event via Webhook",

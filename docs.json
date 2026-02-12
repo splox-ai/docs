@@ -132,6 +132,13 @@
             ]
           },
           {
+            "group": "MCP",
+            "icon": "plug",
+            "pages": [
+              "api-reference/execute-mcp-tool"
+            ]
+          },
+          {
             "group": "Chats",
             "icon": "comments",
             "pages": [

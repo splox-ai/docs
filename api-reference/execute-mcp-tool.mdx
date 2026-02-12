@@ -1,0 +1,101 @@
+---
+title: 'Execute MCP Tool'
+openapi: 'POST /mcp-tools/execute'
+---
+
+Executes a tool directly on an MCP server configured by the authenticated user.
+
+## Usage
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://app.splox.io/api/v1/mcp-tools/execute \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mcp_server_id": "0199e001-a23b-7c8d-1234-567890abcdef",
+    "tool_slug": "search_documents",
+    "args": {
+      "query": "latest release notes"
+    }
+  }'
+```
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient(api_key="YOUR_API_KEY")
+result = client.mcp.execute_tool(
+    mcp_server_id="0199e001-a23b-7c8d-1234-567890abcdef",
+    tool_slug="search_documents",
+    args={"query": "latest release notes"},
+)
+
+print(result.is_error)
+print(result.result.content)
+```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+const result = await client.mcp.executeTool({
+  mcp_server_id: "0199e001-a23b-7c8d-1234-567890abcdef",
+  tool_slug: "search_documents",
+  args: { query: "latest release notes" },
+});
+
+console.log(result.is_error);
+console.log(result.result.content);
+```
+
+```go Go
+client := splox.NewClient("YOUR_API_KEY")
+result, err := client.MCP.ExecuteTool(ctx, splox.ExecuteToolParams{
+    MCPServerID: "0199e001-a23b-7c8d-1234-567890abcdef",
+    ToolSlug:    "search_documents",
+    Args: map[string]any{
+        "query": "latest release notes",
+    },
+})
+if err != nil {
+    panic(err)
+}
+
+fmt.Println(result.IsError)
+fmt.Println(result.Result.Content)
+```
+
+</CodeGroup>
+
+## Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `mcp_server_id` | string (uuid) | Yes | ID of the user MCP server to execute against. Must belong to the authenticated user. |
+| `tool_slug` | string | Yes | Tool name/slug to execute on that MCP server. |
+| `args` | object | No | Tool input arguments. Defaults to an empty object. |
+
+## Response
+
+```json
+{
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Found 3 matching documents"
+      }
+    ],
+    "isError": false
+  },
+  "is_error": false
+}
+```
+
+## Notes
+
+- This endpoint executes synchronously and returns the tool result in the HTTP response.
+- The response `result` object is passed through from the MCP server and may include fields like `content`, `structuredContent`, and `isError`.
+- Rate limit: **30 requests per minute** per authenticated user.
