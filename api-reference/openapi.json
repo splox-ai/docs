@@ -458,74 +458,32 @@
         }
       }
     },
-    "/mcp-tools/list-user-connections": {
-      "post": {
-        "summary": "List User MCP Connections",
-        "description": "Lists caller-owned MCP connections grouped by MCP URL, including available tools and connection IDs.",
-        "operationId": "listUserMCPConnections",
+    "/user-mcp-servers": {
+      "get": {
+        "summary": "List User MCP Servers",
+        "description": "Lists MCP servers configured by the authenticated user.",
+        "operationId": "listUserMCPServers",
         "tags": ["MCP"],
         "security": [{"bearerAuth": []}],
-        "requestBody": {
-          "required": false,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true
-              },
-              "example": {}
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "Connections retrieved successfully",
+            "description": "User MCP servers retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "connections": {
+                    "servers": {
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "properties": {
-                          "mcp_url": { "type": "string" },
-                          "tools": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "slug": { "type": "string" },
-                                "description": { "type": "string" }
-                              }
-                            }
-                          },
-                          "connections": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "mcp_server_id": { "type": "string" },
-                                "name": { "type": "string" }
-                              }
-                            }
-                          }
-                        }
+                        "additionalProperties": true
                       }
                     },
-                    "total": { "type": "integer" }
+                    "total": {
+                      "type": "integer"
+                    }
                   }
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limit exceeded (max 30 per minute per user)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -533,89 +491,54 @@
         }
       }
     },
-    "/mcp-tools/search": {
-      "post": {
-        "summary": "Search MCP Tools",
-        "description": "Searches MCP servers and returns connection metadata similar to tool_router behavior.",
-        "operationId": "searchMCPTools",
+    "/user-mcp-servers/{id}/tools": {
+      "get": {
+        "summary": "Get User MCP Server Tools",
+        "description": "Returns available tool options for a user MCP server.",
+        "operationId": "getUserMCPServerTools",
         "tags": ["MCP"],
         "security": [{"bearerAuth": []}],
-        "requestBody": {
-          "required": false,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "search_query": {
-                    "type": "string"
-                  },
-                  "limit": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 100,
-                    "default": 10
-                  },
-                  "offset": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "default": 0
-                  }
-                }
-              },
-              "example": {
-                "search_query": "slack",
-                "limit": 10,
-                "offset": 0
-              }
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "User MCP server ID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           }
-        },
+        ],
         "responses": {
           "200": {
-            "description": "Search results retrieved successfully",
+            "description": "Tool options retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "results": {
+                    "options": {
                       "type": "array",
                       "items": {
                         "type": "object",
                         "properties": {
-                          "name": { "type": "string" },
-                          "description": { "type": "string" },
-                          "is_user_connected": { "type": "boolean" },
-                          "connect_link": { "type": "string" },
-                          "mcp_url": { "type": "string" }
+                          "label": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          }
                         }
                       }
                     },
-                    "total": { "type": "integer" },
-                    "limit": { "type": "integer" },
-                    "offset": { "type": "integer" }
+                    "total": {
+                      "type": "integer"
+                    },
+                    "limit": {
+                      "type": "integer"
+                    }
                   }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request — invalid input",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limit exceeded (max 30 per minute per user)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }

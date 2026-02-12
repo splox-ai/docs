@@ -1,0 +1,46 @@
+---
+title: 'Get User MCP Server Tools'
+openapi: 'GET /user-mcp-servers/{id}/tools'
+---
+
+Returns tool options for a specific user MCP server.
+
+## Usage
+
+<CodeGroup>
+
+```bash cURL
+curl "https://app.splox.io/api/v1/user-mcp-servers/YOUR_MCP_SERVER_ID/tools" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient(api_key="YOUR_API_KEY")
+resp = client.mcp.get_server_tools("YOUR_MCP_SERVER_ID")
+for tool in resp.options:
+    print(tool.value)
+```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+const resp = await client.mcp.getServerTools("YOUR_MCP_SERVER_ID");
+for (const tool of resp.options) {
+  console.log(tool.value);
+}
+```
+
+```go Go
+resp, err := client.MCP.GetServerTools(ctx, "YOUR_MCP_SERVER_ID")
+if err != nil {
+    panic(err)
+}
+for _, tool := range resp.Options {
+    fmt.Println(tool.Value)
+}
+```
+
+</CodeGroup>
