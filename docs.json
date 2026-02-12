@@ -135,6 +135,8 @@
             "group": "MCP",
             "icon": "plug",
             "pages": [
+              "api-reference/list-user-mcp-connections",
+              "api-reference/search-mcp-tools",
               "api-reference/execute-mcp-tool"
             ]
           },
