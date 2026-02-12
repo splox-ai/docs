@@ -163,26 +163,6 @@ These fields appear when the Tool node **is** connected via a tool edge:
     |------|----------|
     | **Auto** | All tools execute immediately without approval (default) |
     | **Require Approval** | All tools require human approval before executing |
-    | **Pattern-Based** | Rules match tool names with glob patterns to auto-approve, require approval, or reject |
-
-    **Pattern-Based Rules:**
-
-    Each rule has a **glob pattern** and an **action**:
-
-    | Action | Behavior |
-    |--------|----------|
-    | `auto` | Execute immediately (no approval needed) |
-    | `allow` | Pause and wait for human approval |
-    | `reject` | Reject the tool call automatically |
-
-    Rules are evaluated in order — first match wins.
-
-    **Example patterns:**
-    ```
-    read_*     → auto      (auto-approve all read operations)
-    delete_*   → allow     (require approval for deletes)
-    *          → auto      (auto-approve everything else)
-    ```
 
     **Timeout:** Configurable (default: 300 seconds / 5 minutes). If no approval is received within the timeout, the tool call is rejected.
 
