@@ -457,15 +457,24 @@
     "/mcp-connections": {
       "get": {
         "summary": "List MCP Connections",
-        "description": "Lists end-user MCP connections owned by the authenticated user.",
+        "description": "Lists MCP resources owned by the authenticated user. Use scope=end_user (default) for end-user bindings, or scope=owner_user for owner-user configured MCP servers.",
         "operationId": "listMCPConnections",
         "tags": ["MCP"],
         "security": [{"bearerAuth": []}],
         "parameters": [
           {
+            "name": "scope",
+            "in": "query",
+            "description": "Listing scope: end_user (default) or owner_user",
+            "schema": {
+              "type": "string",
+              "enum": ["end_user", "owner_user"]
+            }
+          },
+          {
             "name": "mcp_server_id",
             "in": "query",
-            "description": "Filter by user MCP server ID",
+            "description": "Filter by user MCP server ID (scope=end_user only)",
             "schema": {
               "type": "string",
               "format": "uuid"
@@ -474,7 +483,7 @@
           {
             "name": "end_user_id",
             "in": "query",
-            "description": "Filter by end-user identifier",
+            "description": "Filter by end-user identifier (scope=end_user only)",
             "schema": {
               "type": "string"
             }
@@ -667,39 +676,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/user-mcp-servers": {
-      "get": {
-        "summary": "List User MCP Servers",
-        "description": "Lists MCP servers configured by the authenticated user.",
-        "operationId": "listUserMCPServers",
-        "tags": ["MCP"],
-        "security": [{"bearerAuth": []}],
-        "responses": {
-          "200": {
-            "description": "User MCP servers retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "servers": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": true
-                      }
-                    },
-                    "total": {
-                      "type": "integer"
-                    }
-                  }
                 }
               }
             }

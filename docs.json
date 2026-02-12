@@ -139,7 +139,6 @@
               "api-reference/get-mcp-catalog-item",
               "api-reference/list-mcp-connections",
               "api-reference/delete-mcp-connection",
-              "api-reference/list-user-mcp-servers",
               "api-reference/get-user-mcp-server-tools",
               "api-reference/execute-mcp-tool"
             ]
