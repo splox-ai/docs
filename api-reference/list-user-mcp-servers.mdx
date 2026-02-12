@@ -5,6 +5,17 @@ openapi: 'GET /user-mcp-servers'
 
 Lists MCP servers configured by the authenticated user.
 
+## Servers vs Connections
+
+Use this endpoint for **owner-configured MCP server instances** (what you execute tools against).
+
+For **per-end-user credential bindings**, use [List MCP Connections](/api-reference/list-mcp-connections).
+
+| Endpoint | Resource | Typical use |
+|----------|----------|-------------|
+| `/user-mcp-servers` | Owner server instances | Discover server IDs and metadata before fetching tools or executing |
+| `/mcp-connections` | End-user credential connections | Inspect or manage end-user connection records |
+
 ## Usage
 
 <CodeGroup>

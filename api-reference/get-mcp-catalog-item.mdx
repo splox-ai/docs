@@ -1,0 +1,41 @@
+---
+title: 'Get MCP Catalog Item'
+openapi: 'GET /mcp-catalog/{id}'
+---
+
+Retrieves one MCP catalog item by ID.
+
+## Usage
+
+<CodeGroup>
+
+```bash cURL
+curl "https://app.splox.io/api/v1/mcp-catalog/YOUR_CATALOG_ID" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient(api_key="YOUR_API_KEY")
+item = client.mcp.get_catalog_item("YOUR_CATALOG_ID")
+print(item.name, item.auth_type)
+```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+const item = await client.mcp.getCatalogItem("YOUR_CATALOG_ID");
+console.log(item.name, item.auth_type);
+```
+
+```go Go
+item, err := client.MCP.GetCatalogItem(ctx, "YOUR_CATALOG_ID")
+if err != nil {
+    panic(err)
+}
+fmt.Println(item.Name, item.AuthType)
+```
+
+</CodeGroup>

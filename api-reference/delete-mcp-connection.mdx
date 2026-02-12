@@ -1,0 +1,38 @@
+---
+title: 'Delete MCP Connection'
+openapi: 'DELETE /mcp-connections/{id}'
+---
+
+Deletes an end-user MCP connection by ID.
+
+## Usage
+
+<CodeGroup>
+
+```bash cURL
+curl -X DELETE "https://app.splox.io/api/v1/mcp-connections/YOUR_CONNECTION_ID" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient(api_key="YOUR_API_KEY")
+client.mcp.delete_connection("YOUR_CONNECTION_ID")
+```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+await client.mcp.deleteConnection("YOUR_CONNECTION_ID");
+```
+
+```go Go
+err := client.MCP.DeleteConnection(ctx, "YOUR_CONNECTION_ID")
+if err != nil {
+    panic(err)
+}
+```
+
+</CodeGroup>

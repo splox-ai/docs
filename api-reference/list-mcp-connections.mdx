@@ -1,0 +1,48 @@
+---
+title: 'List MCP Connections'
+openapi: 'GET /mcp-connections'
+---
+
+Lists end-user MCP connections owned by the authenticated user.
+
+Use this endpoint for per-end-user credential bindings. Use [List User MCP Servers](/api-reference/list-user-mcp-servers) for owner-configured server instances.
+
+## Usage
+
+<CodeGroup>
+
+```bash cURL
+curl "https://app.splox.io/api/v1/mcp-connections?end_user_id=end-user-123" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient(api_key="YOUR_API_KEY")
+resp = client.mcp.list_connections(end_user_id="end-user-123")
+for conn in resp.connections:
+    print(conn.id, conn.end_user_id, conn.url)
+```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+const resp = await client.mcp.listConnections({ end_user_id: "end-user-123" });
+for (const conn of resp.connections) {
+  console.log(conn.id, conn.end_user_id, conn.url);
+}
+```
+
+```go Go
+resp, err := client.MCP.ListConnections(ctx, &splox.ConnectionParams{EndUserID: "end-user-123"})
+if err != nil {
+    panic(err)
+}
+for _, conn := range resp.Connections {
+    fmt.Println(conn.ID, conn.EndUserID, conn.URL)
+}
+```
+
+</CodeGroup>

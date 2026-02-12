@@ -1,0 +1,52 @@
+---
+title: 'List MCP Catalog'
+openapi: 'GET /mcp-catalog'
+---
+
+Lists MCP servers available in the global catalog.
+
+Use this endpoint to discover providers and server metadata before creating or selecting user servers.
+
+## Usage
+
+<CodeGroup>
+
+```bash cURL
+curl "https://app.splox.io/api/v1/mcp-catalog?page=1&per_page=20&search=github" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```python Python
+from splox import SploxClient
+
+client = SploxClient(api_key="YOUR_API_KEY")
+resp = client.mcp.list_catalog(page=1, per_page=20, search="github")
+for item in resp.mcp_servers:
+    print(item.id, item.name, item.url)
+```
+
+```typescript Node.js
+import Splox from "splox";
+
+const client = new Splox("YOUR_API_KEY");
+const resp = await client.mcp.listCatalog({ page: 1, per_page: 20, search: "github" });
+for (const item of resp.mcp_servers) {
+  console.log(item.id, item.name, item.url);
+}
+```
+
+```go Go
+resp, err := client.MCP.ListCatalog(ctx, &splox.CatalogParams{
+    Page:    1,
+    PerPage: 20,
+    Search:  "github",
+})
+if err != nil {
+    panic(err)
+}
+for _, item := range resp.MCPServers {
+    fmt.Println(item.ID, item.Name, item.URL)
+}
+```
+
+</CodeGroup>

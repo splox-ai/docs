@@ -341,6 +341,222 @@
         }
       }
     },
+    "/mcp-catalog": {
+      "get": {
+        "summary": "List MCP Catalog",
+        "description": "Lists available MCP servers from the global catalog with pagination and search.",
+        "operationId": "listMCPCatalog",
+        "tags": ["MCP"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (default 1)",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "minimum": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "description": "Items per page (default 20, max 100)",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search by name, description, or URL",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "featured",
+            "in": "query",
+            "description": "Filter to featured MCP servers",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Catalog retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mcp_servers": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MCPCatalogItem"
+                      }
+                    },
+                    "current_page": { "type": "integer" },
+                    "per_page": { "type": "integer" },
+                    "total_count": { "type": "integer" },
+                    "total_pages": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mcp-catalog/{id}": {
+      "get": {
+        "summary": "Get MCP Catalog Item",
+        "description": "Returns one MCP catalog item by ID.",
+        "operationId": "getMCPCatalogItem",
+        "tags": ["MCP"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "MCP catalog item ID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Catalog item retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mcp_server": {
+                      "$ref": "#/components/schemas/MCPCatalogItem"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "MCP catalog item not found"
+          }
+        }
+      }
+    },
+    "/mcp-connections": {
+      "get": {
+        "summary": "List MCP Connections",
+        "description": "Lists end-user MCP connections owned by the authenticated user.",
+        "operationId": "listMCPConnections",
+        "tags": ["MCP"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "mcp_server_id",
+            "in": "query",
+            "description": "Filter by user MCP server ID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "end_user_id",
+            "in": "query",
+            "description": "Filter by end-user identifier",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connections retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "connections": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MCPConnection"
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request — invalid query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mcp-connections/{id}": {
+      "delete": {
+        "summary": "Delete MCP Connection",
+        "description": "Deletes an end-user MCP connection by ID.",
+        "operationId": "deleteMCPConnection",
+        "tags": ["MCP"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "MCP connection ID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connection deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "deleted"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Connection not found"
+          }
+        }
+      }
+    },
     "/mcp-tools/execute": {
       "post": {
         "summary": "Execute MCP Tool",
@@ -1758,6 +1974,103 @@
         },
         "required": ["url"]
       },
+      "MCPCatalogItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "url": {
+            "type": "string"
+          },
+          "transport_type": {
+            "type": "string"
+          },
+          "auth_type": {
+            "type": "string"
+          },
+          "auth_config": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true
+          },
+          "image_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "category": {
+            "type": "string",
+            "nullable": true
+          },
+          "is_featured": {
+            "type": "boolean"
+          },
+          "display_order": {
+            "type": "integer",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["id", "name", "url", "transport_type", "auth_type", "is_featured", "created_at", "updated_at"]
+      },
+      "MCPConnection": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "image_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "transport_type": {
+            "type": "string"
+          },
+          "auth_type": {
+            "type": "string"
+          },
+          "auth_config": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true
+          },
+          "end_user_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["id", "user_id", "name", "url", "transport_type", "auth_type", "created_at"]
+      },
       "ErrorResponse": {
         "type": "object",
         "properties": {
@@ -1777,6 +2090,10 @@
     }
   },
   "tags": [
+    {
+      "name": "MCP",
+      "description": "Discover MCP servers, manage connections, and execute MCP tools"
+    },
     {
       "name": "Workflows",
       "description": "List, get, and inspect workflows, versions, and nodes"
