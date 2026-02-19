@@ -1,5 +1,135 @@
 ---
 title: "Connect AI to Your Data Sources"
+description: "Learn how to connect external services, APIs, and data sources to your Splox agents using MCP (Model Context Protocol)."
 ---
 
-<Note>This tutorial is coming soon. Check back later for updated content.</Note>
+Out of the box, your agent can reason and respond — but to take real actions in the world, it needs to connect to external services. In Splox, this is done through **MCP (Model Context Protocol)**: a universal standard for plugging any API, database, or service into your AI agent.
+
+<video controls style={{ borderRadius: '12px', width: '100%', maxWidth: '800px' }}>
+  <source src="TODO: add video URL" type="video/mp4" />
+  Your browser does not support the video tag.
+</video>
+
+## What You'll Learn
+
+- What MCP is and how Splox uses it
+- How to connect a service from the MCP marketplace
+- How the Tool Router automatically discovers and uses your connections
+- How end-users can connect their own accounts at runtime
+
+<img src="TODO: add screenshot" alt="MCP marketplace in Splox" style={{ borderRadius: '12px' }} />
+
+## Prerequisites
+
+<CheckList>
+  - [ ] A [Splox account](https://app.splox.io)
+  - [ ] Completed [Build Your First AI Agent](/tutorials/first-ai-agent)
+</CheckList>
+
+---
+
+## What Is MCP?
+
+MCP (Model Context Protocol) is an open standard that defines how AI agents communicate with external tools and services. Think of it as a universal adapter — any service that speaks MCP can be plugged into any MCP-compatible agent.
+
+In Splox, every external integration (Telegram, Slack, GitHub, databases, custom APIs) is an MCP server. When you connect one, your agent gains the ability to call its tools — send messages, query data, trigger actions — all through a single standardized interface.
+
+<Note>You don't need to understand the MCP protocol itself. Splox handles everything — you just connect and use.</Note>
+
+---
+
+## Step 1: Open the MCP Marketplace
+
+1. Go to [app.splox.io](https://app.splox.io)
+2. Click **Tools** in the left sidebar
+3. Browse or search for the service you want to connect (e.g. Telegram, Slack, Serper)
+
+<img src="TODO: add screenshot" alt="MCP marketplace Tools section" style={{ borderRadius: '12px' }} />
+
+---
+
+## Step 2: Connect a Service
+
+1. Click on a service in the marketplace
+2. Enter the required credentials (API key, token, etc.)
+3. Splox validates the connection live — if it works, it's saved
+
+Your connection is now stored securely (AES-encrypted) and available to any workflow you build.
+
+<img src="TODO: add screenshot" alt="Connecting an MCP server with credentials" style={{ borderRadius: '12px' }} />
+
+<Note>Different services require different credentials — an API key, a bot token, or OAuth login. The marketplace shows exactly what's needed for each one.</Note>
+
+---
+
+## Step 3: Add a Tool Node to Your Workflow
+
+Once connected, add a **Tool** node to your workflow and connect it to your Agent:
+
+1. Right-click on the canvas → **Tool**
+2. Connect the Agent's **TOOLS** handle to the Tool node
+
+That's it. The **Tool Router** automatically discovers all your connected MCP servers and their tools. When your agent needs to take an action, it searches your connections, finds the right tool, and calls it.
+
+<img src="TODO: add screenshot" alt="Tool node connected to agent" style={{ borderRadius: '12px' }} />
+
+---
+
+## Step 4: Run It
+
+1. Open the **Chat** panel
+2. Ask your agent to do something that uses the connected service — e.g. `Send a message to my Telegram channel saying hello`
+3. The agent will find the right tool, call it, and report back
+
+<img src="TODO: add screenshot" alt="Agent calling an MCP tool" style={{ borderRadius: '12px' }} />
+
+---
+
+## Advanced: End-User Connections
+
+If you're building a product for others, your end-users can connect **their own accounts** at runtime — without ever touching Splox.
+
+When an agent needs a tool the user hasn't connected yet, the Tool Router generates a **secure connect link** and surfaces it in the chat. The user clicks it, enters their credentials, and the agent continues — all without leaving the conversation.
+
+This works automatically — no extra configuration needed.
+
+---
+
+## Frequently Asked Questions
+
+<AccordionGroup>
+  <Accordion title="Can I connect multiple services at once?">
+    Yes. Connect as many MCP servers as you like. Add multiple Tool nodes to your workflow — one per service, or use a single Tool node and let the Tool Router discover all connections automatically.
+  </Accordion>
+
+  <Accordion title="Is my data secure?">
+    Yes. All credentials are AES-encrypted at rest and never exposed to the agent or LLM. The agent only sees the tool names and their schemas — not your API keys.
+  </Accordion>
+
+  <Accordion title="Can I connect my own custom API?">
+    Yes. Any service that implements the MCP protocol can be connected. You can also self-host an MCP server and connect it via its URL in the Tools section.
+  </Accordion>
+
+  <Accordion title="What if a tool isn't in the marketplace?">
+    You can connect any MCP-compatible server directly by entering its URL in the Tools section — it doesn't need to be listed in the marketplace.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card title="Multi-Agent Teams" icon="users" href="/tutorials/multi-agent-team">
+    Build networks of specialized agents that collaborate on complex tasks
+  </Card>
+  <Card title="Automate Customer Support" icon="headset" href="/tutorials/automate-customer-support">
+    Build a support bot connected to your data sources
+  </Card>
+  <Card title="Parallel Agents" icon="bolt" href="/tutorials/parallel-agents">
+    Run multiple agents simultaneously for faster results
+  </Card>
+  <Card title="Deploy to Production" icon="rocket" href="/tutorials/deploy-app-to-production">
+    Take your workflow live with webhooks and real users
+  </Card>
+</CardGroup>
