@@ -5,31 +5,30 @@ description: "Learn how to build an autonomous AI agent in Splox using the workf
 
 In this tutorial you'll build a fully working AI agent from scratch using the Splox workflow builder. No templates, no shortcuts — just three nodes wired together.
 
+<video controls style={{ borderRadius: '12px', width: '100%', maxWidth: '800px' }}>
+  <source src="TODO: add video URL" type="video/mp4" />
+  Your browser does not support the video tag.
+</video>
+
+## What You'll Build
+
+<img src="TODO: add screenshot" alt="Completed AI agent workflow with Start, Agent, and Tool nodes connected" style={{ borderRadius: '12px' }} />
+
+By the end of this tutorial, you'll have an autonomous agent that:
+- Receives a user message via the **Start** node
+- Thinks and decides what to do via the **Agent** node
+- Takes real actions using a connected **Tool** node
+
 **Time to complete:** 5 minutes  
 **Skill level:** Beginner
 
 ---
 
-## What You'll Build
-
-A simple autonomous agent that:
-- Receives a user message via the **Start** node
-- Thinks and decides what to do via the **Agent (LLM)** node
-- Takes actions using a connected **Tool** node
-
-```mermaid
-graph LR
-    S[Start Node] --> A[Agent Node]
-    A -->|tool call| T[Tool Node]
-    T -->|result| A
-```
-
----
-
 ## Prerequisites
 
-- A [Splox account](https://app.splox.io)
-- At least one MCP connection set up (e.g. Serper, Telegram, or any other tool)
+Before you begin, make sure you have:
+- [ ] A [Splox account](https://app.splox.io)
+- [ ] At least one MCP connection set up (e.g. Serper, Telegram, or any other tool)
 
 ---
 
@@ -40,15 +39,19 @@ graph LR
 3. Give it a name — e.g. `My First Agent`
 4. The workflow canvas opens with an empty graph
 
+<img src="TODO: add screenshot" alt="Creating a new workflow in Splox" style={{ borderRadius: '12px' }} />
+
 ---
 
 ## Step 2: Add a Start Node
 
-The Start node is the entry point — it's how your workflow gets triggered.
+The Start node is the entry point — it defines how your workflow gets triggered.
 
 1. Right-click on the canvas → **Add Node** → **Start**
 2. In the node config panel on the right, set the **Trigger** to `Webhook`
 3. Click **Save**
+
+<img src="TODO: add screenshot" alt="Adding a Start node to the workflow canvas" style={{ borderRadius: '12px' }} />
 
 <Note>Every workflow needs exactly one Start node. It defines how the workflow is triggered and what input it receives.</Note>
 
@@ -69,6 +72,8 @@ You are a helpful assistant. Use available tools when needed to answer the user'
 
 3. Click **Save**
 
+<img src="TODO: add screenshot" alt="Configuring the Agent node with a model and system prompt" style={{ borderRadius: '12px' }} />
+
 ---
 
 ## Step 4: Add a Tool Node
@@ -81,6 +86,8 @@ The Tool node gives your agent the ability to take real actions — search the w
    - **Tool** — select the specific tool (e.g. `serper_search`)
 3. Click **Save**
 
+<img src="TODO: add screenshot" alt="Configuring the Tool node with an MCP server and tool selection" style={{ borderRadius: '12px' }} />
+
 ---
 
 ## Step 5: Connect Everything
@@ -92,13 +99,7 @@ Now wire the nodes together:
 
 <Note>Make sure you connect from the **TOOLS** handle (not the PARALLEL handle) on the Agent node. This enables the tool-calling loop so results return back to the Agent.</Note>
 
-Your canvas should look like this:
-
-```
-[Start] ──► [Agent] ──(tools)──► [Tool]
-                ▲                     │
-                └─────────────────────┘
-```
+<img src="TODO: add screenshot" alt="All three nodes connected — Start to Agent to Tool" style={{ borderRadius: '12px' }} />
 
 ---
 
@@ -106,17 +107,14 @@ Your canvas should look like this:
 
 1. Click **Save** in the top toolbar
 2. Open the **Chat** panel (bottom toolbar → chat icon)
-3. Type a message, e.g.:
-
-```
-Search the web for the latest AI news
-```
-
+3. Type a message, e.g. `Search the web for the latest AI news`
 4. Hit **Enter** — your agent will call the tool, get the result, and respond
+
+<img src="TODO: add screenshot" alt="Agent responding in chat after calling a tool" style={{ borderRadius: '12px' }} />
 
 ---
 
-## What's Happening Under the Hood
+## Frequently Asked Questions
 
 <AccordionGroup>
   <Accordion title="Why does the Tool connect back to the Agent?">
@@ -128,8 +126,7 @@ Search the web for the latest AI news
   </Accordion>
 
   <Accordion title="What's the difference between TOOLS and PARALLEL handles?">
-    - **TOOLS** — used for tool-calling loops (Agent ↔ Tool). Results return to the Agent.
-    - **PARALLEL** — used for regular sequential or parallel flow. The Agent's output passes to the next node without looping back.
+    The **TOOLS** handle is used for tool-calling loops — results return to the Agent. The **PARALLEL** handle is for regular sequential flow where the Agent's output passes to the next node without looping back.
   </Accordion>
 </AccordionGroup>
 
@@ -137,15 +134,7 @@ Search the web for the latest AI news
 
 ## Next Steps
 
-- **Add more tools** — connect multiple Tool nodes to give your agent more capabilities
 - **Add memory** — connect a Memory node to the Agent's MEMORY handle for multi-turn conversations
 - **Go parallel** — check out [Parallel Agents](/tutorials/parallel-agents) to run multiple agents simultaneously
 - **Build multi-agent systems** — explore [Multi-Agent Teams](/tutorials/multi-agent-team)
-
----
-
-## Need Help?
-
-- Join our [Telegram community](https://t.me/splox_ai)
-- Browse the [concepts docs](/concepts/workflows) to go deeper
-- Ask questions at [community.splox.io](https://community.splox.io)
+- **Join the community** — share your builds at [community.splox.io](https://community.splox.io) or [Telegram](https://t.me/splox_ai)
