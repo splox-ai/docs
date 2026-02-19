@@ -1,0 +1,127 @@
+---
+title: "Supercharge Agents with Skills"
+description: "Learn how to create reusable Skills — knowledge bundles of files and instructions that give your agents specialized capabilities."
+---
+
+Skills are reusable packages of files, instructions, and reference material that you attach to any agent. Instead of repeating the same context in every system prompt, you build a Skill once and reuse it across workflows.
+
+<video controls style={{ borderRadius: '12px', width: '100%', maxWidth: '800px' }}>
+  <source src="TODO: add video URL" type="video/mp4" />
+  Your browser does not support the video tag.
+</video>
+
+## What You'll Build
+
+A Skill that gives your agent specialized knowledge — for example, your company's tone-of-voice guide, an API reference, or a coding playbook — and attach it to an agent node.
+
+<img src="TODO: add screenshot" alt="Skills library in Splox" style={{ borderRadius: '12px' }} />
+
+## Prerequisites
+
+<CheckList>
+  - [ ] A [Splox account](https://app.splox.io)
+  - [ ] Completed [Build Your First AI Agent](/tutorials/first-ai-agent)
+</CheckList>
+
+---
+
+## What Is a Skill?
+
+A Skill is a named bundle of files stored in the cloud. When attached to an agent, the agent becomes aware of the skill's name and description. During a conversation, the agent can read any file from the skill on demand — a guide, a reference doc, a script, anything.
+
+Think of it like giving your agent a bookshelf. It knows what books are there, and it can open any of them when it needs to.
+
+---
+
+## Step 1: Create a Skill
+
+1. Go to [app.splox.io](https://app.splox.io) and click **Skills** in the left sidebar
+2. Click **New Skill**
+3. Give it a name (e.g. `brand-voice`) and a description (e.g. `Our company's tone of voice and writing guidelines`)
+4. Click **Create**
+
+<img src="TODO: add screenshot" alt="Creating a new skill" style={{ borderRadius: '12px' }} />
+
+---
+
+## Step 2: Add Files to Your Skill
+
+A skill can contain any files — markdown guides, code snippets, JSON data, API references, playbooks.
+
+1. Open your new skill
+2. Upload or create files (e.g. `SKILL.md` with your instructions, `guide.md` with reference content)
+3. The agent will be able to read these files at runtime
+
+<img src="TODO: add screenshot" alt="Skill file editor" style={{ borderRadius: '12px' }} />
+
+<Note>Convention: add a `SKILL.md` file at the root with a description of what the skill does and how the agent should use it.</Note>
+
+---
+
+## Step 3: Attach the Skill to an Agent Node
+
+1. Open your workflow and click the **Agent** node
+2. In the config panel, find the **Skills** field under the **Model** tab
+3. Select your skill from the dropdown
+4. The skill's name and description are now injected into the agent's context automatically
+
+<img src="TODO: add screenshot" alt="Attaching a skill to an agent node" style={{ borderRadius: '12px' }} />
+
+---
+
+## Step 4: Run It
+
+1. Open the **Chat** panel
+2. Ask something that requires the skill's knowledge — e.g. `Write a product announcement in our brand voice`
+3. The agent reads the skill files on demand and responds with the right context
+
+<img src="TODO: add screenshot" alt="Agent using skill knowledge" style={{ borderRadius: '12px' }} />
+
+---
+
+## Advanced: Skills Catalog
+
+You can publish a skill to the **public catalog** so other Splox users can discover and fork it into their own library. Published skills can be browsed and added with one click — Splox creates an independent copy in the user's account.
+
+You can also fork skills from the catalog into your own library and customize them freely.
+
+---
+
+## Frequently Asked Questions
+
+<AccordionGroup>
+  <Accordion title="How does the agent know what's in the skill?">
+    The skill's name and description are appended to the agent's system prompt automatically. The agent then calls `skills_read_file` or `skills_list_directory` tools at runtime to read specific files when needed.
+  </Accordion>
+
+  <Accordion title="Can I attach multiple skills to one agent?">
+    Yes. Select as many skills as needed in the agent config. The agent sees all of them and can read from any one.
+  </Accordion>
+
+  <Accordion title="What file types can I add?">
+    Any file type — markdown, plain text, JSON, code files, CSV. The agent reads them as text content.
+  </Accordion>
+
+  <Accordion title="Can I update a skill without changing my workflows?">
+    Yes. Workflows reference the skill by ID. Update the skill's files and all agents using it will get the new content automatically on the next run.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card title="Multi-Agent Teams" icon="users" href="/tutorials/multi-agent-team">
+    Build networks of specialized agents, each with their own skills
+  </Card>
+  <Card title="Connect Real Data" icon="plug" href="/tutorials/connect-real-data">
+    Connect external services and APIs to your agents
+  </Card>
+  <Card title="Parallel Agents" icon="bolt" href="/tutorials/parallel-agents">
+    Run multiple agents simultaneously for faster results
+  </Card>
+  <Card title="Deploy to Production" icon="rocket" href="/tutorials/deploy-app-to-production">
+    Take your workflow live with real users
+  </Card>
+</CardGroup>
