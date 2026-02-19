@@ -110,18 +110,23 @@ Now wire the nodes together:
 
 ## Advanced: Configuring Your Agent
 
-Click on any node to open its configuration panel on the right. For the Agent node, you can customize:
+Click on any node to open its configuration panel. The Agent node has three tabs:
 
+**Model tab**
 | Setting | Description |
 |---|---|
+| **Label** | Rename the node |
+| **Provider / Model** | Switch between LLM providers and models (e.g. Anthropic, OpenAI, Gemini) |
 | **System Prompt** | Instructions that define your agent's behavior and persona |
-| **Model** | Switch between LLM providers and models (e.g. Claude, GPT-4o, Gemini) |
-| **Memory** | Tune context window limits, trim strategy, summarization, and more |
-| **Streaming** | Enable/disable real-time streaming responses |
-| **Max Iterations** | Limit how many tool calls the agent can make per turn |
-| **Tool Choice** | Control whether the agent must use a tool, can choose, or is restricted |
+| **Skills** | Attach reusable skill sets to your agent |
+| **Credentials** | Use your own API keys instead of platform credits |
+| **Enable Realtime (Voice)** | Switch to voice/realtime mode |
 
-<img src="TODO: add screenshot" alt="Agent node configuration panel" style={{ borderRadius: '12px' }} />
+**Memory tab** — configure context window limits, trim strategy, summarization, and more.
+
+**Execution tab** — set max iterations, tool choice, streaming, and other runtime settings.
+
+<img src="https://splox-app.s3.amazonaws.com/019c755f-24b8-7b35-9f0f-b29a9e2569ed.png" alt="Agent node configuration panel" style={{ borderRadius: '12px' }} />
 
 ---
 
