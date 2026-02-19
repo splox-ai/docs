@@ -48,7 +48,7 @@ Before you begin, make sure you have:
 
 The Start node is the entry point — it defines how your workflow gets triggered.
 
-1. Right-click on the canvas → **Add Node** → **Start**
+1. Right-click on the canvas → **Start**
 2. In the node config panel on the right, set the **Trigger** to `Webhook`
 3. Click **Save**
 
@@ -62,7 +62,7 @@ The Start node is the entry point — it defines how your workflow gets triggere
 
 The Agent node is an LLM that reads the input, reasons about it, and decides whether to call a tool or respond directly.
 
-1. Right-click on the canvas → **Add Node** → **Agent**
+1. Right-click on the canvas → **Agent**
 2. In the config panel:
    - **Model** — pick any model (e.g. `claude-sonnet-4-5` or `gpt-4o`)
    - **System Prompt** — write a short instruction, e.g.:
@@ -81,7 +81,7 @@ You are a helpful assistant. Use available tools when needed to answer the user'
 
 The Tool node gives your agent the ability to take real actions — search the web, send messages, query APIs, and more.
 
-1. Right-click on the canvas → **Add Node** → **Tool**
+1. Right-click on the canvas → **Tool**
 2. In the config panel:
    - **MCP Server** — select your connected MCP server (e.g. Serper for web search)
    - **Tool** — select the specific tool (e.g. `serper_search`)
