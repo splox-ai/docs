@@ -77,15 +77,13 @@ You are a helpful assistant. Use available tools when needed to answer the user'
 
 ## Step 4: Add a Tool Node
 
-The Tool node gives your agent the ability to take real actions — search the web, send messages, query APIs, and more.
+The Tool node gives your agent access to the **Tool Router** — a smart layer that automatically finds the right tool from the MCP marketplace based on what the agent needs to do.
 
 1. Right-click on the canvas → **Tool**
-2. In the config panel:
-   - **MCP Server** — select your connected MCP server (e.g. Serper for web search)
-   - **Tool** — select the specific tool (e.g. `serper_search`)
-3. Click **Save**
 
-<img src="TODO: add screenshot" alt="Configuring the Tool node with an MCP server and tool selection" style={{ borderRadius: '12px' }} />
+That's it. The Tool Router handles the rest: when your agent runs and needs a capability (e.g. web search, sending a message), it will find the matching tool from your connected MCP integrations. If you don't have the required connection yet, the agent will surface a link to connect it from the MCP marketplace.
+
+<img src="TODO: add screenshot" alt="Tool node on the canvas" style={{ borderRadius: '12px' }} />
 
 ---
 
