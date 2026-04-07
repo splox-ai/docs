@@ -1,6 +1,6 @@
 ---
 title: "Build Your First AI Agent"
-description: "Learn how to build an autonomous AI agent in Splox using the workflow builder. Connect a Start node, Agent node, and Tool node in minutes."
+description: "Learn how to build an autonomous AI agent in Splox using the workflow builder. Connect an Entry node, Agent node, and Tool node in minutes."
 ---
 
 In this tutorial you'll build a fully working AI agent from scratch using the Splox workflow builder. No templates, no shortcuts — just three nodes wired together.
@@ -43,15 +43,15 @@ Before you begin, make sure you have:
 
 ---
 
-## Step 2: Add a Start Node
+## Step 2: Add an Entry Node
 
-The Start node is the entry point of your workflow.
+The entry node is the entry point of your workflow.
 
 1. Right-click on the canvas → **Start**
 
-<img src="https://splox-app.s3.amazonaws.com/019c7553-5b92-744c-b378-0fdf3fdbe7b1.png" alt="Adding a Start node to the workflow canvas" style={{ borderRadius: '12px' }} />
+<img src="https://splox-app.s3.amazonaws.com/019c7553-5b92-744c-b378-0fdf3fdbe7b1.png" alt="Adding an Entry node to the workflow canvas" style={{ borderRadius: '12px' }} />
 
-<Note>Every workflow needs exactly one Start node. It has no configuration — it simply marks where execution begins.</Note>
+<Note>Every workflow needs exactly one entry node. It has no configuration — it simply marks where execution begins.</Note>
 
 ---
 
@@ -89,7 +89,7 @@ That's it. The Tool Router handles the rest: when your agent runs and needs a ca
 
 Now wire the nodes together:
 
-1. **Start → Agent**: drag from the Start node's output handle to the Agent node's input handle
+1. **Start → Agent**: drag from the entry node's output handle to the Agent node's input handle
 2. **Agent → Tool**: drag from the Agent node's **TOOLS** handle to the Tool node's input handle
 
 <Note>Make sure you connect from the **TOOLS** handle (not the PARALLEL handle) on the Agent node. This enables the tool-calling loop so results return back to the Agent.</Note>

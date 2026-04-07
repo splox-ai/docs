@@ -76,7 +76,7 @@ The starter template uses Splox's default AI provider - no setup needed. You can
 The starter template shows you the basics:
 
 <Steps>
-  <Step title="Start Node">
+  <Step title="Entry Node">
     Entry point of your workflow. Defines what triggers it.
   </Step>
 
@@ -106,7 +106,7 @@ Once your workflow is ready, chat with it directly from the builder:
 <img src="https://splox-app.s3.amazonaws.com/019ba342-53d7-7f4a-8050-978de73c1236.png" alt="Chat Mode Interface" style={{borderRadius: "8px"}} />
 
 1. Click the **Chat icon** (speech bubble) in the toolbar on [app.splox.io](https://app.splox.io)
-2. Select your **Start node** from the dropdown
+2. Select your **entry node** from the dropdown
 3. Type or speak your message
 4. See the agent respond in real-time — watch nodes execute in the workflow as it runs
 
@@ -119,7 +119,7 @@ Once your workflow is ready, chat with it directly from the builder:
   curl -X POST https://app.splox.io/api/v1/workflow-requests/run \
     -H "Authorization: Bearer YOUR_TOKEN" \
     -H "Content-Type: application/json" \
-    -d '{"workflow_version_id": "...", "chat_id": "...", "start_node_id": "...", "query": "Process this data"}'
+    -d '{"workflow_version_id": "...", "chat_id": "...", "entry_node_ids": ["..."], "query": "Process this data"}'
   ```
   
   See the full [API docs](/api-reference/introduction) for details.

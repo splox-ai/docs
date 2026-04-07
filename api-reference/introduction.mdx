@@ -59,7 +59,7 @@ The Splox API provides these endpoints:
 | GET | `/workflows/{id}` | Get a workflow with nodes and edges |
 | GET | `/workflows/{id}/versions/latest` | Get the latest workflow version |
 | GET | `/workflows/{id}/versions` | List all workflow versions |
-| GET | `/workflows/{id}/start-nodes` | Get start nodes for a version |
+| GET | `/workflows/{id}/entry-nodes` | Get entry nodes for a version |
 
 ### Workflow Execution
 
@@ -102,7 +102,7 @@ The Splox API provides these endpoints:
 
 <Steps>
   <Step title="Discover Your Workflow">
-    `GET /workflows` — List your workflows (or search by name). Then get the latest version with `GET /workflows/{id}/versions/latest` and its start node with `GET /workflows/{versionId}/start-nodes`.
+    `GET /workflows` — List your workflows (or search by name). Then get the latest version with `GET /workflows/{id}/versions/latest` and its entry nodes with `GET /workflows/{versionId}/entry-nodes`.
   </Step>
 
   <Step title="Create a Chat">
@@ -110,7 +110,7 @@ The Splox API provides these endpoints:
   </Step>
   
   <Step title="Run the Workflow">
-    `POST /workflow-requests/run` — Trigger the workflow with your query, chat ID, workflow version ID, and start node ID. Returns a `workflow_request_id`.
+    `POST /workflow-requests/run` — Trigger the workflow with your query, chat ID, workflow version ID, and entry node IDs. Returns a `workflow_request_id`.
   </Step>
   
   <Step title="Listen for Results">

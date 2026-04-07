@@ -403,7 +403,7 @@ Subflow nodes contain nested workflows that can be reused across multiple parent
 **Node Structure:**
 
 Subflows contain a nested canvas with their own Start and End nodes. The image above shows:
-- **Left:** Start node (entry point to subflow)
+- **Left:** Entry node (entry point to subflow)
 - **Right:** End node (exit point from subflow)
 - **Canvas:** Isolated workflow area for building reusable logic
 
@@ -414,7 +414,7 @@ Subflows contain a nested canvas with their own Start and End nodes. The image a
     When viewed from the parent workflow, subflow nodes have standard handles:
     
     - **Input Handle (Left):** Receives data from parent workflow
-      - Passes data to subflow's Start node
+      - Passes data to subflow's entry node
       - Triggers subflow execution
     
     - **Output Handles (Right):**
@@ -429,7 +429,7 @@ Subflows contain a nested canvas with their own Start and End nodes. The image a
   <Tab title="Internal Nodes">
     **Inside the Subflow Canvas**
     
-    - **Start Node:** Entry point for subflow execution
+    - **Entry Node:** Entry point for subflow execution
       - Receives input from parent workflow
       - Has PARALLEL and ERROR output handles
     
@@ -530,7 +530,7 @@ The subflow loops internally until the LLM completes its task, then returns resu
   <Tab title="Output Handle">
     **Right Side - Loop Output (Subflows Only)**
     
-    - **LOOP:** Connects back to Start node for iteration
+    - **LOOP:** Connects back to entry node for iteration
       - Only active in subflow iteration patterns
       - Routes execution back to beginning of subflow
       - Continues loop if max_iterations not reached
@@ -548,7 +548,7 @@ The subflow loops internally until the LLM completes its task, then returns resu
 <Info>
 **End Node vs Stop Node in Subflows**
 
-- **End Node**: Completes the current iteration. If more iterations remain, execution loops back to Start Node.
+- **End Node**: Completes the current iteration. If more iterations remain, execution loops back to Entry Node.
 - **Stop Node**: Immediately terminates the entire subflow, regardless of remaining iterations.
 </Info>
 

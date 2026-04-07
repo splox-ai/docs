@@ -49,7 +49,7 @@
             "pages": [
               "nodes/variable-mappings",
               "nodes/lifecycle",
-              "nodes/start-node",
+              "nodes/entry-node",
               "nodes/agent-node",
               "nodes/tool-node",
               "nodes/switch-node",
@@ -118,7 +118,7 @@
               "api-reference/get-workflow",
               "api-reference/get-workflow-version",
               "api-reference/list-workflow-versions",
-              "api-reference/get-start-nodes"
+              "api-reference/get-entry-nodes"
             ]
           },
           {

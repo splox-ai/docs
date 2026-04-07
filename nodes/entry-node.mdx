@@ -1,18 +1,18 @@
 ---
-title: "Start Node"
+title: "Entry Node"
 description: "Entry point for workflow execution - where every workflow begins"
 ---
 
-## What is a Start Node?
+## What is an Entry Node?
 
-The **Start Node** is the entry point of every workflow. When a workflow is triggered — via chat, API, or an external event — execution begins at the specified Start node, which passes the incoming payload to downstream nodes.
+The **Entry Node** is the entry point of every workflow. When a workflow is triggered — via chat, API, or an external event — execution begins at the specified entry node, which passes the incoming payload to downstream nodes.
 
-Every workflow must have at least one Start node. A workflow can have **multiple Start nodes** to support different entry points for different use cases.
+Every workflow must have at least one entry node. A workflow can have **multiple entry nodes** to support different entry points for different use cases.
 
 <div className="block dark:hidden">
   <img
     src="https://splox-app.s3.amazonaws.com/019a0b71-d762-70e9-8ca5-92590914783a_019a0b3b-eca7-70e5-b8f1-f57d15257398-light.png"
-    alt="Start node visual representation"
+    alt="Entry node visual representation"
     style={{ maxWidth: '100%', margin: '20px auto', display: 'block', borderRadius: '8px' }}
   />
 </div>
@@ -20,7 +20,7 @@ Every workflow must have at least one Start node. A workflow can have **multiple
 <div className="hidden dark:block">
   <img
     src="https://splox-app.s3.amazonaws.com/019a0b3b-eca7-70e5-b8f1-f57d15257398.png"
-    alt="Start node visual representation"
+    alt="Entry node visual representation"
     style={{ maxWidth: '100%', margin: '20px auto', display: 'block', borderRadius: '8px' }}
   />
 </div>
@@ -29,7 +29,7 @@ Every workflow must have at least one Start node. A workflow can have **multiple
 
 ## How It Works
 
-The Start node is simple — it receives the raw input payload and passes it through as its output. Downstream nodes access the payload fields via variable mappings like `{{ start.text }}`, `{{ start.chat_id }}`, `{{ start.files }}`, etc.
+The entry node is simple — it receives the raw input payload and passes it through as its output. Downstream nodes access the payload fields via variable mappings like `{{ start.text }}`, `{{ start.chat_id }}`, `{{ start.files }}`, etc.
 
 The payload structure depends on how the workflow is triggered:
 
@@ -67,7 +67,7 @@ The payload structure depends on how the workflow is triggered:
 
 <AccordionGroup>
   <Accordion title="Label" icon="tag">
-    **Description:** A name to identify this Start node on the canvas and in the start node selector.
+    **Description:** A name to identify this entry node on the canvas and in the entry node selector.
     
     **Type:** String
     
@@ -81,7 +81,7 @@ The payload structure depends on how the workflow is triggered:
     ```
     
     <Tip>
-      Use descriptive labels — when a workflow has multiple Start nodes, users and API callers need to choose which one to trigger.
+      Use descriptive labels — when a workflow has multiple entry nodes, users and API callers need to choose which one to trigger.
     </Tip>
   </Accordion>
 
@@ -121,10 +121,10 @@ The payload structure depends on how the workflow is triggered:
 | Handle | Position | Type | Description |
 |--------|----------|------|-------------|
 | **PARALLEL** | Right | Execution | Sends the input payload to downstream nodes |
-| **ERROR** | Right | Error | Routes to fallback nodes if the start node fails |
+| **ERROR** | Right | Error | Routes to fallback nodes if the entry node fails |
 
 <Info>
-  Start nodes have **no input handle** — they are always the first node in the execution chain.
+  Entry nodes have **no input handle** — they are always the first node in the execution chain.
 </Info>
 
 ---
@@ -137,7 +137,7 @@ The most common way to trigger a workflow during development and testing:
 
 1. Open a workflow in the editor
 2. Open the **Chat** panel
-3. Select a Start node from the dropdown
+3. Select an entry node from the dropdown
 4. Type a message and send
 
 The message becomes `{{ start.text }}` and the chat session ID becomes `{{ start.chat_id }}`.
@@ -154,7 +154,7 @@ Content-Type: application/json
 {
   "workflow_version_id": "your-workflow-version-id",
   "chat_id": "your-chat-id",
-  "start_node_id": "your-start-node-id",
+  "entry_node_ids": ["your-entry-node-id"],
   "query": "Process this request",
   "files": []
 }
@@ -178,9 +178,9 @@ Use the returned `workflow_request_id` to:
 
 ---
 
-## Multiple Start Nodes
+## Multiple Entry Nodes
 
-A single workflow can have multiple Start nodes for different entry points:
+A single workflow can have multiple entry nodes for different entry points:
 
 ```
 Workflow: Customer Support
@@ -189,10 +189,10 @@ Workflow: Customer Support
 └── Start: "API Requests"       ← For programmatic API calls
 ```
 
-When triggering a workflow, you specify which Start node to use via the `start_node_id` parameter. In the chat interface, a dropdown lets you select the active Start node.
+When triggering a workflow, you specify which entry node to use via the `entry_node_ids` parameter. In the chat interface, a dropdown lets you select the active entry node.
 
 <Tip>
-  Use multiple Start nodes when your workflow needs to handle different types of input — each Start node can lead to a different processing path.
+  Use multiple entry nodes when your workflow needs to handle different types of input — each entry node can lead to a different processing path.
 </Tip>
 
 ---
@@ -201,13 +201,13 @@ When triggering a workflow, you specify which Start node to use via the `start_n
 
 <CardGroup cols={2}>
   <Card title="Descriptive Labels" icon="tag">
-    Name Start nodes clearly — they appear in dropdowns and API calls
+    Name entry nodes clearly — they appear in dropdowns and API calls
   </Card>
   <Card title="Handle Missing Fields" icon="triangle-exclamation">
     Use conditional logic (Switch nodes or template defaults) to handle cases where optional payload fields may be missing
   </Card>
   <Card title="One Concern Per Start" icon="bullseye">
-    Create separate Start nodes for different trigger sources rather than handling everything in one
+    Create separate entry nodes for different trigger sources rather than handling everything in one
   </Card>
 </CardGroup>
 
@@ -217,11 +217,11 @@ When triggering a workflow, you specify which Start node to use via the `start_n
 
 <CardGroup cols={2}>
   <Card title="Agent Node" icon="brain" href="/nodes/agent-node">
-    Connect your Start node to an Agent to process the incoming data
+    Connect your entry node to an Agent to process the incoming data
   </Card>
   
   <Card title="Variable Mappings" icon="link" href="/nodes/variable-mappings">
-    Access Start node payload data in downstream nodes
+    Access entry node payload data in downstream nodes
   </Card>
   
   <Card title="Node Lifecycle" icon="circle-play" href="/nodes/lifecycle">
@@ -229,6 +229,6 @@ When triggering a workflow, you specify which Start node to use via the `start_n
   </Card>
   
   <Card title="Build Your First Agent" icon="play" href="/tutorials/first-ai-agent">
-    Step-by-step tutorial using a Start node
+    Step-by-step tutorial using an entry node
   </Card>
 </CardGroup>

@@ -16,7 +16,7 @@ curl -X POST https://app.splox.io/api/v1/workflow-requests/run \
   -d '{
     "workflow_version_id": "your-workflow-version-id",
     "chat_id": "your-chat-id",
-    "start_node_id": "your-start-node-id",
+    "entry_node_ids": ["your-entry-node-id"],
     "query": "Your message or instruction",
     "files": []
   }'
@@ -29,7 +29,7 @@ client = SploxClient(api_key="YOUR_API_KEY")
 result = client.workflows.run(
     workflow_version_id="your-workflow-version-id",
     chat_id="your-chat-id",
-    start_node_id="your-start-node-id",
+    entry_node_ids=["your-entry-node-id"],
     query="Your message or instruction",
 )
 print(result.workflow_request_id)
@@ -38,7 +38,7 @@ print(result.workflow_request_id)
 tree = client.workflows.run_and_wait(
     workflow_version_id="your-workflow-version-id",
     chat_id="your-chat-id",
-    start_node_id="your-start-node-id",
+    entry_node_ids=["your-entry-node-id"],
     query="Your message or instruction",
     timeout=300.0,
 )
@@ -52,7 +52,7 @@ const client = new Splox("YOUR_API_KEY");
 const result = await client.workflows.run({
   workflow_version_id: "your-workflow-version-id",
   chat_id: "your-chat-id",
-  start_node_id: "your-start-node-id",
+  entry_node_ids: ["your-entry-node-id"],
   query: "Your message or instruction",
 });
 console.log(result.workflow_request_id);
@@ -61,7 +61,7 @@ console.log(result.workflow_request_id);
 const tree = await client.workflows.runAndWait({
   workflow_version_id: "your-workflow-version-id",
   chat_id: "your-chat-id",
-  start_node_id: "your-start-node-id",
+  entry_node_ids: ["your-entry-node-id"],
   query: "Your message or instruction",
 });
 console.log(tree.execution_tree.status);
@@ -72,7 +72,7 @@ client := splox.NewClient("YOUR_API_KEY")
 result, err := client.Workflows.Run(ctx, splox.RunParams{
     WorkflowVersionID: "your-workflow-version-id",
     ChatID:            "your-chat-id",
-    StartNodeID:       "your-start-node-id",
+    EntryNodeIDs:      []string{"your-entry-node-id"},
     Query:             "Your message or instruction",
 })
 fmt.Println(result.WorkflowRequestID)
@@ -81,7 +81,7 @@ fmt.Println(result.WorkflowRequestID)
 tree, err := client.Workflows.RunAndWait(ctx, splox.RunParams{
     WorkflowVersionID: "your-workflow-version-id",
     ChatID:            "your-chat-id",
-    StartNodeID:       "your-start-node-id",
+    EntryNodeIDs:      []string{"your-entry-node-id"},
     Query:             "Your message or instruction",
 }, 5*time.Minute)
 fmt.Println(tree.ExecutionTree.Status)
@@ -93,8 +93,8 @@ fmt.Println(tree.ExecutionTree.Status)
 
 1. The API creates a `WorkflowRequest` with status `pending`
 2. The request is enqueued for processing
-3. Execution begins at the specified Start node
-4. The Start node receives a payload: `{ "text": "<query>", "chat_id": "<chat_id>", "files": [...] }`
+3. Execution begins at the specified entry node(s)
+4. The entry node receives a payload: `{ "text": "<query>", "chat_id": "<chat_id>", "files": [...] }`
 5. Downstream nodes access this via `{{ start.text }}`, `{{ start.chat_id }}`, etc.
 
 ## Prerequisites
@@ -102,7 +102,7 @@ fmt.Println(tree.ExecutionTree.Status)
 Before running a workflow, you need:
 
 1. **A workflow version ID** — Get it via [List Workflows](/api-reference/list-workflows) or [Get Latest Version](/api-reference/get-workflow-version)
-2. **A start node ID** — Get it via [Get Start Nodes](/api-reference/get-start-nodes)
+2. **Entry node IDs** — Get them via [Get Entry Nodes](/api-reference/get-entry-nodes)
 3. **A chat session** — Create one via [Create Chat](/api-reference/create-chat)
 
 ## Response

@@ -46,7 +46,7 @@ Workflows are the foundation of Splox, enabling you to:
 Every workflow is built from **5 node types**:
 
 <CardGroup cols={3}>
-  <Card title="Start Node" icon="play" href="/nodes/start-node">
+  <Card title="Entry Node" icon="play" href="/nodes/entry-node">
     Entry point that receives input data and triggers execution
   </Card>
   <Card title="Agent Node" icon="brain" href="/nodes/agent-node">
@@ -146,7 +146,7 @@ Workflows are built on a visual canvas with powerful editing capabilities:
     - Node execution highlighting on the canvas
     - Multiple chat sessions management
     - Persistent chat history with context memory
-    - Start node selection
+    - Entry node selection
 
     **Chat Actions:**
     - Create new chat
@@ -166,8 +166,8 @@ Workflows are built on a visual canvas with powerful editing capabilities:
     ### Execution Flow
 
     <Steps>
-      <Step title="Select Start Node">
-        Choose where to begin execution from the available start nodes
+      <Step title="Select Entry Node">
+        Choose where to begin execution from the available entry nodes
       </Step>
       <Step title="Provide Inputs">
         Enter required parameters, messages, or upload files
@@ -361,7 +361,7 @@ graph LR
 
 <Steps>
   <Step title="Agent Receives Input">
-    The Agent node receives input from its parent (Start node payload, previous node output, or variable mappings) and appends it as a user message to its context memory.
+    The Agent node receives input from its parent (entry node payload, previous node output, or variable mappings) and appends it as a user message to its context memory.
   </Step>
   
   <Step title="LLM Reasoning">

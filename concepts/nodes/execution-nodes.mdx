@@ -1,6 +1,6 @@
 ---
 title: "Execution Nodes"
-description: "Control workflow entry, exit, and termination with Start, End, and Stop nodes"
+description: "Control workflow entry, exit, and termination with Entry, End, and Stop nodes"
 ---
 
 ## Overview
@@ -8,7 +8,7 @@ description: "Control workflow entry, exit, and termination with Start, End, and
 Execution nodes control the fundamental flow of workflow execution—where workflows begin, where iterations end, and how subflows terminate.
 
 <CardGroup cols={3}>
-  <Card title="Start Node" icon="play">
+  <Card title="Entry Node" icon="play">
     Entry point for workflow execution
   </Card>
   <Card title="End Node" icon="flag-checkered">
@@ -21,16 +21,16 @@ Execution nodes control the fundamental flow of workflow execution—where workf
 
 ---
 
-## Start Node
+## Entry Node
 
 **Purpose:** Entry point for workflow execution
 
-Every workflow must have at least one start node. When a workflow is triggered, execution begins at the specified start node.
+Every workflow must have at least one entry node. When a workflow is triggered, execution begins at the specified entry node(s).
 
 <div className="block dark:hidden">
   <img
     src="https://splox-app.s3.amazonaws.com/019a0b71-d762-70e9-8ca5-92590914783a_019a0b3b-eca7-70e5-b8f1-f57d15257398-light.png"
-    alt="Start node visual representation"
+    alt="Entry node visual representation"
     style={{ maxWidth: '100%', margin: '20px auto', display: 'block', borderRadius: '8px' }}
   />
 </div>
@@ -38,7 +38,7 @@ Every workflow must have at least one start node. When a workflow is triggered, 
 <div className="hidden dark:block">
   <img
     src="https://splox-app.s3.amazonaws.com/019a0b3b-eca7-70e5-b8f1-f57d15257398.png"
-    alt="Start node visual representation"
+    alt="Entry node visual representation"
     style={{ maxWidth: '100%', margin: '20px auto', display: 'block', borderRadius: '8px' }}
   />
 </div>
@@ -62,7 +62,7 @@ Every workflow must have at least one start node. When a workflow is triggered, 
 </Tabs>
 
 **Features:**
-- Multiple start nodes supported for multi-entry workflows
+- Multiple entry nodes supported for multi-entry workflows
 - Receives input data from workflow triggers
 - Passes initial data to connected nodes via PARALLEL handle
 - Error handling via ERROR handle for failed triggers
@@ -74,7 +74,7 @@ Every workflow must have at least one start node. When a workflow is triggered, 
 - Multi-agent workflow initialization
 
 <Tip>
-  Start nodes can be selected when triggering a workflow programmatically, allowing different entry points for different use cases.
+  Entry nodes can be selected when triggering a workflow programmatically, allowing different entry points for different use cases.
 </Tip>
 
 ---
@@ -116,7 +116,7 @@ Every workflow must have at least one start node. When a workflow is triggered, 
   <Tab title="Output Handle">
     **Right Side - Loop Output (Subflows Only)**
     
-    - **LOOP:** Connects back to Start node for iteration
+    - **LOOP:** Connects back to entry node for iteration
       - Only active in subflow iteration patterns
       - Routes execution back to beginning of subflow
       - Continues loop if max_iterations not reached
@@ -134,7 +134,7 @@ Every workflow must have at least one start node. When a workflow is triggered, 
 <Info>
 **End Node vs Stop Node in Subflows**
 
-- **End Node**: Completes the current iteration. If more iterations remain, execution loops back to Start Node.
+- **End Node**: Completes the current iteration. If more iterations remain, execution loops back to Entry Node.
 - **Stop Node**: Immediately terminates the entire subflow, regardless of remaining iterations.
 </Info>
 

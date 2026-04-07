@@ -151,11 +151,11 @@
         }
       }
     },
-    "/workflows/{id}/start-nodes": {
+    "/workflows/{id}/entry-nodes": {
       "get": {
-        "summary": "Get Start Nodes",
-        "description": "Retrieves the start nodes for a workflow version. The `id` parameter is a workflow version ID, not a workflow ID.",
-        "operationId": "getStartNodes",
+        "summary": "Get Entry Nodes",
+        "description": "Retrieves the entry nodes for a workflow version. The `id` parameter is a workflow version ID, not a workflow ID.",
+        "operationId": "getEntryNodes",
         "tags": ["Workflows"],
         "security": [{"bearerAuth": []}],
         "parameters": [
@@ -172,7 +172,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Start nodes retrieved successfully",
+            "description": "Entry nodes retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -252,7 +252,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["workflow_version_id", "chat_id", "start_node_id", "query"],
+                "required": ["workflow_version_id", "chat_id", "entry_node_ids", "query"],
                 "properties": {
                   "workflow_version_id": {
                     "type": "string",
@@ -264,10 +264,13 @@
                     "format": "uuid",
                     "description": "Chat session ID (used for context memory and SSE streaming)"
                   },
-                  "start_node_id": {
-                    "type": "string",
-                    "format": "uuid",
-                    "description": "ID of the Start node to begin execution at"
+                  "entry_node_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "description": "IDs of the entry nodes to begin execution at"
                   },
                   "query": {
                     "type": "string",
@@ -290,7 +293,7 @@
               "example": {
                 "workflow_version_id": "0199e001-a23b-7c8d-1234-567890abcdef",
                 "chat_id": "0199f200-a11b-7c8d-4444-888890abcdef",
-                "start_node_id": "0199e002-b34c-8d9e-2345-678901bcdef0",
+                "entry_node_ids": ["0199e002-b34c-8d9e-2345-678901bcdef0"],
                 "query": "Summarize the latest sales report",
                 "files": []
               }
@@ -1536,10 +1539,13 @@
             "format": "uuid",
             "description": "ID of the workflow version being executed"
           },
-          "start_node_id": {
-            "type": "string",
-            "format": "uuid",
-            "description": "ID of the Start node execution began at"
+          "entry_node_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "IDs of the entry nodes execution began at"
           },
           "user_id": {
             "type": "string",
@@ -1576,7 +1582,7 @@
           "payload": {
             "type": "object",
             "additionalProperties": true,
-            "description": "Input payload passed to the Start node"
+            "description": "Input payload passed to the entry node"
           },
           "metadata": {
             "type": "object",
@@ -1602,7 +1608,7 @@
             "description": "When the request was created"
           }
         },
-        "required": ["id", "workflow_version_id", "start_node_id", "status", "created_at"]
+        "required": ["id", "workflow_version_id", "entry_node_ids", "status", "created_at"]
       },
       "NodeExecution": {
         "type": "object",

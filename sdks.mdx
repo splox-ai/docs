@@ -34,12 +34,12 @@ for wf in workflows.workflows:
 # Create a chat and run a workflow
 chat = client.chats.create(name="My Session", resource_id=wf.id)
 version = client.workflows.get_latest_version(wf.id)
-start_nodes = client.workflows.get_start_nodes(version.id)
+entry_nodes = client.workflows.get_entry_nodes(version.id)
 
 result = client.workflows.run(
     workflow_version_id=version.id,
     chat_id=chat.id,
-    start_node_id=start_nodes.nodes[0].id,
+    entry_node_ids=[entry_nodes.nodes[0].id],
     query="Hello, world!",
 )
 
@@ -68,12 +68,12 @@ const chat = await client.chats.create({
   resource_id: wf.id,
 });
 const version = await client.workflows.getLatestVersion(wf.id);
-const { nodes } = await client.workflows.getStartNodes(version.id);
+const { nodes } = await client.workflows.getEntryNodes(version.id);
 
 const { workflow_request_id } = await client.workflows.run({
   workflow_version_id: version.id,
   chat_id: chat.id,
-  start_node_id: nodes[0].id,
+  entry_node_ids: [nodes[0].id],
   query: "Hello, world!",
 });
 
@@ -113,12 +113,12 @@ func main() {
         ResourceID: wf.ID,
     })
     version, _ := client.Workflows.GetLatestVersion(ctx, wf.ID)
-    startNodes, _ := client.Workflows.GetStartNodes(ctx, version.ID)
+    entryNodes, _ := client.Workflows.GetEntryNodes(ctx, version.ID)
 
     result, _ := client.Workflows.Run(ctx, splox.RunParams{
         WorkflowVersionID: version.ID,
         ChatID:            chat.ID,
-        StartNodeID:       startNodes.Nodes[0].ID,
+        EntryNodeIDs:      []string{entryNodes.Nodes[0].ID},
         Query:             "Hello, world!",
     })
 

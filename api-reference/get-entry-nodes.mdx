@@ -1,16 +1,16 @@
 ---
-title: 'Get Start Nodes'
-openapi: 'GET /workflows/{id}/start-nodes'
+title: 'Get Entry Nodes'
+openapi: 'GET /workflows/{id}/entry-nodes'
 ---
 
-Retrieves the start nodes for a workflow version. The start node ID is required when running a workflow via `POST /workflow-requests/run`.
+Retrieves the entry nodes for a workflow version. The entry node ID is required when running a workflow via `POST /workflow-requests/run`.
 
 ## Usage
 
 <CodeGroup>
 
 ```bash cURL
-curl https://app.splox.io/api/v1/workflows/019c3221-29da-7d08-93fa-c48dbaa8b1db/start-nodes \
+curl https://app.splox.io/api/v1/workflows/019c3221-29da-7d08-93fa-c48dbaa8b1db/entry-nodes \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -18,7 +18,7 @@ curl https://app.splox.io/api/v1/workflows/019c3221-29da-7d08-93fa-c48dbaa8b1db/
 from splox import SploxClient
 
 client = SploxClient(api_key="YOUR_API_KEY")
-result = client.workflows.get_start_nodes("WORKFLOW_VERSION_ID")
+result = client.workflows.get_entry_nodes("WORKFLOW_VERSION_ID")
 for node in result.nodes:
     print(node.id, node.label)
 ```
@@ -27,7 +27,7 @@ for node in result.nodes:
 import Splox from "splox";
 
 const client = new Splox("YOUR_API_KEY");
-const { nodes } = await client.workflows.getStartNodes("WORKFLOW_VERSION_ID");
+const { nodes } = await client.workflows.getEntryNodes("WORKFLOW_VERSION_ID");
 for (const node of nodes) {
   console.log(node.id, node.label);
 }
@@ -35,7 +35,7 @@ for (const node of nodes) {
 
 ```go Go
 client := splox.NewClient("YOUR_API_KEY")
-result, err := client.Workflows.GetStartNodes(ctx, "WORKFLOW_VERSION_ID")
+result, err := client.Workflows.GetEntryNodes(ctx, "WORKFLOW_VERSION_ID")
 for _, node := range result.Nodes {
     fmt.Println(node.ID, node.Label)
 }
@@ -73,19 +73,19 @@ The `id` path parameter is a **workflow version ID** (not a workflow ID). Get th
 }
 ```
 
-Most workflows have a single start node. Workflows with multiple entry points will return all top-level start nodes.
+Most workflows have a single entry node. Workflows with multiple entry points will return all top-level entry nodes.
 
 ## Typical Usage
 
-Use this endpoint to discover the `start_node_id` needed for [Run Workflow](/api-reference/run-workflow):
+Use this endpoint to discover the `entry_node_id` needed for [Run Workflow](/api-reference/run-workflow):
 
 ```bash
 # 1. Get latest version
 VERSION_ID=$(curl -s https://app.splox.io/api/v1/workflows/$WORKFLOW_ID/versions/latest \
   -H "Authorization: Bearer $TOKEN" | jq -r '.id')
 
-# 2. Get start node
-START_NODE_ID=$(curl -s https://app.splox.io/api/v1/workflows/$VERSION_ID/start-nodes \
+# 2. Get entry node
+ENTRY_NODE_ID=$(curl -s https://app.splox.io/api/v1/workflows/$VERSION_ID/entry-nodes \
   -H "Authorization: Bearer $TOKEN" | jq -r '.nodes[0].id')
 
 # 3. Run workflow
@@ -95,7 +95,7 @@ curl -X POST https://app.splox.io/api/v1/workflow-requests/run \
   -d "{
     \"workflow_version_id\": \"$VERSION_ID\",
     \"chat_id\": \"$CHAT_ID\",
-    \"start_node_id\": \"$START_NODE_ID\",
+    \"entry_node_id\": \"$ENTRY_NODE_ID\",
     \"query\": \"Hello!\"
   }"
 ```
