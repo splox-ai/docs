@@ -1,0 +1,83 @@
+---
+title: "Skills"
+description: "The skills your agents can pick up, the ones that ship, and how one gets attached"
+---
+
+A skill is a folder with a `SKILL.md` in it — instructions the agent reads when a
+task calls for them, and files beside it that cost nothing until they are opened.
+The **Skills** screen is the library those folders live in.
+
+<Frame caption="The catalog: skills you can fork into your own library">
+  <img src="/images/app/skills-catalog.png" alt="The Skills catalog with community and Splox skills" />
+</Frame>
+
+Three tabs: **Catalog** is what you can copy, **System skills** is what the
+platform ships, **Your skills** is what you own.
+
+## What ships
+
+<Frame caption="The four system skills, available in every run">
+  <img src="/images/app/skills-system.png" alt="The System skills tab listing agent-browser, memory, skill-authoring and splox" />
+</Frame>
+
+| Skill | What it teaches |
+| --- | --- |
+| `agent-browser` | Driving a real browser: reading a page as an accessibility snapshot, clicking and filling, and what to do about bot protection and captchas. |
+| `memory` | Searching everything the user has said across all their chats, and keeping notes that survive the conversation. |
+| `skill-authoring` | Writing a skill that actually fires: the frontmatter rules and how a description gets a skill selected. |
+| `splox` | Building on Splox itself: editing a harness's programs, hooks and tools, and running evals against a version. |
+
+Each has **Fork** — take a copy into your own library and change it — and **Turn
+off**.
+
+## Getting one from the catalog
+
+Click a card and you get the skill's own files, read-only, with its license:
+
+<Frame caption="A catalog skill before you fork it: the files, the license, and the SKILL.md">
+  <img src="/images/app/skill-fork.png" alt="A catalog skill open in the read-only viewer with a Fork and save button" />
+</Frame>
+
+**Fork & save** copies it into **Your skills** under a name of your own — it
+proposes `<name>-copy` — and from then on it is a file you can edit.
+
+Two other ways to fill that tab:
+
+- **Create skill** opens an editor on a fresh `SKILL.md`, with the frontmatter
+  and the headings already in place.
+- **Import from GitHub** takes a link to a skill folder in any public
+  repository, or a directory holding several of them, and pulls them in.
+
+## Attaching one to an agent
+
+Skills are attached in code, in the agent's declaration:
+
+```python
+assistant = agent(
+    "Assistant",
+    system_prompt=prompt("assistant"),
+    tools=["system:compute"],
+    skills=["system:memory", "system:agent-browser", "trading-desk"],
+)
+```
+
+`system:<name>` is one of the platform's; a bare name is one of yours. Every
+skill is listed by name and there is no wildcard, so an agent has the skills its
+line names and no others.
+
+<Note>
+The library's files are in the sandbox either way, at `~/skills`. The `skills=`
+list is what the agent is **told** it has — the name and the description sit in
+its context, and the body is read when the skill fires. That is the whole trick:
+a harness can carry a hundred pages of procedure and pay for a line of it per
+turn.
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="Writing a skill" icon="book" href="/build/skills">
+    What goes in SKILL.md, what goes beside it, and when a skill beats a prompt.
+  </Card>
+  <Card title="Agents" icon="robot" href="/concepts/agent">
+    Everything else an agent declaration carries.
+  </Card>
+</CardGroup>

@@ -1,0 +1,211 @@
+---
+title: "Harnesses"
+description: "List the harnesses on an account, read one, and read the exact files of a published version"
+---
+
+A harness is the agent's git repository — the code that decides who the agent is.
+The API is the read side of it: which harnesses exist, which versions each one
+has, and exactly what files a given version holds. Writing is done with git; see
+[Versions](/build/versions).
+
+## List
+
+```bash
+curl -s "$SPLOX_BASE_URL/v2/harnesses" \
+  -H "Authorization: Bearer $SPLOX_API_KEY"
+```
+
+```json
+{
+  "data": [
+    {"id": "h_5V125BR7R4AA189NRYAB3DQC6D", "name": "My Agent"}
+  ],
+  "page": {"has_more": false, "next_cursor": null}
+}
+```
+
+That is the whole index entry: an id and a name. There is no description and no
+timestamp, because the prose lives in the harness's own files and its age is the
+commit that made it. Nothing makes `name` unique either — two harnesses may carry
+the same one, since a name is a label a person typed and never an address.
+
+## Read one
+
+```bash
+curl -s "$SPLOX_BASE_URL/v2/harnesses/h_5V125BR7R4AA189NRYAB3DQC6D" \
+  -H "Authorization: Bearer $SPLOX_API_KEY"
+```
+
+```json
+{
+  "id": "h_5V125BR7R4AA189NRYAB3DQC6D",
+  "name": "My Agent",
+  "versions": [
+    {"number": 1, "commit": "371758ecf28e8240192e4731080a7436fb492a09"}
+  ]
+}
+```
+
+`versions` is the registry of every published tree, newest first. A version is a
+pair: the **commit** is the tree, and the **number** is the label
+`refs/versions/N` puts on that commit for people to read. The commit is the
+selector; the number never is.
+
+## Read one exact version
+
+Name the commit and you get the files — the same bytes the runtime parses to
+execute the harness:
+
+```bash
+curl -s "$SPLOX_BASE_URL/v2/harnesses/h_5V125BR7R4AA189NRYAB3DQC6D/versions/371758ecf28e8240192e4731080a7436fb492a09" \
+  -H "Authorization: Bearer $SPLOX_API_KEY"
+```
+
+```json
+{
+  "harness_id": "h_5V125BR7R4AA189NRYAB3DQC6D",
+  "number": 1,
+  "commit": "371758ecf28e8240192e4731080a7436fb492a09",
+  "message": "created from starters/assistant at c151b87e73304d08c88495cad7d19e4c328e8742",
+  "created_at": "2026-09-02T07:04:30Z",
+  "files": {
+    "README.md": "...",
+    "PROGRAMS.md": "...",
+    "programs/splox/main.py": "\"\"\"The program that answers in the Splox chat.\n...",
+    "programs/splox/hooks/context.py": "...",
+    "programs/splox/hooks/guard.py": "...",
+    "programs/splox/prompts/assistant.md": "...",
+    "tools/files.py": "...",
+    "requirements.txt": "..."
+  }
+}
+```
+
+`files` is every path in that commit against that file's contents, UTF-8,
+verbatim — the version *is* its files. `message` is what the publish said, and it
+is the only provenance kept: the harness above was made by copying a starter, and
+the commit message says which one and at what sha.
+
+A commit that never existed, or a harness that is not yours, is the same 404 as
+any other invisible resource.
+
+## Create
+
+A harness can also be created from the API, files and all. It is one atomic
+operation: the harness and its version 1 come into existence together.
+
+```bash
+curl -s "$SPLOX_BASE_URL/v2/harnesses" \
+  -H "Authorization: Bearer $SPLOX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -d '{
+    "name": "docs-example",
+    "files": {
+      "programs/splox/main.py": "from splox import agent\n\nassistant = agent(\n    \"Assistant\",\n    system_prompt=\"Answer in one sentence.\",\n    model=\"claude-sonnet-4-6\",\n    provider=\"anthropic\",\n)\n\n\ndef handle(msg):\n    return assistant\n"
+    }
+  }'
+```
+
+```json
+{"id":"h_01M1GFTAQ6EDPV30NNAF9TYK7Z","name":"docs-example","versions":[{"number":1,"commit":"7c6e24567d2189dedf4a0a46c5188d4d8d7f65fe"}]}
+```
+
+`201`, with `Location: /v2/harnesses/h_01M1GFTAQ6EDPV30NNAF9TYK7Z`. Omit `files`
+and you get the default starter instead of an empty repository.
+
+What may be in those files is enforced on the way into git, and a tree that is
+not a harness is refused by name:
+
+```json
+{
+  "type": "https://api.splox.com/problems/harness_files_invalid",
+  "title": "Bad Request",
+  "status": 400,
+  "code": "harness_files_invalid",
+  "detail": "refusing to publish: 2 problem(s) in the draft\n  - notes.txt: a harness holds programs/<name>/ programs of any shape, tools/<name>.py tool files, evals/cases/<name>.yaml cases with the evals/graders/<name>.py graders they call, requirements.txt, pyproject.toml, setup.sh, its own documentation as .md files at the root, and nothing else\n  - a harness needs at least one program: programs/<name>/main.py, which declares its agents and, for programs/splox, says which of them answers a chat"
+}
+```
+
+## Rename
+
+The name is the one mutable thing about a harness. Renaming creates no version
+and changes no file:
+
+```bash
+curl -s -X PATCH "$SPLOX_BASE_URL/v2/harnesses/h_01M1GFTAQ6EDPV30NNAF9TYK7Z" \
+  -H "Authorization: Bearer $SPLOX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "docs-example-renamed"}'
+```
+
+```json
+{"id":"h_01M1GFTAQ6EDPV30NNAF9TYK7Z","name":"docs-example-renamed"}
+```
+
+## Delete
+
+```bash
+curl -s -i -X DELETE "$SPLOX_BASE_URL/v2/harnesses/h_01M1GFTAQ6EDPV30NNAF9TYK7Z" \
+  -H "Authorization: Bearer $SPLOX_API_KEY"
+```
+
+`204`, and the harness is gone from every listing:
+
+```json
+{"type":"https://api.splox.com/problems/not_found","title":"Not Found","status":404,"detail":"The resource does not exist or is not visible to the principal.","code":"not_found"}
+```
+
+The delete is a soft one. Runs that already happened stay readable with their
+history intact; new runs against the harness fail with 404. Nothing in the system
+deletes a harness repository.
+
+## There is no endpoint that publishes a version
+
+You will not find a `POST .../versions`, and that is deliberate. A version is
+created by pushing:
+
+```bash
+cd ~/harness
+git commit -am "Teach the assistant to check the shell before it guesses"
+git push origin main
+```
+
+The git proxy is the only write path into a harness's history, so what a version
+holds is always exactly what somebody pushed. The API reads that history back.
+
+## In the SDKs
+
+<CodeGroup>
+```python Python
+page = client.harnesses.list(limit=100)
+harness = client.harnesses.get("h_5V125BR7R4AA189NRYAB3DQC6D")
+version = client.harness_versions.get(harness.id, harness.versions[0].commit)
+version.files["programs/splox/main.py"]
+
+client.harnesses.create("researcher", files={"programs/splox/main.py": program})
+client.harnesses.update(harness.id, name="Renamed")
+client.harnesses.delete(harness.id)
+```
+
+```ts Node
+const page = await client.harnesses.list({ limit: 100 });
+const harness = await client.harnesses.get("h_5V125BR7R4AA189NRYAB3DQC6D");
+const version = await client.harnessVersions.get(harness.id, harness.versions[0].commit);
+version.files["programs/splox/main.py"];
+
+await client.harnesses.create({ name: "researcher", files: { "programs/splox/main.py": program } });
+await client.harnesses.update(harness.id, { name: "renamed" });
+await client.harnesses.delete(harness.id);
+```
+
+```go Go
+page, err := client.Harnesses.ListPage(ctx, splox.ListHarnessesParams{Limit: 100})
+harness, err := client.Harnesses.Get(ctx, "h_5V125BR7R4AA189NRYAB3DQC6D")
+version, err := client.HarnessVersions.Get(ctx, harness.ID, harness.Versions[0].CommitSHA)
+version.Files["programs/splox/main.py"]
+```
+</CodeGroup>
+
+The list endpoint returns index entries, so a harness from `list` carries no
+versions; `get` is what fills them in.

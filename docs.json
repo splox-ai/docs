@@ -15,10 +15,12 @@
     "light": "/logo/light.png",
     "dark": "/logo/dark.png"
   },
-  "metadata": {
-    "og:image": "https://splox-app.s3.amazonaws.com/019abf80-40d6-7814-b75c-5c4262df54b7.png",
-    "og:site_name": "Splox Documentation",
-    "twitter:card": "summary_large_image"
+  "seo": {
+    "metatags": {
+      "og:image": "https://splox-app.s3.amazonaws.com/019abf80-40d6-7814-b75c-5c4262df54b7.png",
+      "og:site_name": "Splox Documentation",
+      "twitter:card": "summary_large_image"
+    }
   },
   "navigation": {
     "tabs": [
@@ -26,44 +28,118 @@
         "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting Started",
+            "group": "Start here",
             "icon": "book-open",
             "pages": [
               "introduction",
               "quickstart",
-              "sdks"
+              "what-changed"
             ]
           },
           {
-            "group": "Core Concepts",
+            "group": "Concepts",
             "icon": "lightbulb",
             "pages": [
-              "concepts/workflows",
-              "concepts/nodes",
-              "concepts/edges"
+              "concepts/overview",
+              "concepts/machine",
+              "concepts/harness",
+              "concepts/program",
+              "concepts/agent",
+              "concepts/run",
+              "concepts/model"
             ]
           },
           {
-            "group": "Nodes",
-            "icon": "cube",
+            "group": "In the app",
+            "icon": "window-maximize",
             "pages": [
-              "nodes/variable-mappings",
-              "nodes/lifecycle",
-              "nodes/entry-node",
-              "nodes/agent-node",
-              "nodes/tool-node",
-              "nodes/switch-node",
-              "nodes/merge-node"
+              "app/overview",
+              "app/chat",
+              "app/machines",
+              "app/projects",
+              "app/starters",
+              "app/tools",
+              "app/skills",
+              "app/connections",
+              "app/desktop"
             ]
           },
           {
-            "group": "Edges",
-            "icon": "link",
+            "group": "Account",
+            "icon": "credit-card",
             "pages": [
-              "edges/parallel-edges",
-              "edges/tool-edges",
-              "edges/conditional-edges",
-              "edges/error-edges"
+              "account/plans",
+              "account/usage",
+              "account/limits",
+              "account/extra-usage",
+              "account/billing",
+              "account/api-keys"
+            ]
+          },
+          {
+            "group": "Help",
+            "icon": "life-ring",
+            "pages": [
+              "troubleshooting",
+              "faq",
+              "glossary",
+              "security",
+              "data-and-privacy",
+              "support"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Build",
+        "groups": [
+          {
+            "group": "Building agents",
+            "icon": "code",
+            "pages": [
+              "build/overview",
+              "build/programs",
+              "build/agents",
+              "build/hooks",
+              "build/tools",
+              "build/subagents",
+              "build/skills",
+              "build/memory",
+              "build/patterns"
+            ]
+          },
+          {
+            "group": "Checking and publishing",
+            "icon": "circle-check",
+            "pages": [
+              "build/evals",
+              "build/versions"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Tools",
+        "groups": [
+          {
+            "group": "Tools",
+            "icon": "wrench",
+            "pages": [
+              "tools/overview",
+              "tools/compute",
+              "tools/browser",
+              "tools/search",
+              "tools/media",
+              "tools/communication"
+            ]
+          },
+          {
+            "group": "MCP servers and your own",
+            "icon": "plug",
+            "pages": [
+              "tools/catalog",
+              "tools/connections",
+              "tools/custom"
             ]
           }
         ]
@@ -72,30 +148,15 @@
         "tab": "Tutorials",
         "groups": [
           {
-            "group": "Beginner",
-            "icon": "seedling",
+            "group": "Do it once, end to end",
+            "icon": "list-check",
             "pages": [
-              "tutorials/first-ai-agent",
-              "tutorials/connect-real-data",
-              "tutorials/using-skills"
-            ]
-          },
-          {
-            "group": "Intermediate",
-            "icon": "fire",
-            "pages": [
-              "tutorials/deploy-app-to-production",
-              "tutorials/ai-research-assistant",
-              "tutorials/automate-customer-support"
-            ]
-          },
-          {
-            "group": "Advanced",
-            "icon": "rocket",
-            "pages": [
-              "tutorials/multi-agent-team",
-              "tutorials/parallel-agents",
-              "tutorials/ai-crypto-trader"
+              "tutorials/overview",
+              "tutorials/first-result",
+              "tutorials/custom-tool",
+              "tutorials/telegram-bot",
+              "tutorials/nightly-job",
+              "tutorials/api-run"
             ]
           }
         ]
@@ -104,120 +165,37 @@
         "tab": "API Reference",
         "groups": [
           {
-            "group": "Getting Started",
-            "icon": "book-open",
+            "group": "The API",
+            "icon": "terminal",
             "pages": [
-              "api-reference/introduction"
+              "api/introduction",
+              "api/authentication",
+              "api/runs",
+              "api/streaming",
+              "api/interactions",
+              "api/harnesses",
+              "api/llm-endpoints",
+              "api/tool-servers",
+              "api/evaluations",
+              "api/errors"
             ]
           },
           {
-            "group": "Workflows",
-            "icon": "diagram-project",
+            "group": "SDKs",
+            "icon": "cube",
             "pages": [
-              "api-reference/list-workflows",
-              "api-reference/get-workflow",
-              "api-reference/get-workflow-version",
-              "api-reference/list-workflow-versions",
-              "api-reference/get-entry-nodes"
-            ]
-          },
-          {
-            "group": "Workflow Execution",
-            "icon": "play",
-            "pages": [
-              "api-reference/run-workflow",
-              "api-reference/listen-workflow-execution",
-              "api-reference/get-execution-tree",
-              "api-reference/get-workflow-history"
-            ]
-          },
-          {
-            "group": "MCP",
-            "icon": "plug",
-            "pages": [
-              "api-reference/list-mcp-catalog",
-              "api-reference/get-mcp-catalog-item",
-              "api-reference/list-mcp-connections",
-              "api-reference/delete-mcp-connection",
-              "api-reference/get-user-mcp-server-tools",
-              "api-reference/execute-mcp-tool"
-            ]
-          },
-          {
-            "group": "Chats",
-            "icon": "comments",
-            "pages": [
-              "api-reference/create-chat",
-              "api-reference/list-chats",
-              "api-reference/get-chat",
-              "api-reference/delete-chat",
-              "api-reference/get-chat-history",
-              "api-reference/delete-chat-history",
-              "api-reference/listen-chat-messages"
-            ]
-          },
-          {
-            "group": "Memory",
-            "icon": "brain",
-            "pages": [
-              "api-reference/list-memory-instances",
-              "api-reference/get-memory-messages",
-              "api-reference/memory-actions"
-            ]
-          },
-          {
-            "group": "Events",
-            "icon": "bolt",
-            "pages": [
-              "api-reference/trigger-webhook"
-            ]
-          },
-          {
-            "group": "Billing",
-            "icon": "credit-card",
-            "pages": [
-              "api-reference/get-balance",
-              "api-reference/get-transaction-history",
-              "api-reference/get-activity-stats",
-              "api-reference/get-daily-activity"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "Pricing",
-        "groups": [
-          {
-            "group": "Overview",
-            "icon": "dollar-sign",
-            "pages": [
-              "pricing"
-            ]
-          },
-          {
-            "group": "Providers",
-            "icon": "server",
-            "pages": [
-              "providers/openai",
-              "providers/anthropic",
-              "providers/gemini",
-              "providers/openrouter",
-              "providers/morph",
-              "providers/sandbox"
+              "sdk/python",
+              "sdk/node",
+              "sdk/go"
             ]
           }
         ]
       },
       {
         "tab": "Changelog",
-        "groups": [
-          {
-            "group": "Updates",
-            "icon": "clock-rotate-left",
-            "pages": [
-              "changelog"
-            ]
-          }
+        "icon": "clock-rotate-left",
+        "pages": [
+          "changelog"
         ]
       }
     ],
@@ -225,13 +203,8 @@
       "anchors": [
         {
           "anchor": "Dashboard",
-          "href": "https://app.splox.io",
+          "href": "https://splox.io",
           "icon": "grid-2"
-        },
-        {
-          "anchor": "Community",
-          "href": "https://community.splox.io/",
-          "icon": "comments"
         },
         {
           "anchor": "GitHub",
@@ -255,13 +228,13 @@
     "links": [
       {
         "label": "Sign In",
-        "href": "https://app.splox.io/login"
+        "href": "https://splox.io/login"
       }
     ],
     "primary": {
       "type": "button",
       "label": "Get Started",
-      "href": "https://app.splox.io"
+      "href": "https://splox.io"
     }
   },
   "contextual": {
@@ -281,5 +254,335 @@
       "github": "https://github.com/splox-ai",
       "telegram": "https://t.me/splox_ai"
     }
-  }
+  },
+  "redirects": [
+    {
+      "source": "/sdks",
+      "destination": "/sdk/python"
+    },
+    {
+      "source": "/development",
+      "destination": "/introduction"
+    },
+    {
+      "source": "/concepts/workflows",
+      "destination": "/concepts/harness"
+    },
+    {
+      "source": "/concepts/nodes",
+      "destination": "/concepts/program"
+    },
+    {
+      "source": "/concepts/edges",
+      "destination": "/what-changed"
+    },
+    {
+      "source": "/concepts/nodes/ai-nodes",
+      "destination": "/concepts/agent"
+    },
+    {
+      "source": "/concepts/nodes/data-nodes",
+      "destination": "/build/programs"
+    },
+    {
+      "source": "/concepts/nodes/execution-nodes",
+      "destination": "/build/programs"
+    },
+    {
+      "source": "/concepts/nodes/flow-control-nodes",
+      "destination": "/build/subagents"
+    },
+    {
+      "source": "/concepts/nodes/lifecycle",
+      "destination": "/build/hooks"
+    },
+    {
+      "source": "/concepts/nodes/memory-nodes",
+      "destination": "/build/memory"
+    },
+    {
+      "source": "/concepts/nodes/variable-mappings",
+      "destination": "/build/subagents"
+    },
+    {
+      "source": "/nodes/entry-node",
+      "destination": "/build/programs"
+    },
+    {
+      "source": "/nodes/start-node",
+      "destination": "/build/programs"
+    },
+    {
+      "source": "/nodes/agent-node",
+      "destination": "/concepts/agent"
+    },
+    {
+      "source": "/nodes/tool-node",
+      "destination": "/build/tools"
+    },
+    {
+      "source": "/nodes/switch-node",
+      "destination": "/build/programs"
+    },
+    {
+      "source": "/nodes/merge-node",
+      "destination": "/build/subagents"
+    },
+    {
+      "source": "/nodes/lifecycle",
+      "destination": "/build/hooks"
+    },
+    {
+      "source": "/nodes/variable-mappings",
+      "destination": "/build/subagents"
+    },
+    {
+      "source": "/edges/parallel-edges",
+      "destination": "/build/subagents"
+    },
+    {
+      "source": "/edges/tool-edges",
+      "destination": "/build/tools"
+    },
+    {
+      "source": "/edges/conditional-edges",
+      "destination": "/build/programs"
+    },
+    {
+      "source": "/edges/error-edges",
+      "destination": "/build/hooks"
+    },
+    {
+      "source": "/api-reference/introduction",
+      "destination": "/api/introduction"
+    },
+    {
+      "source": "/api-reference/run-workflow",
+      "destination": "/api/runs"
+    },
+    {
+      "source": "/api-reference/listen-workflow-execution",
+      "destination": "/api/streaming"
+    },
+    {
+      "source": "/api-reference/get-execution-tree",
+      "destination": "/api/runs"
+    },
+    {
+      "source": "/api-reference/get-workflow-history",
+      "destination": "/api/runs"
+    },
+    {
+      "source": "/api-reference/list-workflows",
+      "destination": "/api/harnesses"
+    },
+    {
+      "source": "/api-reference/get-workflow",
+      "destination": "/api/harnesses"
+    },
+    {
+      "source": "/api-reference/get-workflow-version",
+      "destination": "/api/harnesses"
+    },
+    {
+      "source": "/api-reference/list-workflow-versions",
+      "destination": "/api/harnesses"
+    },
+    {
+      "source": "/api-reference/get-entry-nodes",
+      "destination": "/api/harnesses"
+    },
+    {
+      "source": "/api-reference/get-start-nodes",
+      "destination": "/api/harnesses"
+    },
+    {
+      "source": "/api-reference/create-chat",
+      "destination": "/api/runs"
+    },
+    {
+      "source": "/api-reference/list-chats",
+      "destination": "/api/runs"
+    },
+    {
+      "source": "/api-reference/get-chat",
+      "destination": "/api/runs"
+    },
+    {
+      "source": "/api-reference/delete-chat",
+      "destination": "/api/runs"
+    },
+    {
+      "source": "/api-reference/get-chat-history",
+      "destination": "/api/runs"
+    },
+    {
+      "source": "/api-reference/delete-chat-history",
+      "destination": "/api/runs"
+    },
+    {
+      "source": "/api-reference/listen-chat-messages",
+      "destination": "/api/streaming"
+    },
+    {
+      "source": "/api-reference/list-mcp-catalog",
+      "destination": "/api/tool-servers"
+    },
+    {
+      "source": "/api-reference/get-mcp-catalog-item",
+      "destination": "/api/tool-servers"
+    },
+    {
+      "source": "/api-reference/list-mcp-connections",
+      "destination": "/api/tool-servers"
+    },
+    {
+      "source": "/api-reference/delete-mcp-connection",
+      "destination": "/api/tool-servers"
+    },
+    {
+      "source": "/api-reference/get-user-mcp-server-tools",
+      "destination": "/api/tool-servers"
+    },
+    {
+      "source": "/api-reference/execute-mcp-tool",
+      "destination": "/api/tool-servers"
+    },
+    {
+      "source": "/api-reference/list-memory-instances",
+      "destination": "/build/memory"
+    },
+    {
+      "source": "/api-reference/get-memory-messages",
+      "destination": "/build/memory"
+    },
+    {
+      "source": "/api-reference/memory-actions",
+      "destination": "/build/memory"
+    },
+    {
+      "source": "/api-reference/trigger-webhook",
+      "destination": "/build/patterns"
+    },
+    {
+      "source": "/api-reference/get-balance",
+      "destination": "/account/extra-usage"
+    },
+    {
+      "source": "/api-reference/get-transaction-history",
+      "destination": "/account/billing"
+    },
+    {
+      "source": "/api-reference/get-activity-stats",
+      "destination": "/account/usage"
+    },
+    {
+      "source": "/api-reference/get-daily-activity",
+      "destination": "/account/usage"
+    },
+    {
+      "source": "/tutorials/first-ai-agent",
+      "destination": "/quickstart"
+    },
+    {
+      "source": "/tutorials/connect-real-data",
+      "destination": "/tools/catalog"
+    },
+    {
+      "source": "/tutorials/using-skills",
+      "destination": "/build/skills"
+    },
+    {
+      "source": "/tutorials/deploy-app-to-production",
+      "destination": "/tools/compute"
+    },
+    {
+      "source": "/tutorials/ai-research-assistant",
+      "destination": "/build/patterns"
+    },
+    {
+      "source": "/tutorials/automate-customer-support",
+      "destination": "/build/patterns"
+    },
+    {
+      "source": "/tutorials/multi-agent-team",
+      "destination": "/build/subagents"
+    },
+    {
+      "source": "/tutorials/parallel-agents",
+      "destination": "/build/subagents"
+    },
+    {
+      "source": "/tutorials/ai-crypto-trader",
+      "destination": "/build/patterns"
+    },
+    {
+      "source": "/pricing",
+      "destination": "/account/plans"
+    },
+    {
+      "source": "/providers/openai",
+      "destination": "/concepts/model"
+    },
+    {
+      "source": "/providers/anthropic",
+      "destination": "/concepts/model"
+    },
+    {
+      "source": "/providers/gemini",
+      "destination": "/concepts/model"
+    },
+    {
+      "source": "/providers/openrouter",
+      "destination": "/concepts/model"
+    },
+    {
+      "source": "/providers/morph",
+      "destination": "/tools/compute"
+    },
+    {
+      "source": "/providers/sandbox",
+      "destination": "/concepts/machine"
+    },
+    {
+      "source": "/ai-tools/claude-code",
+      "destination": "/build/versions"
+    },
+    {
+      "source": "/ai-tools/cursor",
+      "destination": "/build/versions"
+    },
+    {
+      "source": "/ai-tools/windsurf",
+      "destination": "/build/versions"
+    },
+    {
+      "source": "/essentials/code",
+      "destination": "/introduction"
+    },
+    {
+      "source": "/essentials/images",
+      "destination": "/introduction"
+    },
+    {
+      "source": "/essentials/markdown",
+      "destination": "/introduction"
+    },
+    {
+      "source": "/essentials/navigation",
+      "destination": "/introduction"
+    },
+    {
+      "source": "/essentials/reusable-snippets",
+      "destination": "/introduction"
+    },
+    {
+      "source": "/essentials/settings",
+      "destination": "/introduction"
+    },
+    {
+      "source": "/snippets/snippet-intro",
+      "destination": "/introduction"
+    }
+  ]
 }

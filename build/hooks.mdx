@@ -1,0 +1,617 @@
+---
+title: "Hooks"
+description: "The ten points of a turn, what each one is handed, and what it may answer"
+---
+
+A hook is a Python function in your harness that answers a question the turn loop
+would otherwise answer itself. There are ten of them, one per decision the loop
+makes on its way through a turn, and they live in the program's own `hooks/` as
+one file per point.
+
+```python
+# programs/splox/hooks/context.py
+
+def build(t):
+    """Add one line to what every turn of this program is told."""
+    return {"system": t.system + "\n\n## House rules\nAnswer in one paragraph unless asked for more."}
+```
+
+That is a complete hook. The file is named after the point, the function is named
+after the decision, and `programs/splox/hooks/stop.py` holding `done` is the hook
+`stop.done`.
+
+Hooks are how you shape a run without touching the agent. The agent says who it
+is; the hooks say what happens around it, every turn, for every agent of that
+program.
+
+## The ten points
+
+The first argument is always `t`, the snapshot. The rest arrive as keyword
+arguments, so their names are part of the contract — rename `msg` and the call
+fails as a `TypeError`, which is a hook that did not answer.
+
+```
+hooks/context.py   def build(t)              the whole request, or a patch of it
+hooks/model.py     def choose(t)             "kimi-k3"
+hooks/memory.py    def keep(t)               anything, having edited t.history
+hooks/memory.py    def summarize(t, prompt)  the prompt the summarizer runs on
+hooks/guard.py     def on_input(t, msg)      the message, rewritten, or t.Reject(why)
+hooks/guard.py     def on_output(t, ans)     the answer, rewritten, or t.Reject(why)
+hooks/tools.py     def before(t, call)       the call, edited, or t.Deny(why)
+hooks/tools.py     def after(t, result)      what the model reads of the result
+hooks/stop.py      def done(t, reply)        the answer, None, t.Done(why), or t.AskAgain(text)
+hooks/errors.py    def on(t, err)            t.Retry(s), t.Switch(p, m), t.Escalate()
+```
+
+Seven files hold the ten, and the set is closed. A file named after anything else
+is reported as an error by the server that holds the tree and never called,
+because a hook nobody calls looks exactly like a hook that decided to do nothing:
+
+```
+retry.py:1  not a hook of phase 2; the hooks are: context, errors, guard, memory,
+            model, stop, tools
+```
+
+The same goes for a public function in a hook file that is not one of that file's
+points. Helpers are private:
+
+```
+guard.py:4  helper is not a point of guard.py, which defines on_input, on_output;
+            a helper's name must start with '_'
+```
+
+### The order within one iteration
+
+Nine of them run in this order: `guard.on_input` on the message that just
+arrived, `memory.keep` over the window, `context.build` and `model.choose` for the
+request, the model call itself with `errors.on` standing next to a failure,
+`stop.done` on the reply, then either `tools.before` and `tools.after` around each
+call the model asked for, or `guard.on_output` on the answer if it is one.
+
+`memory.summarize` is the tenth and sits outside that order: it is asked once per
+compression, not once per turn.
+
+## context.build — what the model is given
+
+This is the point that decides what an agent's prompt actually is on a given
+turn. The agent's own `system_prompt=` arrives as `t.system`; everything printed
+around it — the tool catalog, the skills, the user's notes, the sections about
+spawning sub-agents — is this file's doing, and deletable by deleting it.
+
+The default is a request of six keys — `model`, `messages`, `response_mode`,
+`tool_choice`, `tools`, `generation`. A hook returning an object with `messages`
+in it has replaced that request outright. Any other object is read as an **edit**
+of the one the loop would have built: each key it names replaces that key and
+nothing else, with `system` spelled for the part of a request that is not a field
+of it, the window's system message.
+
+That is the common case, and the reason the form exists. The starter's
+`hooks/context.py` builds the whole prompt out of what it can read on disk and
+ends with one line:
+
+```python
+return {"system": "\n\n".join(parts)}
+```
+
+Here is the shape of it, cut down. The full file is in your checkout at
+`programs/splox/hooks/context.py`:
+
+```python
+"""What the model is given for this turn."""
+
+import json
+import os
+
+HOME = os.path.expanduser("~")
+TOOLS = os.path.join(HOME, "tools")
+MEMORY = os.path.join(HOME, "memory")
+HARNESS = os.environ.get("SPLOX_HARNESS_DIR") or os.path.join(HOME, "harness")
+
+
+def build(t):
+    parts = [t.system, CODE_MODE]
+
+    if t.output_schema:
+        parts.append("## The answer this run owes\n" + ... )
+
+    # A sub-agent is never told it can spawn: the whole conversation shares one
+    # sandbox, so program() answers a child too, but telling it how to fan out
+    # is what makes a child fan out again.
+    if not t.spawned:
+        parts.append(SUB_AGENTS)
+
+    if t.skills:
+        lines = "\n".join(f"- {s['name']}: {s['description']}" for s in t.skills)
+        parts.append("## Skills\n...\n\n" + lines)
+
+    notes = _read(os.path.join(MEMORY, "INDEX.md"), limit=8000)
+    if notes:
+        parts.append("## The user's own memory index\n...\n\n" + notes)
+
+    if t.project_instructions:
+        parts.append("## Project instructions\n" + t.project_instructions)
+
+    return {"system": "\n\n".join(parts)}
+```
+
+Two things worth taking from it. First, almost everything it prints is read out
+of the sandbox the run thinks in — the projected tree is the source, so a section
+never describes a tool that is not there. Second, the three facts a sandbox
+cannot see for itself arrive on `t`: `t.spawned`, `t.skills` and
+`t.output_schema`.
+
+<Warning>
+Replacing the system prompt with an empty string is refused: an agent whose
+instructions were replaced by nothing is one nobody meant to run.
+</Warning>
+
+## model.choose — which model this turn runs on
+
+It names the model and only the model. It runs after `context.build`, so it
+overrides a model that a context named, and it is only consulted when the hook
+actually returns a name.
+
+```python
+# programs/splox/hooks/model.py
+
+def choose(t):
+    """The opening of a conversation is where the plan is made and where a wrong
+    plan costs the most, so it is the turn worth spending a slower model on."""
+    if t.turn <= 3:
+        return {"model": "theo-spark-1.1", "provider": "splox"}
+    return t.USE_DEFAULT
+```
+
+Answer a bare string to change the model alone. Answer an object to move the turn
+to another provider, which is the only way a model name from a different vendor
+means anything.
+
+## guard.on_input and guard.on_output — the two ends of a turn
+
+Both take the text and may return it rewritten, or `t.Reject(why)`, which ends
+the run there with `why` as what the person reads.
+
+`guard.on_input` is asked only when the newest thing in the window is a user
+message — after a tool turn the newest thing is a result, and re-guarding an
+answered message would rewrite it twice. Returning a non-empty string rewrites
+the message in place; attachments stay where they are, since a guard that
+rephrases a question must not drop the screenshot it came with.
+
+`guard.on_output` has the same two powers over the answer, with one asymmetry: it
+stands at the end of the turn, so a rewrite changes what is persisted and
+returned, not what already went out on the live stream.
+
+The starter's guard is a good example of a hook that adds information rather than
+refusing anything — it appends a note to the user's message once the window is
+genuinely large:
+
+```python
+# programs/splox/hooks/guard.py
+import sys
+
+if "/home/daytona" not in sys.path:
+    sys.path.insert(0, "/home/daytona")
+
+_ASK_ABOVE = 80_000
+
+
+def on_input(t, msg):
+    try:
+        from tools.memory import memory_window
+
+        window = memory_window()
+    except Exception:
+        # The tools tree is not projected in every sandbox, and a hook that
+        # raises is a hook that did not answer. The turn is worth more than
+        # the reminder.
+        return t.USE_DEFAULT
+
+    tokens = window.get("prompt_tokens")
+    if not isinstance(tokens, int) or tokens < _ASK_ABOVE:
+        return t.USE_DEFAULT
+
+    return msg + "\n\n" + (
+        f"[context: the last request was {tokens} prompt tokens, of a {t.budget} "
+        f"limit. Before answering, decide whether any of this window is finished "
+        f"business ... If all of it is still live, carry on: this is a question, "
+        f"not an instruction.]"
+    )
+```
+
+Note the threshold and the reason for it: a model told its window every turn
+learns to skip the line, the numbers cost tokens of their own, and rewriting the
+newest message moves a prefix the provider had cached.
+
+## tools.before and tools.after — around every call
+
+`before` is handed `call` as `{"id", "name", "args"}` and may return it edited —
+a new `name`, new `args` — or `t.Deny(reason)`, which stops the call and hands
+the reason to the model in place of a result, so the model can choose something
+else.
+
+```python
+# programs/splox/hooks/tools.py
+
+_RUINOUS = ("rm -rf /", "rm -rf /*", "rm -rf ~", "mkfs", "of=/dev/sd",
+            "of=/dev/nvme", "of=/dev/vd", ":(){ :|:& };:", "shutdown", "reboot")
+
+
+def before(t, call):
+    """Stop a shell command that would take the sandbox down with it."""
+    if call["name"] != "shell__run":
+        return t.USE_DEFAULT
+    cmd = " ".join(str(call["args"].get("cmd", "")).lower().split())
+    for ruinous in _RUINOUS:
+        if ruinous in cmd:
+            return t.Deny(
+                f"this harness refuses {ruinous!r}: it destroys the sandbox "
+                f"this run is working in. Do the narrower thing instead."
+            )
+    return t.USE_DEFAULT
+```
+
+Each entry there is narrow on purpose: writing to `/dev/null` is not writing to a
+disk, and a rule that cannot tell the two apart gets turned off within the hour.
+A refusal comes back to the model as the reason, which is the difference between
+a guard rail and a dead run.
+
+The platform's own gates have already had their say by this point: a `Deny` can
+stop a call that was allowed, and nothing here can start one that was refused.
+Renaming is bounded by the tools the agent actually has; a name it was not given
+comes back as an error result.
+
+`after` is handed `result` as `{"id", "name", "content", "is_error"}`, where
+`content` is what the platform already rendered. Return other text to replace it;
+anything that is not text leaves the rendering alone.
+
+## stop.done — whether the run is over
+
+There is no iteration counter left on the platform. The loop takes another pass
+for as long as this file says to, and a program with no `hooks/stop.py` gets the
+SDK's own rule instead: keep going until the agent's declared `max_iterations` are
+used.
+
+Five things can be said here, and each one is a sentence:
+
+| Answer | Means |
+| --- | --- |
+| `t.USE_DEFAULT` | Read the reply the way the platform always has: the run ends when the model stops calling tools, or when `max_iterations` are spent. |
+| `None` | Not done. The reply is kept and the loop takes another pass, whatever any budget says. |
+| a non-empty string | That text **is** the answer. Any tool calls the model asked for are dropped, and the run ends. |
+| `t.Done(reason)` | The run ends on what the model already said. The work it asked for does not happen, and `reason` is recorded. |
+| `t.AskAgain(text)` | Another pass, with `text` saved as a user message first. |
+
+A turn count is a bad place to stop. It knows how many passes have happened and
+nothing about whether the work is finished, so the run it cuts short is the long
+one — the build that was still compiling, the page that was still being fixed —
+and it cuts it at the same number every time, which is to say at random with
+respect to the job. Prefer a condition that knows what the run was for:
+
+```python
+# programs/splox/hooks/stop.py
+import subprocess
+
+
+def done(t, reply):
+    """A run that must not end while a build it started is still running."""
+    still_building = subprocess.run(
+        ["pgrep", "-f", "make build"], capture_output=True
+    ).returncode == 0
+    if still_building:
+        return t.AskAgain("The build is still running. Wait for it.")
+    return t.USE_DEFAULT
+```
+
+`t.max_iterations` and `t.tool_calls` reach this point and nothing else reads
+them: they are the whole input of the stopping rule, and they travel in the
+snapshot so a program deciding how long to keep going never has to ask the
+platform for the count first.
+
+<Warning>
+Neither continuation is bounded by anything but this hook. A `hooks/stop.py` that
+keeps saying "not yet" keeps the loop going past `max_iterations`.
+</Warning>
+
+## errors.on — a model call that failed
+
+Asked once about a failed model call, with `err` as text.
+
+```python
+# programs/splox/hooks/errors.py
+
+_WORTH_WAITING = ("rate limit", "rate_limit", "429", "overloaded", "503", "try again")
+
+
+def on(t, err):
+    """Wait out a provider that asked to be waited out; leave the rest alone."""
+    text = err.lower()
+    for phrase in _WORTH_WAITING:
+        if phrase in text:
+            return t.Retry(5)
+    # Everything else is the platform's own repair: it knows about tool pairing,
+    # oversized histories and malformed arguments, and this hook does not need to
+    # learn any of it to add one rule of its own.
+    return t.USE_DEFAULT
+```
+
+- `t.Retry(seconds)` waits and tries the same call again, capped at 30 seconds. A
+  retry with no wait is still a retry.
+- `t.Switch(provider, model)` moves the run onto another provider for the rest of
+  the run, and needs both halves: model identifiers belong to the provider that
+  serves them, so the platform will not guess one for you. It is resolved before
+  it is recorded, against the providers and models this deployment actually has,
+  and a name that resolves to nothing leaves the run running on the platform's
+  own error rule.
+- `t.Escalate()` ends the turn without any repair attempt.
+
+## memory.keep and memory.summarize
+
+`memory.keep` is the odd one. Its return value is not read: answering anything
+that is not a deferral means the hook has taken the job, so the platform's own
+three cuts — the image budget, compaction, the oversized-message projection — do
+not run and the window is sent as it stands. The editing itself goes through
+`t.history`.
+
+<Warning>
+A `memory.keep` that could not be answered at all is the one point with no
+fallback: the window is left exactly as it stands and the run ends at the next
+checkpoint. The platform's own cuts are the one default with a price — a
+summarization is a model call and a row in the chat — and paying it to build a
+prompt that will never be sent is your money spent on the way out.
+</Warning>
+
+`memory.summarize` is asked once per compression, before any of the history is
+sent, and it answers the prompt the summarizer runs on, as text. `prompt` is what
+the platform would have said, handed over so the file can add a rule to it rather
+than restate one.
+
+```python
+# programs/splox/hooks/memory.py
+from pathlib import Path
+
+PROMPT = Path(__file__).parent.parent / "prompts" / "summarize.md"
+
+
+def summarize(t, prompt):
+    """The prompt the summarizer runs on, read from prompts/ every time."""
+    try:
+        return PROMPT.read_text(encoding="utf-8")
+    except OSError:
+        # The tree is projected while a run starts, so a miss here is a file
+        # that exists on the next turn.
+        return prompt
+```
+
+It answers the prompt and not the summary on purpose: what a conversation must
+not lose is your harness's to say, while splitting the history over the model's
+window, spending the run's own credential and swapping the result in atomically
+are the platform's. A hook that wants to rewrite the window itself already has
+`memory.keep`.
+
+## Giving the point back
+
+`t.USE_DEFAULT` is the answer of a hook that decided, halfway through its own
+logic, that the platform should answer after all. `t.default.done(reply)` is the
+same value with the point's name on it — arguments accepted and dropped — so a
+hook reads like a hook instead of like a protocol.
+
+Either way the default runs on the platform's side, the run behaves exactly as it
+would have without the file, and the trace records that the hook *deferred*
+rather than that it was absent.
+
+A verdict belongs to its point:
+
+| Verdict | Point |
+| --- | --- |
+| `t.Deny(reason)` | `tools.before` |
+| `t.Reject(reason)` | `guard.on_input`, `guard.on_output` |
+| `t.Done(reason)`, `t.AskAgain(text)` | `stop.done` |
+| `t.Retry(s)`, `t.Switch(p, m)`, `t.Escalate()` | `errors.on` |
+
+A verdict at the wrong point is recorded as malformed and the default runs, which
+is the same outcome as returning something unreadable — a bare object where text
+was expected, a non-JSON value, an empty rewrite.
+
+## What `t` carries
+
+Everything on `t` other than the callbacks travelled inside the request that
+called the hook, so reading it is free.
+
+<ResponseField name="t.turn" type="int">Which pass of the loop this is.</ResponseField>
+<ResponseField name="t.tokens" type="int">The prompt token count the provider last reported.</ResponseField>
+<ResponseField name="t.budget" type="int">The token budget this conversation is measured against.</ResponseField>
+<ResponseField name="t.model" type="str">The model this turn is about to run on.</ResponseField>
+<ResponseField name="t.agent" type="str">The agent's name.</ResponseField>
+<ResponseField name="t.harness_commit" type="str">The commit this run is executing.</ResponseField>
+<ResponseField name="t.run_id" type="str">This run.</ResponseField>
+<ResponseField name="t.harness_id" type="str">This harness.</ResponseField>
+<ResponseField name="t.incoming" type="str">The message that just arrived.</ResponseField>
+<ResponseField name="t.system" type="str">The system prompt this turn is about to send, whole.</ResponseField>
+<ResponseField name="t.project_instructions" type="str">The project's own instructions, if the chat belongs to one.</ResponseField>
+<ResponseField name="t.output_schema">The shape this run's answer has to match, if it was given one.</ResponseField>
+<ResponseField name="t.skills" type="list">The skills this agent listed, each a `name` and a `description`. What a context hook renders a skills section from.</ResponseField>
+<ResponseField name="t.spawned" type="bool">Whether this run was started by another run.</ResponseField>
+<ResponseField name="t.tool_calls" type="int">How many calls the model asked for on the pass just taken. Put there by `stop.done` alone; 0 everywhere else.</ResponseField>
+<ResponseField name="t.max_iterations" type="int">The passes the agent was declared with. Read by `stop.done` and nothing else.</ResponseField>
+
+The last three of the informational ones are facts about the run that the sandbox
+cannot see for itself, which is why they are on the snapshot at all.
+
+`t.spawned` is the one worth reading in `context.build`. The whole conversation
+shares one sandbox, so `program()` answers a sub-agent too; telling it in the
+prompt how to reach an agent is what makes a child fan out again, and the
+starter's `hooks/context.py` withholds that section from a spawned run for
+exactly that reason.
+
+`t` is an ordinary object built fresh for each call, so a hook may write to it
+before handing it on — which is how a helper in the same file can be given a
+snapshot that says something slightly different from the one that arrived.
+
+## The callbacks
+
+Three things on `t` leave the sandbox, as ordinary HTTP requests to the API
+carrying the credential the sandbox already holds. They cost a round trip, so
+they are asked for and not sent by default.
+
+### t.llm
+
+```python
+verdict = t.llm("Is this question about billing? Answer yes or no.\n\n" + t.incoming)
+```
+
+Calls a model through the platform: the run's own endpoint, the run's key, the
+run's bill, the spend landing on this run like every other call it made. A hook
+may name a different model with `model=` and nothing else. The answer is the
+text, with the token count on it as `.tokens`.
+
+### t.store
+
+```python
+seen = t.store.get("last-digest") or ""
+t.store.set("last-digest", today)
+```
+
+The harness's own key-value, addressed by harness rather than by run, so a note
+survives the sandbox, the run and the next publish. An unwritten key answers
+`None`, which is the first run of every hook that keeps a note. A value may be at
+most 256 KB and a harness at most 1000 keys; over either limit the write is
+refused and the hook is told which one, because a value that came back trimmed is
+a note that lies.
+
+### t.history
+
+The run's own conversation, keyed by tag — a tag is the message row's id.
+
+| Call | Answers |
+| --- | --- |
+| `t.history.tail(n)` | The last `n` turns, text cut at 1000 characters. Ask for none and you get ten; a hundred is as far back as one answer ever reaches. |
+| `t.history.get(tag)` | One turn, untrimmed. |
+| `t.history.rewind(tag)` | Drops the turns after a point. |
+| `t.history.expand(tag)` | Unfolds a summary back into the turns it replaced. |
+
+<Note>
+Two caveats on this version, both real: the tail that travels with the snapshot
+does not reach `t.history`, so `t.history.tags` is empty and every `tail()` is a
+round trip; and `t.history.collapse` sends a field name the endpoint does not
+accept, so it fails rather than folding anything.
+</Note>
+
+### t.tool
+
+```python
+text = t.tool("files__read", path="/home/daytona/notes/today.md")
+```
+
+Not a callback at all. The server answering the hook is the same server that
+holds this tree's tools, in the same process, so calling one never leaves the
+sandbox.
+
+## When a hook does not answer
+
+A hook that raises, times out, cannot be reached, or answers something the point
+cannot read is a hook that did not answer — and the platform will not answer in
+your name.
+
+The point is answered by **the last answer that point itself gave**, replayed out
+of storage and said out loud on the run as a `hook.fallback` carrying the point,
+what the hook did instead of answering, and how old the replayed answer is. Where
+that point has never answered — a hook that has been broken since it was written
+— the run ends:
+
+```
+the harness's context.build hook did not answer (TypeError: build() takes 1 positional
+argument but 2 were given) and it has never answered, so there is nothing to fall back on
+```
+
+A hook that *did* answer, with something its point cannot read, is a different
+thing: the answer exists, it is recorded as **malformed**, the point falls back on
+the platform's own function, and it is yours to fix.
+
+### Timeouts
+
+The loop gives a hook 30 seconds and the server in the sandbox is what enforces
+it, the same split as a tool call: a deadline on the platform's side would abandon
+the connection instead of interrupting the work. A hook that overruns comes back
+as an error from a server that is still alive, the default runs, and the trace
+says the hook failed. The overrunning thread is not killed — it finishes into
+nothing — so a hook that hangs on a socket every turn costs the run 30 seconds a
+turn and leaves a thread behind each time.
+
+Thirty is generous because a hook is allowed to call the model through `t.llm`,
+and mean because a hook stands between the user and every turn. One `t.llm` call
+has its own 30-second budget, which means a single slow one can consume the
+hook's entire allowance.
+
+## One place per point, and no importing a neighbor
+
+A point has exactly one file that can answer it: `programs/<program>/hooks/`, for
+the program the run belongs to. A run of another program is answered by that
+program's files, and a sub-agent is answered by its parent's, because a sub-agent
+is the same program still working.
+
+Hooks are imported off `sys.path`, each file on its own under a private module
+name, and the directory deliberately never joins the path: `hooks/tools.py` is one
+of the contract's file names, and a directory holding it on the path would answer
+`import tools` — the projected system tools every tool and wrapper reaches for —
+with a hook. So there is no importing a neighbor by name. Helpers are private
+functions in the same file.
+
+The projected system tools *are* reachable, but only after a hook puts their
+directory on the path itself, which is what `hooks/guard.py` above does before
+`from tools.memory import memory_window`, treating the import failing as a reason
+to defer rather than as an error.
+
+## Seeing whether any of this ran
+
+A hook that works, a hook that works and agrees with the platform, and a hook
+being replayed from a week-old answer produce exactly the same conversation.
+`harness_hook_trace` is what tells them apart.
+
+```
+harness_hook_trace
+```
+
+It reads the run's journal and folds it into one line per point: how often the
+point was reached, how often it did not decide, how many of those were failures
+rather than deferrals, the median duration, and the last three failures in the
+hook's own words. Name the harness and, if you want a particular run, its id;
+without one it reads that harness's most recent run.
+
+The vocabulary is worth knowing before reading the numbers:
+
+| Word | Means |
+| --- | --- |
+| `answered` | The hook's answer was taken. |
+| `use_default` | The hook deferred on purpose. |
+| `failed` | The hook raised, timed out or could not be reached. |
+| `malformed` | The hook answered something the point cannot read. |
+| `default` | All three of the above together — the number that says whether the hook is having any effect at all. |
+| `deny`, `reject`, `ask_again`, `retry`, `switch`, `escalate` | The verdicts, under their own names, so "how often does this guard actually refuse" is one number. |
+
+Only `use_default` and `malformed` actually run the platform's own function. A
+`failed` is a point that was answered by its own last good answer, or one that
+ended the run.
+
+<Warning>
+One thing the trace cannot show: a hook file that does not import is not in the
+run's declaration list, so the point is never asked and produces no rows. A point
+that looks unhooked in the trace is either a point the program does not define, or
+a file with a syntax error in it.
+</Warning>
+
+## When to reach for one
+
+- **The prompt is missing something every turn** — `context.build`. It is the
+  right place for anything that is true of the whole program rather than of one
+  agent.
+- **A tool call must not happen** — `tools.before`. Deny with a reason the model
+  can act on.
+- **A tool result is unreadable or enormous** — `tools.after`.
+- **The run should keep going past where it stops, or stop before it does** —
+  `stop.done`, on a condition that knows what the run was for.
+- **One provider fails in a way you know how to handle** — `errors.on`.
+- **The first turns deserve a different model** — `model.choose`.
+- **A summary keeps losing the same thing** — `memory.summarize`.
+
+And when not to: if the change belongs to one agent and not to the program, it
+belongs in that agent's declaration or its prompt file, not in a hook.

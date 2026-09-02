@@ -1,0 +1,224 @@
+---
+title: "A tool of your own"
+description: "Write a Python function into your harness, publish it, and watch the agent call it by name"
+---
+
+Twenty minutes. At the end your agent has a tool nobody else has — a Python
+function in your [harness](/concepts/harness), offered to the model by name, with
+a docstring that tells it what the tool refuses to do.
+
+The tool here is a spending ledger, because it is short enough to read in one
+screen and it keeps state on the machine. The mechanics are the same for anything
+else.
+
+## The file
+
+A tool is a file in `tools/` at the top of your harness. One file, one group of
+tools, no registration anywhere:
+
+```python
+# tools/expenses.py
+"""What was spent, kept on this machine as one CSV."""
+
+import csv
+from datetime import date
+from pathlib import Path
+from typing import Literal
+
+LEDGER = Path.home() / "expenses.csv"
+
+
+def add(amount: float, category: Literal["travel", "food", "software", "hardware"], note: str = "") -> str:
+    """Record one expense in dollars against a category, appending a row to the ledger this machine keeps.
+
+    Args:
+        amount: The amount in dollars, e.g. 12.50 — not cents.
+        category: Which budget it comes out of.
+        note: What it was for, in a few words.
+    """
+    if amount <= 0:
+        raise ValueError("amount is in dollars and must be positive; a refund is not an expense")
+    fresh = not LEDGER.exists()
+    with LEDGER.open("a", newline="", encoding="utf-8") as ledger:
+        row = csv.writer(ledger)
+        if fresh:
+            row.writerow(["date", "amount", "category", "note"])
+        row.writerow([date.today().isoformat(), f"{amount:.2f}", category, note])
+    return f"recorded ${amount:.2f} against {category}"
+
+
+def report() -> dict:
+    """Total the ledger by category: what was spent on each, how many entries, and the grand total.
+
+    Returns an empty report rather than failing when nothing has been recorded yet.
+    """
+    if not LEDGER.exists():
+        return {"total": 0.0, "categories": {}, "entries": 0}
+    totals: dict[str, float] = {}
+    entries = 0
+    with LEDGER.open(newline="", encoding="utf-8") as ledger:
+        for line in csv.DictReader(ledger):
+            totals[line["category"]] = round(totals.get(line["category"], 0.0) + float(line["amount"]), 2)
+            entries += 1
+    return {"total": round(sum(totals.values()), 2), "categories": totals, "entries": entries}
+```
+
+Every part of that signature is doing work. The **type hints** become the schema
+the model is offered. The **first line of each docstring** is the description it
+reads. The `Args:` block describes the parameters. `Literal[...]` becomes an
+enum, so "categories" is a closed set rather than a hope.
+
+## Put it in the harness
+
+Your harness is checked out on the machine at `~/harness`, and the agent is
+sitting in it. The quickest way in is to paste the file into a chat:
+
+````text
+Add a tool to this harness and publish it.
+
+1. Write this file to ~/harness/tools/expenses.py, exactly as it is here:
+
+```python
+<the file above>
+```
+
+2. In ~/harness/programs/splox/main.py, add "tools/expenses.py" to the
+   Assistant's tools list. Change nothing else.
+3. Commit and push to origin main.
+
+Then tell me which version number the push created.
+````
+
+<Frame caption="Thirty-eight seconds: two files written, one commit, one push, version 2">
+  <img src="/images/tutorials/custom-tool-publish.png" alt="A Splox chat where the agent has written a tool, pushed it and reported version 2" />
+</Frame>
+
+That second step is the one people forget. A file in `tools/` is not a tool
+anybody has until an agent names it:
+
+```python
+tools=["system:compute", "tools/files.py", "tools/expenses.py"],
+```
+
+The push **is** the publish. It goes through the platform's git proxy, which
+validates the tree — a tool file that does not import is refused here, with the
+interpreter's own error — and answers with the new version:
+
+```
+remote: published version 2
+```
+
+<Note>
+There is no clone-it-to-your-laptop step. Git over HTTPS is authenticated by the
+run's own token, which lives on the machine, so `git push` works in the sandbox
+with nothing to configure and does not work anywhere else. See
+[Versions](/build/versions).
+</Note>
+
+## What the model is offered
+
+Name, description, schema. Nothing else, and all three come out of the file:
+
+```json
+{
+  "name": "expenses__add",
+  "description": "Record one expense in dollars against a category, appending a row to the ledger this machine keeps.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "amount": {"type": "number", "description": "The amount in dollars, e.g. 12.50 — not cents."},
+      "category": {"type": "string", "enum": ["travel", "food", "software", "hardware"], "description": "Which budget it comes out of."},
+      "note": {"type": "string", "description": "What it was for, in a few words.", "default": ""}
+    },
+    "required": ["amount", "category"]
+  }
+}
+```
+
+The name is the file stem and the function joined by **two underscores**:
+`expenses.py` + `add` → `expenses__add`. Two, not a dot, because a provider
+rejects the whole request over one tool name that fails `^[a-zA-Z0-9_-]{1,128}$`.
+
+## Use it
+
+Start a new chat — the catalog is asked once per run, so the next run is the one
+that sees the new tool — and give it work in your own words:
+
+```text
+Log these three expenses: 24.50 for lunch with the team, 19 for the taxi to the
+airport, 120 for the JetBrains license. Then give me the totals by category.
+```
+
+<Frame caption="Four calls in fourteen seconds: three adds, one report, and the table it built from them">
+  <img src="/images/tutorials/custom-tool-calls.png" alt="A Splox turn showing three Expenses Add tool calls and one Expenses Report" />
+</Frame>
+
+The transcript of those four calls, with what went in and what came back:
+
+```
+expenses__add    {"amount": 24.5, "category": "food", "note": "Lunch with the team"}
+                 -> "recorded $24.50 against food"
+expenses__add    {"amount": 19, "category": "travel", "note": "Taxi to the airport"}
+                 -> "recorded $19.00 against travel"
+expenses__add    {"amount": 120, "category": "software", "note": "JetBrains license"}
+                 -> "recorded $120.00 against software"
+expenses__report {}
+                 -> {"total": 163.5, "categories": {"software": 120.0, "travel": 19.0, "food": 24.5}, "entries": 3}
+```
+
+Nothing in the message said "software" or "travel". The enum did that: the model
+had four categories to choose from and put each expense in one. The ledger is now
+`/home/daytona/expenses.csv` on the machine, where the next chat — and any
+program you write — can read it.
+
+## The error message is the interface too
+
+Ask for something the tool refuses:
+
+```text
+Now log a refund of -40 against software.
+```
+
+The call is made, the `ValueError` is raised, and it comes back as the tool
+result — not as a crashed run:
+
+```
+expenses__add {"amount": -40, "category": "software", "note": "Refund"}
+              -> "ValueError: amount is in dollars and must be positive; a refund is not an expense"
+```
+
+The model read that sentence and stopped trying to add a negative expense. This
+is why a raised exception with a useful message is the cheapest teaching a tool
+can do: the model is told what to do instead, in the same turn, for the cost of
+one failed call.
+
+<Warning>
+Watch what happened next in that run, though: the agent opened
+`~/harness/tools/expenses.py`, saw that the ledger is an ordinary CSV, and
+appended the refund row with a shell command. **A rule inside a tool is not a
+fence around an agent that also has a shell.** If a constraint has to hold, it
+belongs in [`hooks/tools.py`](/build/hooks), which sees every call by name with
+its arguments before it runs — or the agent must not be given `system:compute` at
+all.
+</Warning>
+
+## Changing it afterwards
+
+The body of a tool is re-read on the very next call: edit
+`~/harness/tools/expenses.py` in the sandbox and the next call runs the new code,
+with no restart and no publish. A changed **signature or description** reaches the
+model on the next run, because the catalog is asked once per run.
+
+Publish when the change should reach a new chat, another machine, or anybody
+else.
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="How tools work" icon="wrench" href="/build/tools">
+    Classes with state, `scope`, `ctx`, dependencies, narrowing an entry to two tools, and what a tool may return.
+  </Card>
+  <Card title="A program that runs on its own" icon="clock" href="/tutorials/nightly-job">
+    The same harness, a directory that wakes on a schedule and leaves a file behind.
+  </Card>
+</CardGroup>

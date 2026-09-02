@@ -1,0 +1,179 @@
+---
+title: "Data and privacy"
+description: "What Splox stores, where it lives, how long it stays, and who can see it"
+---
+
+Three places hold your work: the database, the machine's disk, and the git
+repository behind the harness. This page says what goes into each, what is kept
+and for how long, and who besides you can read it.
+
+The legal document is the [privacy policy](https://splox.io/privacy); Splox LTD
+is registered in Bulgaria and the policy names the sub-processors and your
+rights under GDPR. What follows is the operational half — what the running
+system actually does.
+
+## What is stored, and where
+
+<Tabs>
+<Tab title="In the database">
+
+| | |
+| --- | --- |
+| **Chats** | name, which machine and project, whether it is shared, timestamps |
+| **Messages** | every turn, both sides, with the attachments you sent |
+| **Tool calls** | the call, its arguments and its result, as the transcript shows them |
+| **Runs** | status, timings, the harness commit that ran, the model and endpoint, failures |
+| **Run events** | the journal a stream replays from |
+| **Usage** | one row per model call: provider, model, token counts, latency, cost. No message text |
+| **Billing** | transactions, balances, subscription state, the windows |
+| **Account** | email, name, sign-in identities, sessions |
+| **Connections** | MCP servers and provider endpoints, with their credentials encrypted (AES-256-GCM) and never returned by any API |
+| **Environment secrets** | encrypted the same way, decrypted only to be injected into your sandbox |
+| **API keys** | stored as a SHA-256 hash; the plaintext is shown once, at creation, and is not recoverable |
+| **Consent** | which cookie choice was made, when, and from which browser |
+
+</Tab>
+<Tab title="On the machine">
+
+Everything the agent writes: files, checkouts, databases, logs, installed
+packages, whatever a program left behind. It is a disk on the runner, it is not
+indexed or read by the platform, and it survives a stop.
+
+A machine that has been stopped for 30 days is archived: the filesystem moves to
+object storage and comes back on the next start. Nothing is lost by it.
+
+Deleting the machine destroys the sandbox and the disk with it.
+
+</Tab>
+<Tab title="In git">
+
+The harness is a git repository — programs, agents, hooks, tools, evals, the
+docs it carries — with every published version as a ref and its full history.
+Anything the agent commits into `~/harness` and publishes is stored there
+permanently.
+
+A workspace pushed with `publish_workspace(path)` lands in a repository of its
+own, on the same host.
+
+</Tab>
+</Tabs>
+
+## How long it stays
+
+Short version: chats, runs and their events are kept until you delete them.
+
+There are exactly two scheduled sweeps on the platform, and neither touches
+anything you wrote:
+
+| Runs | What it removes |
+| --- | --- |
+| hourly | notification rows older than six hours — content-free pokes that tell a connected client "something changed", never messages |
+| every ten minutes | an internal pass over tool errors, for improving the tools |
+
+No job deletes a chat, a message, a run or a usage row on a schedule. Nothing
+expires on its own. If you want a conversation gone, delete it; if you want all
+of it gone, delete the account.
+
+<Note>
+The API's event journal can answer `410 event_cursor_expired` for a stream cursor
+that points before the retained window. It is part of the streaming contract —
+resume without a cursor and you get the whole run — and not a statement that the
+run's events have been removed.
+</Note>
+
+## Who can see it
+
+**You**, through the app and the API, with your session or an API key.
+
+**Anyone holding a share link.** A shared chat is a public URL with no sign-in:
+the token is the access control. Making the chat private kills the link
+immediately, and sharing it again mints a different one. [Security](/security)
+has the detail.
+
+**The model provider behind the run.** The text of a turn, its attachments and
+the tool results in its context go to whichever endpoint the run resolved to —
+Splox's account with that provider on a platform endpoint, or your own account
+on a connection you added. Before the first time this happens, the app asks:
+
+> **Allow Splox to send your inputs to AI providers**
+>
+> To generate responses and run agents, Splox sends your messages, attachments,
+> files, prompts, agent context, and related inputs to third-party AI providers
+> such as OpenAI, Anthropic, and Google, and to tool integrations you enable.
+
+Declining means the message is not sent and the action does not proceed.
+
+**Servers you connect.** A tool call sends what that call needs to the MCP
+server it belongs to, with the credential you connected it with.
+
+**Nobody else.** A chat, a machine and a harness are yours; another account's
+request for one of them answers `404` rather than `403`, because telling a
+prober that something exists is itself an answer.
+
+The privacy policy is where the sub-processors are named and where the transfer
+basis for processing outside the EEA is set out. Read it if any of that decides
+whether you can put a piece of work here. It makes no statement about your data
+being used to train models — do not assume one in either direction; ask
+[support](/support) if it matters to your case.
+
+## Analytics and cookies
+
+<Frame caption="Settings → Privacy: what is stored about you, and the one way to have none of it stored">
+  <img src="/images/trust/privacy.png" alt="The Privacy settings screen, with cookie preferences and the delete-account control" />
+</Frame>
+
+Essential cookies keep you signed in and protect the session; they cannot be
+turned off. Product analytics are a separate, opt-in category — off unless you
+say yes — and the choice is stored on the device and logged on the server as the
+record that it was asked. **Reset consent** brings the banner back.
+
+## Getting your data out
+
+There is no export button. What there is:
+
+- **A chat** — the transcript is on `GET /api/v1/chat-history/{chat_id}/paginated`.
+- **Runs** — [the v2 API](/api/runs) returns a run's messages, outputs, events,
+  usage and its tree of sub-agent runs.
+- **The harness** — `git clone` the repository; it is an ordinary git remote and
+  the history comes with it. See [Publishing a version](/build/versions).
+- **Files on the machine** — the agent can hand you any of them as a download
+  link, or push a whole directory to a git remote you can clone.
+
+## Deleting
+
+Deleting a **chat** removes it from the product: it stops being listed, it 404s
+for you, and its share link 404s for everyone. The row is marked deleted rather
+than erased.
+
+Deleting a **machine** destroys the sandbox and its disk. Deleting a **harness**
+destroys the repository and every machine running it.
+
+Deleting the **account** is the erasure. **Settings → Privacy → Delete account**,
+confirmed by typing the phrase:
+
+> This permanently deletes your account and all associated data — harnesses,
+> agents, chats, credentials and billing history. Any active subscription is
+> cancelled immediately.
+
+Every sandbox you own is destroyed, Stripe is told to cancel and to delete the
+customer, and one database transaction removes the rows: chats, messages,
+tool-call records, runs and their events, machines, MCP servers, skills, push
+tokens, webhooks, sessions, identities, balances, transactions, subscriptions and
+usage. It is not reversible and there is no grace period.
+
+Two things are kept on purpose: the consent log, with your user id set to null,
+as the evidence that consent was asked for; and the git repositories, whose
+history has never been removed by deleting a user's rows.
+
+To exercise a GDPR right that this page does not cover — access, rectification,
+portability, restriction, objection — the policy names `support@splox.io` and
+undertakes to answer within 30 days.
+
+<CardGroup cols={2}>
+  <Card title="Security" icon="shield" href="/security">
+    Where the work happens and what can reach it.
+  </Card>
+  <Card title="Privacy policy" icon="scale-balanced" href="https://splox.io/privacy">
+    The legal document, with the sub-processors named.
+  </Card>
+</CardGroup>

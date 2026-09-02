@@ -1,0 +1,244 @@
+---
+title: "Agents"
+description: "agent(): the prompt, the model, the tools, and what changes when you edit each"
+---
+
+An agent is a call to `agent()` in a program's `main.py`, and the name it is
+given is the whole of its identity.
+
+```python
+# programs/splox/main.py
+from pathlib import Path
+
+from splox import agent
+
+HERE = Path(__file__).parent
+
+
+def prompt(name: str):
+    return lambda: (HERE / "prompts" / f"{name}.md").read_text(encoding="utf-8")
+
+
+executor = agent(
+    "Executor",
+    system_prompt=prompt("executor"),
+    model="kimi-k3",
+    provider="splox",
+    tools=["system:compute"],
+    max_iterations=1000,
+    description=(
+        "Hand off a self-contained piece of work and get back the answer. Give it everything it "
+        "needs in the prompt, because it does not see this conversation, and ask for the result "
+        "rather than a description of the result."
+    ),
+)
+
+assistant = agent(
+    "Assistant",
+    system_prompt=prompt("assistant"),
+    model="kimi-k3",
+    provider="splox",
+    tools=["system:compute"],
+    skills=["system:memory", "system:agent-browser"],
+    agents=[executor],
+    max_iterations=1000,
+)
+```
+
+The variable is only how the rest of the file refers to it. What travels to the
+platform is `"Assistant"`, because a run stores an address and nothing else: the
+program it belongs to, and the agent inside it.
+
+<Warning>
+Two agents of one program may not share a name — the loop asks for one by name,
+and the first declaration matching it answers. Renaming an agent leaves every run
+that named the old one asking for an agent the program no longer declares.
+</Warning>
+
+## Asked, not stored
+
+The prompt, the model, the provider, the tools and the iteration cap are not
+configuration the platform keeps. They are a question it asks `main.py`, and the
+answer is whatever the file says at the moment it is asked. Nothing is parsed at
+publish, frozen into the run, or migrated afterwards.
+
+A chat message is a run, so a line edited between two messages is read by the
+second one, with nothing published in between.
+
+Inside one run the question is asked once, at its start. What a *turn* can take
+back are the points of the loop — `context.build` rebuilds what the model is
+given on every turn, `model.choose` names the model on every turn. Those are in
+[Hooks](/build/hooks).
+
+## The prompt is a file the program reads
+
+```python
+def prompt(name: str):
+    return lambda: (HERE / "prompts" / f"{name}.md").read_text(encoding="utf-8")
+```
+
+`system_prompt=` takes text, or something to call. A callable is called at the
+moment the spec is asked for, which is what makes an edit to
+`prompts/assistant.md` land on the next message rather than on the next time
+somebody imports `main.py`. A plain string is read once, when the declaration
+runs.
+
+That distinction is `system_prompt=` alone. Every other field is the value the
+declaration computed — so a prompt read into a variable at the top of the file is
+a prompt that changes when `main.py` changes, not when the file it came from
+does.
+
+`prompts/` is data. The platform never opens it, your program does, so its format
+is your business: markdown here, but a JSON file or a directory per language
+would serve as well.
+
+## The seven fields
+
+| Field | Type | Unset means | What it changes |
+| --- | --- | --- | --- |
+| `system_prompt` | text, or a callable | empty | The system prompt a turn of this agent starts from. A callable is called every time the spec is asked for. |
+| `model` | string | refused at run | The model every turn of this agent runs on. |
+| `provider` | string | — | A provider slug (`anthropic`, `openai`, `gemini`, `openrouter`, `splox`), lowercase, meaning the platform's own credential for that provider. |
+| `tools` | list of strings | no tools | One tool source per entry. See [Tools](/build/tools). |
+| `skills` | list of strings | told about no skills | The skills this agent is told it has. `system:<name>` for one of the platform's, a bare name for one of your own. See [Skills](/build/skills). |
+| `agents` | list of agents | no sub-agents | The agents this one may spawn, as the declarations themselves. See [Sub-agents](/build/subagents). |
+| `max_iterations` | integer | 10 | How many rounds the tool loop may take. A loop that reaches the cap while the model is still calling tools ends with status `max_iterations`. |
+
+### Whose credential it runs on
+
+An agent names exactly one of `provider` and `text_llm_endpoint_id`, and neither
+is optional. Naming both is refused rather than resolved: an agent that names a
+provider while executing on somebody else's credential lies to the person reading
+it, and there is no reading of it that bills the right account. Naming neither is
+refused too, in a sentence saying which of the two to write. `model` is required
+alongside.
+
+Both are checked when the run starts, which is the first moment anybody can ask
+the program what it says. Nothing on the server parses your `main.py` at publish
+time, so an agent naming a model nobody has credentials for publishes happily and
+fails on the run that needs it.
+
+### The rest of the config
+
+Anything else is passed through under the name the platform spells it with.
+
+| Key | Type | Unset means | What it changes |
+| --- | --- | --- | --- |
+| `text_llm_endpoint_id` | string (uuid) | — | One credential of your own, by the id of its `llm_endpoints` row. The alternative to `provider`, never its companion. |
+| `voice_llm_model` | string | `gpt-realtime-2.1` | The realtime model used when this agent is invoked with a destination number. |
+| `voice_llm_endpoint_id` | string (uuid) | the text endpoint | The credential the voice leg runs on. Most authors leave it out and reuse one endpoint for both legs. |
+| `tool_choice` | string | not sent to the provider | Passed through as the provider's own `tool_choice`, and only when the turn actually has tools. |
+| `description` | string | `Call the <name> agent` | What a calling model is told this agent is for. |
+| `context_memory` | mapping | platform defaults | Compaction, the image budget and the summarizer's prompt. See [Memory](/build/memory). |
+| `additional_realtime_config` | mapping | — | Provider parameters for the voice leg, carried verbatim to the realtime adapter. |
+
+### How it generates
+
+These are the platform's own names for the generation settings, one name per
+idea, written flat on the declaration. The provider adapter answering the turn is
+what says each of them in its own API's words.
+
+| Key | Type | Unset means | What it changes |
+| --- | --- | --- | --- |
+| `reasoning` | `off`, `minimal`, `low`, `medium`, `high`, `max` | the model's own default | How hard the model thinks before it answers. |
+| `max_output_tokens` | integer | the model's own default | The cap on one answer. |
+| `temperature` | number | the model's own default | Sampling temperature. |
+| `top_p` | number | the model's own default | Nucleus sampling. |
+| `top_k` | integer | the model's own default | Top-k sampling, for the providers that have it. |
+| `seed` | integer | — | A sampling seed, for the providers that have it. |
+| `stop` | list of strings | — | Sequences that end the answer. |
+| `cache_control` | string (`5m`, `1h`) | no caching | How long the provider may reuse the prompt prefix it already read. Providers that do not cache ignore it. |
+| `modalities` | list of strings | the provider's own default | The modalities the text leg asks for. |
+
+Both starter agents write `reasoning="max"`, `max_output_tokens=48000`,
+`cache_control="5m"` and `modalities=["text", "image"]`.
+
+### A misspelling is an error where you wrote it
+
+Every one of these used to be a key of a free-form mapping, where the same idea
+had a different name per provider — reasoning effort alone answered to
+`reasoning_effort`, `thinking_effort`, `thinking_tokens` and `thinking_level` —
+and a misspelling was silence rather than an error. Now the declaration raises:
+
+```python
+agent("Assistant", model="kimi-k3", provider="splox", reasonning="max")
+```
+
+```
+TypeError: agent('Assistant') was given reasonning, which is nothing the platform knows.
+An agent is declared with system_prompt, model, provider, tools, skills, agents,
+max_iterations; it generates with reasoning, max_output_tokens, temperature, top_p, top_k,
+seed, stop, cache_control, modalities; the rest of its config is text_llm_endpoint_id,
+voice_llm_model, voice_llm_endpoint_id, tool_choice, description, context_memory,
+additional_realtime_config.
+```
+
+A value outside the ladder is refused the same way:
+
+```
+ValueError: agent('Assistant') asks for reasoning='maximum', and reasoning is one of
+off, minimal, low, medium, high, max — the ladder every model is measured on, translated
+into that provider's own words for it.
+```
+
+## What the platform is told
+
+When the loop asks who `Assistant` is, this is the answer it gets back from the
+declaration above:
+
+```json
+{
+  "name": "Assistant",
+  "tools": ["system:compute"],
+  "skills": ["system:memory", "system:agent-browser"],
+  "agents": ["Executor"],
+  "config": {
+    "system_prompt": "You answer questions and hand real work to the Executor.\n",
+    "text_llm_model": "kimi-k3",
+    "text_llm_provider": "splox",
+    "max_iterations": 1000
+  }
+}
+```
+
+`agents` travels as names. The prompt travels as the text the callable just
+returned. Nothing else about the agent exists anywhere.
+
+## What changes when you edit each field
+
+- **`system_prompt`** — if it is a callable reading a file, the next message. If
+  it is a string in `main.py`, also the next message, because `main.py` is
+  re-imported when its own file moves.
+- **`model`, `provider`, generation settings** — the next run. A run in flight
+  keeps the model it started on, unless `hooks/model.py` says otherwise on a
+  given turn.
+- **`tools`** — the next run. The tool catalog is assembled once when the run
+  starts. Editing the *body* of one of your own tools is different: that lands on
+  the very next call.
+- **`skills`** — the next run. This changes what the agent is *told* it has; the
+  library's files are on the machine either way.
+- **`agents`** — the next run, and it changes two things at once: which agents
+  this one may spawn, and what it is told it may spawn.
+- **`max_iterations`** — the next run. It reaches `hooks/stop.py` as
+  `t.max_iterations` and nothing else reads it.
+- **The agent's name** — every run that named the old one now asks for an agent
+  the program does not declare. Add a declaration under the old name before you
+  delete it, or accept that the old runs are unreadable.
+
+## An agent as somebody else's tool
+
+`agents=[executor]` names the declarations, and what travels is their names. What
+the calling model calls it is that name sanitized into an identifier: lowercased,
+spaces, hyphens and dots turned into underscores, everything outside `[a-z0-9_]`
+dropped, runs of underscores collapsed, leading and trailing ones trimmed,
+`tool_` prefixed if the result would start with a digit, truncated to 64
+characters. The `Executor` next door is `executor`.
+
+`description` is the only thing the calling model knows before it decides. Unset,
+the caller is told `Call the <name> agent`, which says nothing about what the
+agent is for. Write it as an instruction to the caller rather than a summary of
+the callee — the Executor's description above spends its whole length on the two
+things a caller gets wrong: that the sub-agent does not see the conversation, and
+that what comes back should be the result rather than a description of it.
+
+[Sub-agents](/build/subagents) is the rest of that story.

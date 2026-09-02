@@ -1,0 +1,214 @@
+---
+title: "Programs"
+description: "A directory with a main.py that declares agents and says who answers a message"
+---
+
+A harness is programs. A program is a directory under `programs/` with a
+`main.py` at its top, and that file declares the agents:
+
+```python
+# programs/splox/main.py
+from splox import agent
+
+assistant = agent(
+    "Assistant",
+    system_prompt="You answer questions and hand real work to the Executor.",
+    model="kimi-k3",
+    provider="splox",
+    tools=["system:compute"],
+)
+
+
+def handle(msg):
+    return assistant
+```
+
+That is a complete, publishable harness. `programs/splox` is the program a Splox
+chat is answered by — the name is fixed, because a person opens a harness rather
+than a program — and `handle(msg)` is asked, per message, which agent takes it.
+
+## The directory
+
+```
+programs/splox/main.py             the agents, and who answers a message
+programs/splox/hooks/<point>.py    the points of the loop this program takes over
+programs/splox/prompts/*.md        what its agents are told, as data it reads
+programs/compiler/main.py          another program, with its own agents and hooks
+programs/compiler/orchestrator.py  code of its own, imported by plain name
+programs/compiler/README.md        what it does, for whoever finds it months later
+```
+
+`main.py` and `hooks/<point>.py` are the only names the platform knows. It
+imports `main.py` to ask who an agent is and who answers a message, it imports
+the hooks to run the points of the loop, and it opens nothing else in the
+directory. Prompts, data, a second script, a package of helpers are yours.
+
+A program's directory joins `sys.path` for the length of the import of its
+`main.py`, so a file beside it is imported by its plain name:
+
+```python
+from orchestrator import Orchestrator    # programs/compiler/orchestrator.py
+```
+
+Those imports are dropped afterwards, because two programs may both keep a
+`shared.py` and neither should answer the other's import.
+
+## handle(msg)
+
+`msg` carries exactly three fields: `text`, `chat_id` and `user_id`. Answer with
+an agent this program declared, with its name as a string, or with an object
+naming one.
+
+```python
+def handle(msg):
+    if msg.text.startswith("/support"):
+        return {"agent": triage, "message": msg.text.removeprefix("/support").strip()}
+    return assistant
+```
+
+The agent named is written down as the run's agent, because a run asked twice —
+a retry, a wake-up, a person reading the trace a week later — has to name the
+same agent every time. A `message` handed back replaces what that agent is given,
+which is how a program rewrites what arrived before anybody sees it; what the
+person actually said is what the chat holds either way.
+
+The choice is a function rather than a setting because it is the one thing only
+your harness can know. Read `msg.text` and route on a command; read `msg.user_id`
+and give a colleague a different agent from a customer; read `msg.chat_id` and
+keep a per-conversation decision in a file.
+
+<Warning>
+Answering with an agent this program does not declare fails the run with that
+sentence: `handle(msg) answered no agent to run`.
+</Warning>
+
+## Its hooks are its own
+
+`programs/<name>/hooks/<point>.py` shapes every run that program starts, and a
+sub-agent spawned from inside one runs on the same files, because it is the same
+program still working.
+
+There is exactly one place a point can live: no tree-wide `hooks/` above the
+programs, and nothing under an individual agent. A program that keeps none of
+them runs every point on the platform's own answer. See [Hooks](/build/hooks).
+
+## Adding a second program
+
+Everything above holds for any other directory here, minus the chat: its
+`main.py` declares agents, its `hooks/` shape their turns, and nobody asks it who
+answers a message, because no message arrives on its own.
+
+A Telegram loop, a watcher on a repository, a nightly job — each is a program,
+and each belongs here rather than on your laptop because it is useless without
+its agents: it calls them by name, expects the tools they have, and has to change
+in the same commit they do.
+
+```
+programs/nightly/main.py     the loop, and the agent it hands work to
+programs/nightly/README.md   what it does and how it is started
+```
+
+One directory per program, named after the program, with a `README.md` saying
+what it does.
+
+## How a program calls an agent
+
+A declaration is callable, and calling it starts a run.
+
+```python
+print(assistant("A user wrote: " + text, chat_id=chat, wait=True).output())
+```
+
+What comes back is an `AgentRun`: it names the run and the chat it belongs to,
+and `wait=True` blocks until there is an answer to read with `.output()`. Pass
+that `chat_id` back on a later call to continue the same conversation.
+
+The other keywords are `schema=` (a shape the answer has to match), `workspace=`
+(a git worktree of its own), `attempts=` (replace a failed agent with a fresh
+one) and `destination_number=` (make the run a phone call). A keyword `agent()`
+does not know is refused where it is written. [Sub-agents](/build/subagents)
+covers all of them.
+
+A script that is not a program — the kind an agent writes in its sandbox on the
+spot — asks a program for its agents, because a bare name says nothing about
+whose agent it is:
+
+```python
+from splox import program
+
+print(program("compiler").executor("build the parser", workspace="parser", wait=True).output())
+print(program().executor("research X", wait=True).output())   # this run's program
+```
+
+`program(name)` reads `programs/<name>/main.py` and hands back what that file
+declared, as ordinary attributes. `program()` with no name is the program this
+run belongs to. Both fail in the script, before anything is spent:
+
+```
+AttributeError: program 'splox' declares no 'reviewer': /home/daytona/harness/programs/splox/main.py
+declares executor (Executor), assistant (Assistant)
+
+LookupError: no program 'nope' in /home/daytona/harness: programs/ holds compiler, splox
+```
+
+Either way the call carries the sandbox's own credentials, so the program does
+not authenticate, does not hold a key, and cannot reach a harness that is not
+this one. Each call is a run like any other: it shows up in the chat list, it is
+billed to the owner, and its system prompt is recorded where every other run's
+is.
+
+Ordinary Python goes around it. `while True`, a queue, a retry, a database — the
+things a program is made of. Nothing here replaces them.
+
+## Who starts a long-running program
+
+You do, or an agent does, in the sandbox, with the ordinary command it would use
+for any script:
+
+```bash
+setsid nohup python3 ~/harness/programs/telegram/main.py \
+    > /tmp/telegram.log 2>&1 &
+```
+
+Nothing about that is special, and that is the point. The tree is checked out in
+the sandbox already, so the program is simply there, on disk, at the version this
+run is executing.
+
+<Warning>
+Do not have an agent write a program's source into the sandbox line by line. The
+file belongs in the tree, where it is reviewed, versioned and read by whoever
+comes next.
+</Warning>
+
+### Its life is the machine's life
+
+The sandbox belongs to the machine — not to the run, and not to the chat. A
+program started in one turn keeps running after that turn ends: the next run in
+this chat finds it going, and so does the next chat on this machine, tomorrow.
+
+It stops when the machine stops, and only then: somebody presses Stop, or the
+plan behind the account stops keeping machines running. Nothing reaps it on a
+schedule and no conversation ending takes it down.
+
+State that has to survive a restart belongs in a file the program writes and
+re-reads on start. Write the loop so that starting it twice is harmless and
+starting it again after a stop picks up where it left off; then "has it stopped?"
+stops being a question anybody has to answer.
+
+### Reading what it did
+
+A program's output is a file, and a file is read by the agent that started it:
+
+```bash
+tail -50 /tmp/telegram.log
+```
+
+Log what a log is for — what came in, what the agent answered, what failed. When
+the program calls an agent, that run is in the chat list too, with its whole
+conversation, so a program that logs its inputs and an agent run that records its
+own reasoning together say what happened.
+
+<Card title="Worked examples" icon="code" href="/build/patterns">
+  A triage router, a nightly job, a bot that answers from outside a chat, and a
+  fan-out over many items — all as programs.
+</Card>

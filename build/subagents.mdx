@@ -1,0 +1,268 @@
+---
+title: "Sub-agents"
+description: "Handing work to another agent: what comes back in words, and what comes back as files"
+---
+
+A sub-agent is an agent your program hands a job to. It gets its own run, its own
+conversation and its own context window, and its answer comes back where you asked
+for it — in the caller's code, or as files on disk.
+
+There are two ways to start one, and they are the same mechanism seen from two
+sides.
+
+## The model decides: `agents=[...]`
+
+Name a declaration in another agent's `agents=` list and it becomes a tool of that
+agent:
+
+```python
+executor = agent(
+    "Executor",
+    system_prompt=prompt("executor"),
+    model="kimi-k3",
+    provider="splox",
+    tools=["system:compute"],
+    max_iterations=1000,
+    description=(
+        "Hand off a self-contained piece of work and get back the answer. Give it everything it "
+        "needs in the prompt, because it does not see this conversation, and ask for the result "
+        "rather than a description of the result."
+    ),
+)
+
+assistant = agent(
+    "Assistant",
+    system_prompt=prompt("assistant"),
+    model="kimi-k3",
+    provider="splox",
+    tools=["system:compute"],
+    agents=[executor],
+)
+```
+
+What travels is the name. The calling model sees a tool called `executor` — the
+name sanitized into an identifier — and `description` is the only thing it knows
+before it decides to use it. Write that description as an instruction to the
+caller rather than a summary of the callee: the two things a caller gets wrong are
+that the sub-agent does not see the conversation, and that what should come back
+is the result rather than a description of it.
+
+Two things are refused: an agent cannot spawn itself, and a sub-agent cannot spawn
+at all. Both are recursion with no floor, and every level costs a run and its
+tokens before the next one starts.
+
+<Note>
+A spawn is an ordinary run in a chat of its own, parented to the caller's, and it
+belongs to the same program — so it runs on the same hooks, and `t.spawned` is
+true for it.
+</Note>
+
+## Your code decides: calling the declaration
+
+A declaration is callable, and calling it starts a run:
+
+```python
+from splox import program
+
+answer = program().executor("Read /tmp/report.pdf and list every claim it makes", wait=True).output()
+print(answer)
+```
+
+Inside a program's own `main.py` the variable is enough (`executor(...)`); from a
+script that is not that program, `program("<name>").<agent>` is how you reach it,
+because a bare name says nothing about whose agent it is. `program()` with no name
+is the program this run belongs to.
+
+```python
+agent_run = executor(
+    message,                       # what the agent is told; it sees nothing else
+    workspace=None,                # a git worktree of its own
+    chat_id=None,                  # continue an existing sub-agent conversation
+    wait=False,                    # block until it is done
+    schema=None,                   # a shape the answer has to match
+    attempts=1,                    # replace a failed agent with a fresh one
+    backoff=(2, 30),               # seconds between attempts, doubling to a ceiling
+    destination_number=None,       # make the run a phone call to this number
+)
+```
+
+A keyword the call does not know is refused where it is written. `attempts=`
+needs `wait=True` or `schema=` — an async handle has not failed yet, so there is
+nothing to replace — and each retry states what went wrong, so the fresh agent
+does not repeat it.
+
+### AgentRun
+
+Every call returns an `AgentRun`, never text.
+
+| Call | Answers |
+| --- | --- |
+| `.output()` | The run's final result, as a string. `""` while it has not produced one. |
+| `.status()` | One of `starting`, `working`, `succeeded`, `failed`, `cancelled`. |
+| `.wait()` | Blocks until the run is terminal, then returns itself. |
+| `.messages()` | The run's messages, oldest first. |
+| `.cancel()` | Requests cancellation; safe to call twice. |
+| `.run_id` | Durable. Save it and reattach later with `AgentRun(run_id)`, even from another script. |
+| `.chat_id` | The conversation this sub-agent is having. |
+
+```python
+h = researcher("dig into X", wait=True)
+print(h.output())
+
+# later, same sub-agent, same conversation
+print(researcher("now compare with Y", chat_id=h.chat_id, wait=True).output())
+```
+
+Without `wait=True` the call returns as soon as the agent is spawned, and your
+script exits in a second with a run id and nothing else. If you want the answer,
+block for it.
+
+### schema= holds the run to a shape
+
+```python
+from tools.agents import schema
+
+Finding = schema(
+    file=str,
+    severity={"type": "string", "enum": ["low", "high"]},
+    lines=[int],
+)
+
+result = reviewer("Review /home/daytona/workspace/src/auth.py", schema=Finding)
+print(result["severity"])
+```
+
+`schema=` blocks and returns the parsed object. The contract travels with the
+spawn, so nothing in your prompt has to instruct the model about JSON, and a
+violation is shown back to the same agent inside the run that produced it — a
+constraint costs one more turn instead of a lost phase. `schema()` builds it:
+`str`/`int`/`float`/`bool` for scalars, `[T]` for an array of `T`, a nested
+`schema()` for an object, every field required unless wrapped in `opt()`. Besides
+type, required, properties, items, enum, minimum and maximum, the validator
+understands `minItems`, `maxItems`, `minLength` and `const`.
+
+A run that never met its contract raises `SchemaError`; one that ended in any
+other non-succeeded state raises `AgentError`. Both are `FlowError`.
+
+## Words come back in `.output()`; files come back on disk
+
+This is the part worth getting right, because it is where the shape of the work is
+decided.
+
+You and every sub-agent share **one sandbox and one filesystem**. There is no
+fetch, no artifact download and no serialization step. `/home/daytona/workspace`
+is the caller's git checkout, and `workspace="landing-ui"` gives that agent its own
+git worktree at `/home/daytona/workspace-landing-ui`, on branch `landing-ui`.
+
+```python
+program().executor("write the landing page", workspace="landing-ui", wait=True).output()
+```
+
+```bash
+cat /home/daytona/workspace-landing-ui/index.html          # already there
+git -C /home/daytona/workspace merge landing-ui            # when you want it on the main line
+```
+
+`workspace=` prepends a contract to the agent's message, before the task, because
+it decides where the agent writes before it reads what to do: the worktree it owns,
+the command that creates it, and an instruction to commit before answering. The
+commit is for durability and merging, not for transport — the files are visible at
+that path the moment the agent finishes.
+
+<Warning>
+Any agent whose result is files gets a workspace of its own, and its own paths, so
+no two ever write the same tree. Omit `workspace=` only for an agent that answers
+in words. And never ask an agent to return a file's contents in a schema: its typed
+reply carries facts about the work, the worktree carries the work.
+</Warning>
+
+A directory that has to leave the machine — a checkout somewhere else, a human
+clone — is `publish_workspace(path)`, which pushes it to the chat's own git remote
+and returns the clone URL.
+
+## Many at once
+
+```python
+from splox import program
+from tools.agents import parallel
+
+results = parallel(
+    files,
+    lambda f: program().reviewer(f"Review {f} and report every defect", wait=True).output(),
+)
+print(results)
+```
+
+`parallel(items, fn)` maps `fn` over `items` with no closure gotcha;
+`parallel(thunks)` runs a list of zero-arg callables. It returns when the slowest
+finishes, in input order.
+
+A unit that raises becomes `None` in its slot, with the exception at
+`.errors[i]` — a failure never shifts the results after it. What comes back is a
+`Results` list:
+
+| Attribute | Is |
+| --- | --- |
+| `.items` | The inputs, beside their results. |
+| `.pairs` | `[(item, value)]` for the slots that produced something. |
+| `.missing` | The items with no result: the coverage this fan-out did not deliver. |
+| `.errors` | The exception per slot, or `None`. |
+| `.ok` | Whether every slot produced something. |
+| `.coverage` | The fraction that did. |
+| `.ledger` | One row per slot: `id`, `item`, `result`, `attempts`, `error`, `missing`. |
+| `.complete(min_ratio=1.0)` | Itself when coverage clears the bar, otherwise `NeedsReplan` naming what is missing. |
+
+`.complete()` exists because partial coverage is a real answer for some work — 47
+of 50 sources read — and a broken deliverable for other work — one unimplemented
+module. The caller states which.
+
+### Three at a time
+
+One process-wide governor caps live agents at **3** by default, across every spawn
+path: raw and typed, sync and async, nested fan-outs included. `Pool(n)` changes
+it for a block:
+
+```python
+from tools.agents import Pool, parallel
+
+with Pool(16):
+    parallel(files, lambda f: program().reviewer(brief(f), schema=Finding))
+```
+
+Lowering the cap below the current count does not cancel anything; it queues new
+spawns until enough live agents become terminal.
+
+### The rest of `tools.agents`
+
+`gather(runs)` waits for a list of handles and returns
+`[{run_id, status, output, chat_id}]`. `capture()` records the runs spawned inside
+a block so a relaunched script reattaches instead of paying twice.
+`tasks(board, rows)` puts rows on the task panel a person watches in the chat.
+`get_cap()` and `set_cap(n)` read and move the live-agent cap outside a `Pool`.
+
+`tools.agents` holds machinery and no agents at all — importing an agent from
+there is an `ImportError`. Agents come from their program.
+
+## Which shape a job wants
+
+<CardGroup cols={2}>
+  <Card title="One call, an answer in words">
+    A question, an explanation, one local edit, a piece of research.
+    `executor("...", wait=True).output()`. No workspace.
+  </Card>
+  <Card title="One call, an answer with a shape">
+    Anything a caller has to branch on. `schema=`, and let the runtime enforce it.
+  </Card>
+  <Card title="Several agents, files back">
+    `workspace=` each, then read the worktrees and merge the ones you want.
+  </Card>
+  <Card title="A make-review-repair cycle">
+    That is a program, not a turn. `programs/compiler/README.md` in your checkout
+    is the worked example — read it before writing one.
+  </Card>
+</CardGroup>
+
+The last one is worth saying plainly: work that fans out over several agents and
+comes back as files belongs in `programs/`, as a script with a `main()`, not in
+the middle of a chat turn. See [Programs](/build/programs) and
+[Patterns](/build/patterns).

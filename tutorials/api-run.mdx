@@ -1,0 +1,247 @@
+---
+title: "Drive a run from your own code"
+description: "Create a run over HTTP, follow its events as they happen, and read what it produced"
+---
+
+Ten minutes and one file. At the end you have a script that starts a run on your
+machine, prints every event as it arrives, and hands you the answer — the same
+run the app would have made, from your own terminal.
+
+It is written against raw HTTP with nothing but the standard library, and there
+is a reason for that: **the published SDKs cannot start a run today.** All three
+omit `machine_id`, which the API requires, so `runs.create` answers `422`. Every
+other call in the SDKs works; run creation is the hole, and this page routes
+around it. See [Runs](/api/runs).
+
+## What you need
+
+An API key. There is no key screen in the app: you mint one with your browser
+session, and it needs a paid plan.
+
+```bash
+curl -s -X POST "https://splox.io/api/v1/api-tokens" \
+  -H "Cookie: session=$SESSION" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "run-script", "duration_minutes": 120}'
+```
+
+```json
+{"token":"<shown once — copy it now>","name":"run-script","expires_at":"2026-09-02T12:28:38Z","expires_in":7200,"scope":"api"}
+```
+
+```bash
+export SPLOX_HOST=https://splox.io
+export SPLOX_API_KEY=<that token>
+```
+
+<Warning>
+A key lives an hour unless `duration_minutes` says otherwise, up to a year, and
+the plaintext is shown once. [API keys](/account/api-keys).
+</Warning>
+
+Check it before you build on it:
+
+```bash
+curl -s "$SPLOX_HOST/api/v2/harnesses" -H "Authorization: Bearer $SPLOX_API_KEY"
+```
+
+```json
+{"data":[{"id":"h_5V125BR7R4AA189NRYAB3DQC6D","name":"My Agent"}],"page":{"has_more":false,"next_cursor":null}}
+```
+
+## The script
+
+```python
+#!/usr/bin/env python3
+"""Start a run on Splox, follow its events, and print what it produced."""
+
+import json
+import os
+import urllib.request
+import uuid
+
+HOST = os.environ["SPLOX_HOST"]
+KEY = os.environ["SPLOX_API_KEY"]
+CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+
+
+def public_id(prefix, raw):
+    """v1 speaks uuids, v2 speaks m_… and h_…: same 128 bits, base32."""
+    n = int(uuid.UUID(raw))
+    return prefix + "_" + "".join(CROCKFORD[(n >> shift) & 31] for shift in range(125, -1, -5))
+
+
+def call(method, path, body=None, headers=None):
+    data = json.dumps(body).encode() if body is not None else None
+    request = urllib.request.Request(
+        HOST + path,
+        data=data,
+        method=method,
+        headers={
+            "Authorization": f"Bearer {KEY}",
+            "Content-Type": "application/json",
+            "User-Agent": "splox-docs-example",
+            **(headers or {}),
+        },
+    )
+    with urllib.request.urlopen(request) as response:
+        return json.load(response)
+
+
+# 1. Which machine, and which harness it runs. v1 is the only listing there is.
+machine = call("GET", "/api/v1/machines")["machines"][0]
+print(f"machine {machine['name']}: {machine['live']['state']}")
+
+# 2. Start the run. machine_id is required, and it has to be the m_… form.
+run = call(
+    "POST",
+    "/api/v2/runs",
+    {
+        "harness_id": public_id("h", machine["harness_id"]),
+        "machine_id": public_id("m", machine["id"]),
+        "input": {
+            "role": "user",
+            "content": [{"type": "text", "text": "Count the data rows in /home/daytona/reports/loan.csv and reply with just the number."}],
+        },
+        "metadata": {"source": "docs-tutorial"},
+    },
+    {"Idempotency-Key": str(uuid.uuid4())},
+)
+print(f"{run['id']} {run['status']} on {run['harness_commit'][:7]}, chat {run['chat_id']}")
+
+# 3. Follow the journal until the run reaches a terminal status.
+stream = urllib.request.Request(
+    f"{HOST}/api/v2/runs/{run['id']}/events",
+    headers={
+        "Authorization": f"Bearer {KEY}",
+        "Accept": "text/event-stream",
+        "User-Agent": "splox-docs-example",
+    },
+)
+with urllib.request.urlopen(stream) as events:
+    for line in events:
+        line = line.decode("utf-8").rstrip("\n")
+        if not line.startswith("data: "):
+            continue
+        event = json.loads(line[len("data: "):])
+        data = event["data"]
+        detail = data.get("hook") or data.get("role") or data.get("to") or data.get("name") or ""
+        print(f"{event['sequence']:3}  {event['type']:20} {detail}")
+        if event["type"] == "run.status_changed" and data["to"] in ("succeeded", "failed", "cancelled"):
+            break
+
+# 4. Read what it produced.
+for output in call("GET", f"/api/v2/runs/{run['id']}/outputs")["data"]:
+    print(f"\n{output['name']}: {output['value']}")
+
+usage = call("GET", f"/api/v2/runs/{run['id']}/usage")
+print(f"{usage['total_tokens']} tokens, {usage['tool_calls']} tool calls, ${usage['amount']}")
+```
+
+## Run it
+
+```bash
+python3 run.py
+```
+
+```
+machine My Agent: running
+run_01M1GRYWWSE5RRFPBKS11MAD4V queued on 371758e, chat chat_01M1GRYWWCEJRBBPMABFDR0D4S
+  1  run.created
+  2  run.status_changed   running
+  3  message.created      user
+  4  hook.called          guard.on_input
+  5  hook.called          context.build
+  6  hook.called          model.choose
+  7  hook.called          stop.done
+  8  message.created      assistant
+  9  hook.called          tools.before
+ 10  message.created      tool
+ 11  hook.called          context.build
+ 12  hook.called          model.choose
+ 13  hook.called          stop.done
+ 14  message.created      assistant
+ 15  output.created       final_message
+ 16  run.status_changed   succeeded
+
+final_message: 12
+
+17755 tokens, 1 tool calls, $0.014515
+```
+
+Ten seconds, sixteen events. Read the middle of that list and you can see the
+turn happening: the model answers with a tool call (8), the tool result comes
+back (10), the model is asked again (11–13) and this time it answers with text
+(14), which becomes the run's output (15).
+
+## The three things this page is really about
+
+**A run happens on a machine.** `machine_id` is required, and it is not optional
+politeness: the filesystem the agent writes to and the shell it opens belong to a
+machine, and the platform will not guess which one. Leave it out and you get
+
+```json
+{
+  "type": "https://api.splox.com/problems/validation_failed",
+  "title": "Unprocessable Entity",
+  "status": 422,
+  "detail": "A run happens on a machine: name one, or continue a chat that is already on one.",
+  "code": "validation_failed",
+  "errors": [{"name": "/machine_id", "location": "body", "reason": "machine_id is required", "code": "required"}]
+}
+```
+
+**v1 and v2 spell ids differently.** `GET /v1/machines` is the only machine
+listing there is and it answers with raw uuids; `POST /v2/runs` wants the `m_…`
+form and refuses a uuid. The encoding is not a lookup — it is the same 128 bits in
+Crockford base32 — which is why four lines of `public_id` above are the whole
+conversion. If you already depend on the Python SDK, `splox.encode_id("m", uuid)`
+does the same thing.
+
+**The stream is a journal, not a firehose.** Every event has a `sequence` and a
+cursor, and the same endpoint serves the same events as JSON pages. If the
+connection drops, hand the last cursor back as `Last-Event-ID` and continue where
+you were. [Streaming](/api/streaming) covers resuming, the heartbeat, and how the
+stream ends.
+
+## Where the run went
+
+It is a chat, on the same machine, with the same history as anything you type
+into the app — open `/c/<chat uuid>` and it is all there:
+
+<Frame caption="The run this script created, opened in the app: one tool call, one answer">
+  <img src="/images/tutorials/api-run-chat.png" alt="A Splox chat created over the API, showing a wc -l tool call and the answer 12" />
+</Frame>
+
+<Note>
+The URL takes the chat's uuid, while the API answers with `chat_01M1G…`. They are
+the same value in two encodings — decode the base32 back to a uuid and the page
+opens. A chat created this way is **not** listed in the sidebar's Recent, which
+only shows chats a person started.
+</Note>
+
+## Continuing the conversation
+
+Pass `chat_id` on the next create and the run joins that chat instead of starting
+one — same machine, same history, so a follow-up question that only makes sense in
+context works:
+
+```python
+run = call("POST", "/api/v2/runs", {
+    "harness_id": public_id("h", machine["harness_id"]),
+    "machine_id": public_id("m", machine["id"]),
+    "chat_id": run["chat_id"],
+    "input": {"role": "user", "content": [{"type": "text", "text": "And the header row — what are its columns?"}]},
+}, {"Idempotency-Key": str(uuid.uuid4())})
+```
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="The Runs API" icon="play" href="/api/runs">
+    Every field of a run, its messages, its tree of sub-agent runs, cancelling, and listing.
+  </Card>
+  <Card title="Errors" icon="triangle-exclamation" href="/api/errors">
+    The problem shape, the codes, and which failures are worth retrying.
+  </Card>
+</CardGroup>

@@ -1,0 +1,281 @@
+---
+title: "Troubleshooting"
+description: "The failures that actually happen, the exact message each one produces, and what to do about it"
+---
+
+Find the sentence you are looking at below. Each one is quoted as the product
+says it, followed by what caused it and what changes the answer.
+
+Two things settle most questions before you read any further:
+
+```bash
+# Is anything actually running on this account?
+curl -s "$SPLOX_BASE_URL/v1/runs/active" -H "Authorization: Bearer $SPLOX_API_KEY"
+# {"runs":[]}   ← nothing is running, whatever the screen says
+
+# Is the machine up, and which harness is on it?
+curl -s "$SPLOX_BASE_URL/v1/machines" -H "Authorization: Bearer $SPLOX_API_KEY"
+```
+
+`SPLOX_BASE_URL` is `https://splox.io/api` and `SPLOX_API_KEY` is a key you mint
+in [settings](/account/api-keys).
+
+## A run refused because a window is full
+
+The toast is titled with the window that refused — `5-hour limit reached` — and
+reads *"You are going faster than your plan allows. Resets 12:19 PM UTC · in 4h
+5m"*. If the window filled while the agent was already working, the run stops
+where it is and the assistant's last message is the reason:
+
+> You have used your 5-hour limit. It frees up at 12:19 UTC on 2 Sep 2026.
+
+Over the API the same refusal is `429` with `"error": "usage_window_exceeded"`
+and the whole quota in the body, or — for a run that had already started — a
+terminal run carrying `failure.code: "usage_window_exceeded"`.
+
+Nothing is lost. The messages, the tool calls and the files the agent wrote on
+the machine all stay; send the message again after the reset and it picks up
+from a machine that still has its work on it. Retrying sooner earns the same
+refusal, and a new chat, a new machine or a second harness changes nothing,
+because the windows belong to the account.
+
+[When a limit is reached](/account/limits) has the full body, what lifts a
+window and what does not.
+
+## A machine that will not start
+
+Two refusals are answers rather than faults, and neither is fixed by pressing
+Start again.
+
+**The plan already runs as many machines as it allows.** `402`, with
+`"error": "machine_limit_reached"`, the limit and the plan slug in the body. In
+the app:
+
+> Your plan runs one machine at a time, and that one is taken. Delete a machine,
+> or move up a plan.
+
+Stopping a machine does not help and the product deliberately never suggests it:
+the plan counts the machines an account *has*, and a stopped one still holds its
+disk. This also fires on a machine that already exists — a plan can shrink
+after the fact, and the machines that outlive a downgrade are still listed and
+still one press from running. Which ones keep their slot is decided by most
+recently used. Nothing is deleted.
+
+**The sandbox this machine names is not on the runner.** `409`, with
+`"error": "machine_sandbox_lost"`. In the app:
+
+> The files this machine kept are not on the runner any more. Nothing was put in
+> their place — an empty computer under the same name would look like a machine
+> that had forgotten everything — so starting over here means creating a new
+> machine.
+
+There is no button that fixes this and no amount of retrying brings the disk
+back. Create a new machine, point it at the same harness, and start again.
+
+Anything else is a fault on our side: a `500`, worth [sending in](/support) with
+the machine id.
+
+<Note>
+Starting a machine by hand is rarely necessary. Sending a message in a chat on a
+stopped machine starts it.
+</Note>
+
+## A tool that will not run until it is connected
+
+A server on the **Tools** screen has a **Connect** button until it holds a
+credential, and its row comes back from the API with `has_credential: false`.
+Until you connect it, listing its tools fails — on the stand these pages were
+written against, `GET /api/v1/user-mcp-servers/{id}/tools` for an unconnected
+OAuth server answers `500` with the generic *"The server encountered a problem
+and could not process your request"*, which is not a helpful sentence but is the
+one you will see.
+
+A tool call from inside a run raises rather than returning:
+
+```
+RuntimeError: <whatever the server answered>
+```
+
+Two more shapes come from the platform rather than the server:
+
+```
+SploxNotFoundError | [404] {"message": "The requested resource could not be found"}
+SploxServerError   | [500] {"message": "Failed to execute tool: failed to resolve MCP client:
+                             failed to get internal service: internal service 'nosuch' not found:
+                             unknown system MCP service"}
+```
+
+The first is a server id that is not yours or no longer exists — a `tools=[…]`
+entry naming a server you deleted looks exactly like this. The second is a
+`system:` name that does not exist; [the tools overview](/tools/overview) lists
+the ones that do.
+
+If the server was connected and stopped working, the stored OAuth token expired
+or was revoked; the failure says so — *"OAuth re-authentication required:
+refresh token expired or revoked"* — and reconnecting on the Tools screen is the
+fix. See [connecting a server](/tools/connections).
+
+## A push the harness refuses
+
+A harness repository holds three things and a push may aim at two of them. Aim
+anywhere else and git says so before a byte of your pack is uploaded:
+
+```console
+$ git push origin HEAD:refs/heads/scratch
+To https://splox.io/api/v1/harness-git/<user>/<harness>.git
+ ! [remote rejected] HEAD -> scratch (a harness has main, versions and drafts, and refs/heads/scratch is none of them)
+error: failed to push some refs to '...'
+```
+
+The other refusals of the same kind, verbatim:
+
+| What you pushed | What comes back |
+| --- | --- |
+| a deletion | `a harness ref is never deleted` |
+| `refs/versions/7` | `a version is made by publishing, not by pushing refs/versions/7: commit your files and push main` |
+| somebody else's draft | `that draft belongs to somebody else; yours is refs/drafts/<your-id>` |
+| main together with another ref | `push main on its own: publishing it goes through refs/drafts/<your-id>` |
+| main, from behind | `fetch first: main is 9e5d095 and this push is based on 4e91ca3` |
+
+A push to main is a publish, and the publish is checked. Every problem in the
+draft is reported together rather than one per round trip:
+
+```
+refusing to publish: 1 problem(s) in the draft
+  - notes/todo.txt: a harness holds programs/<name>/ programs of any shape,
+    tools/<name>.py tool files, evals/cases/<name>.yaml cases with the
+    evals/graders/<name>.py graders they call, requirements.txt, pyproject.toml,
+    setup.sh, its own documentation as .md files at the root, and nothing else
+```
+
+```
+refusing to publish: 1 problem(s) in the draft
+  - a harness needs at least one program: programs/<name>/main.py, which declares
+    its agents and, for programs/splox, says which of them answers a chat
+```
+
+The other three reasons a publish is refused are a tools tree that would not
+import, two tool files that would be shown to the model under one name, and an
+eval case naming a grader the tree does not have — a check that cannot fail
+reads as a pass, so it is refused instead.
+
+Your work is not lost when a publish is refused: the draft keeps the tree you
+pushed. Fix the files and push main again. [Publishing a
+version](/build/versions) covers the whole loop.
+
+## A program that stopped when the machine did
+
+A long-running program — a Telegram loop, a watcher, a nightly job — keeps
+running after the turn that started it, through the next chat and into tomorrow.
+It stops when the machine stops, and only then. Nothing reaps it on a schedule
+and no conversation ending takes it down.
+
+So there are exactly two ways it dies: somebody pressed **Stop**, or the plan
+behind the account stopped keeping machines running. On the free plan a machine
+stops itself after 30 minutes with nobody talking to it, which is the usual
+cause. From Pro up, machines are not stopped for being idle.
+
+Check, in the machine's own terms:
+
+```bash
+pgrep -af "programs/telegram/main.py"   # is it going?
+tail -50 /tmp/telegram.log              # what did it last say?
+```
+
+Start it again the way it was started:
+
+```bash
+setsid nohup python3 ~/harness/programs/telegram/main.py > /tmp/telegram.log 2>&1 &
+```
+
+The durable fix is in the program, not in the platform: write the loop so that
+starting it twice is harmless and starting it after a stop picks up where it
+left off — state in a file it re-reads on start — and "has it stopped?" stops
+being a question anybody has to answer. [Programs](/build/programs) shows the
+shape.
+
+## An agent that cannot find a file it wrote
+
+Four causes, in the order they actually happen.
+
+**A tilde.** The starter's file tools do not expand `~`:
+
+```
+FileNotFoundError: ls: cannot access '~/notes': No such file or directory
+```
+
+`/home/daytona/notes` works. Name absolute paths when you name a file to the
+agent; the agent's home is `/home/daytona`.
+
+**A sub-agent wrote it somewhere else.** An agent given `workspace="landing-ui"`
+works in its own git worktree at `/home/daytona/workspace-landing-ui`, not in the
+caller's `/home/daytona/workspace`. The files are at that path the moment the
+sub-agent finishes; merging them onto the main line is a git command:
+
+```bash
+git -C /home/daytona/workspace merge landing-ui
+```
+
+[Sub-agents](/build/subagents) explains why the split exists.
+
+**It wrote outside the home directory.** The sandbox root is read-only, so
+`/work`, `/data` and `/app` are not there and never were:
+
+```
+touch: cannot touch '/work/x': No such file or directory
+mkdir: cannot create directory '/data': Permission denied
+```
+
+Everything the agent creates belongs under `/home/daytona`.
+
+**It ran on a different computer.** A tool call with `target="local:<device_id>"`
+or `target="ssh:<connection_id>"` writes on that machine, not on the sandbox. So
+does a different machine: a chat stays on the machine it was started on, and
+switching machines switches disks. [Machine](/concepts/machine) has the
+persistence rules.
+
+## A chat that says it is running when nothing is
+
+The spinner comes from the run row, and the run row is the truth. Ask it
+directly:
+
+```bash
+curl -s "$SPLOX_BASE_URL/v1/runs/active" -H "Authorization: Bearer $SPLOX_API_KEY"
+```
+
+`{"runs":[]}` means no run of yours is in `pending`, `in_progress` or `waiting`,
+and a spinner on top of that is a client that lost its stream — reload the page.
+The app re-attaches to a live run on load and, for a run that finished while you
+were not looking, replays what the stream holds and settles.
+
+If a run **is** listed, it is genuinely working. A turn that spends minutes
+inside one tool call looks identical to a stuck one from the outside; open the
+turn and read the last tool call before you stop it.
+
+To stop it, use the **Stop generating** button in the composer. Note that the
+send button beside it is labeled *Send message (cancels current response)* and
+does something different — it is easy to press the wrong one. A stopped turn
+keeps the tool call it was in the middle of and gets no answer and no footer.
+
+<Warning>
+A run whose turn only produced failing tool calls has been seen rendering as
+in-flight for several minutes while `/runs/active` was already empty. If the list
+is empty and a reload does not clear the spinner, nothing is running — the turn
+is over, however it ended.
+</Warning>
+
+## Nothing here matches
+
+Collect the run id, the chat URL, the machine id and the exact message, and send
+them to [support](/support). If it is an API failure, send an `X-Request-Id`
+with the request and quote the `trace_id` that comes back in the problem body —
+that is the one string that makes your logs and ours name the same request.
+
+<CardGroup cols={2}>
+  <Card title="Errors" icon="triangle-exclamation" href="/api/errors">
+    Every code the API returns, and what is safe to retry.
+  </Card>
+  <Card title="Support" icon="life-ring" href="/support">
+    Where to send it, and what to put in it.
+  </Card>
+</CardGroup>

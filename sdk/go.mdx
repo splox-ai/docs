@@ -1,0 +1,256 @@
+---
+title: "Go SDK"
+description: "Install it, make the first call, stream a run, iterate pages, and handle errors"
+---
+
+The Go SDK covers the v2 surface — runs, events, messages, outputs, tree, usage,
+interactions, harnesses and versions, plus the discovery endpoints — and the v1
+MCP tool-execution helper. Go 1.22 or newer, zero external dependencies.
+
+```
+go get github.com/splox/splox-go/v2
+```
+
+{/* TODO(verify): that module path is the one in the SDK's own go.mod, and the
+    code below was compiled and run against a live server from a local checkout.
+    `go get` of the public path did not resolve from outside the network while
+    these pages were written — confirm the module is published before shipping
+    this line. */}
+
+```go
+import splox "github.com/splox/splox-go/v2"
+
+client := splox.NewClient()   // SPLOX_API_KEY, SPLOX_BASE_URL
+```
+
+`NewClient` takes options rather than a struct: `splox.WithAPIKey(k)`,
+`splox.WithBaseURL(u)`, `splox.WithHTTPClient(h)`, `splox.WithMaxRetries(n)`. The
+base URL is the server API root — `https://splox.io/api` by default — and every
+path is appended already versioned, with no rewriting.
+
+## The first call
+
+```go
+endpoints, err := client.LLMEndpoints.List(ctx)
+for _, e := range endpoints {
+    fmt.Printf("%s %s default=%v\n", e.ID, e.Name, e.IsDefault)
+}
+```
+
+```
+019e2d78-0f8e-7f47-8c59-46bfa4f8f076 OpenAI default=false
+019e2d78-0f8f-7fc5-b2a9-ed2b8ce9edbe Anthropic default=true
+019e2d78-0f8f-7581-9dbd-2adbfd795691 Gemini default=false
+019f0eb5-32a0-7291-bdc3-36441b60f86f Splox default=false
+```
+
+Services: `client.Runs`, `client.Interactions`, `client.Harnesses`,
+`client.HarnessVersions`, `client.LLMEndpoints`, `client.ToolServers`,
+`client.MCP`.
+
+## Reading a run
+
+```go
+run, err := client.Runs.Get(ctx, "run_01M1GFRNR5F4N8S2JZV85T30A4")
+fmt.Println(run.ID, run.Status, run.HarnessCommit)
+
+msgs := client.Runs.Messages(ctx, run.ID, splox.PageOpts{})
+for msgs.Next() {
+    m := msgs.Value()
+    fmt.Printf("[%s] %s\n", m.Role, m.Text())
+}
+if err := msgs.Err(); err != nil { /* ... */ }
+
+u, err := client.Runs.Usage(ctx, run.ID)
+fmt.Println(u.InputTokens, u.OutputTokens, u.ToolCalls, u.Amount, u.Currency, u.Final)
+```
+
+```
+run_01M1GFRNR5F4N8S2JZV85T30A4 succeeded 371758ecf28e8240192e4731080a7436fb492a09
+[user] Run `uname -sm` in your sandbox and reply with exactly what it printed.
+[assistant] 
+[tool] 
+[assistant] Linux x86_64
+3215 96 1 0.027065 USD true
+```
+
+`Message.Text()` concatenates the text parts, which is why the tool call and its
+result print empty — they are `json` parts in `Content`. `RunUsage` carries
+`InputTokens`, `OutputTokens`, `ToolCalls`, `DurationMS`, `Amount`, `Currency`,
+`Final` and `UpdatedAt`; `Amount` is a decimal string. `Run.ChatID` is a
+`*string`, nil for a run with no chat.
+
+Reads: `Runs.Get`, `Runs.Messages` / `MessagesPage`, `Runs.Outputs` /
+`OutputsPage`, `Runs.Tree`, `Runs.Usage`, `Runs.List` / `ListPage`.
+
+## Creating a run
+
+```go
+run, err := client.Runs.Create(ctx, splox.CreateRunParams{
+    HarnessID: "h_01KX2NXA2CFN68FC69A79RQGH4",   // raw UUIDs are accepted too
+    Input:     "Summarize the news",             // string, ContentPart or []ContentPart
+    Metadata:  map[string]any{"source": "cli"},
+})
+
+run, err = run.Wait(ctx, splox.WaitOpts{Timeout: 5 * time.Minute})
+```
+
+`Wait` polls to a terminal status and returns `ErrWaitTimeout`, with the last
+observed run, if the deadline passes first. An `Idempotency-Key` is generated
+(uuid4) when you do not pin one with `CreateRunParams.IdempotencyKey`, and a
+retry always resends the same key.
+
+<Warning>
+`Runs.Create` in v2.0.0 does not send `machine_id`, which the API now requires:
+
+```
+splox: api error: status 422, code validation_failed: A run happens on a machine:
+name one, or continue a chat that is already on one.
+```
+
+Until the SDK ships the field, create runs over HTTP — see [Runs](/api/runs) —
+and use the SDK for everything after that.
+</Warning>
+
+## Streaming
+
+```go
+stream, err := client.Runs.Events(ctx, run.ID, splox.EventsOpts{Stream: true})
+defer stream.Close()
+for ev := range stream.Events() {
+    fmt.Println(ev.Sequence, ev.Type, string(ev.Data))
+}
+err = stream.Err()   // nil after a clean terminal close
+```
+
+```
+1 run.created {"chat_id":"chat_01M1GFRNQHF6W9Q9RMP1QMZQR8",...}
+2 run.status_changed {"to":"running"}
+...
+16 run.status_changed {"to":"succeeded"}
+```
+
+The stream reconnects with `Last-Event-ID`, deduplicates by event id, and closes
+the channel after the terminal `run.status_changed`. Anything written to the
+journal in the instant after that event is only visible through the paged mode,
+so do one final read if you need the complete journal:
+
+```go
+page, err := client.Runs.EventsPage(ctx, run.ID, cursor, 100)
+```
+
+`EventsOpts{Stream: false}` drains the durable journal and closes when caught up.
+`Sequence` is per-run monotonic from 1, and `EventsOpts.Cursor` resumes.
+
+## Iterators
+
+Lists are lazy iterators; `ListPage` gives you one page and the cursor.
+
+```go
+it := client.Runs.List(ctx, splox.ListRunsParams{
+    Status: []splox.RunStatus{splox.RunRunning, splox.RunWaiting},
+    Limit:  50,
+})
+for it.Next() {
+    r := it.Value()
+    fmt.Println(r.ID, r.Status)
+}
+err = it.Err()
+```
+
+## Interactions
+
+```go
+it := client.Interactions.List(ctx, splox.ListInteractionsParams{
+    RunID:  run.ID,
+    Status: []splox.InteractionStatus{splox.InteractionPending},
+})
+for it.Next() {
+    in := it.Value()
+    switch in.Type {
+    case splox.InteractionApproval:
+        client.Interactions.Respond(ctx, in.ID, splox.Approve("ship it"))
+    case splox.InteractionChoice:
+        client.Interactions.Respond(ctx, in.ID, splox.Choose("option-1"))
+    case splox.InteractionText:
+        client.Interactions.Respond(ctx, in.ID, splox.RespondText("blue"))
+    case splox.InteractionConfirmation:
+        client.Interactions.Respond(ctx, in.ID, splox.Confirm(true))
+    }
+}
+```
+
+Responding to something that is no longer pending returns `ErrConflict`; a
+variant that does not match the type returns `ErrValidation`.
+
+## Errors
+
+Every non-2xx is a problem document mapped to `*splox.APIError` — `Status`,
+`Code`, `Detail`, `Errors []InvalidParam`, `TraceID`, `RetryAfter`, `Raw` — and
+matched with sentinels:
+
+```go
+if errors.Is(err, splox.ErrValidation) {
+    var apiErr *splox.APIError
+    if errors.As(err, &apiErr) {
+        for _, p := range apiErr.Errors {
+            fmt.Println(p.Name, p.Reason)   // /machine_id machine_id is required
+        }
+    }
+}
+```
+
+`ErrBadRequest`, `ErrUnauthorized`, `ErrForbidden`, `ErrNotFound`,
+`ErrNotAcceptable`, `ErrConflict`, `ErrCursorExpired`, `ErrValidation`,
+`ErrRateLimited`, `ErrServer`.
+
+GETs retry up to three times with exponential backoff, honoring `Retry-After`, on
+network errors, 429 and 5xx. POSTs retry only when they carry an
+`Idempotency-Key`, always the same one. `Cancel` carries no key and never
+retries — it is idempotent on the server anyway.
+
+## Raw content
+
+`ContentPart` keeps every part lossless: `Raw` holds the exact JSON received and
+`Value` holds the payload of `json` parts, so `tool_call`, `tool_result` and
+`reasoning` bodies — and part types that do not exist yet — survive a round trip
+unchanged. `Output.Value`, `RunEvent.Data`, `Interaction.Payload` and
+`InteractionResponse.Raw` are raw JSON for the same reason.
+
+## Ids
+
+```go
+id, _ := splox.EncodeID("h", "019f455e-a84c-7d4c-87b0-c951d38bc224")
+// "h_01KX2NXA2CFN68FC69A79RQGH4"
+uuid, _ := splox.DecodeID("h", id)
+```
+
+`EncodeIDBytes` / `DecodeIDBytes` do the same for `[16]byte`. Every method
+accepts either form for harness, chat, run and interaction ids.
+
+## Harnesses
+
+```go
+wf, err := client.Harnesses.Create(ctx, splox.CreateHarnessParams{
+    Name:  "assistant",
+    Files: map[string]string{"programs/splox/main.py": main},
+})
+version, err := client.HarnessVersions.Get(ctx, wf.ID, wf.Versions[0].CommitSHA)
+version.Files["programs/splox/main.py"]
+```
+
+A `Harness` is `{ID, Name, Versions}` and each version ref is
+`{Number, CommitSHA}`. `Harnesses.ListPage` returns index entries without their
+versions; `Harnesses.Get` fills them in.
+
+## Testing against a real server
+
+The SDK ships a live suite that talks to an actual instance:
+
+```
+go test ./...                       # unit tests, httptest, no network
+
+SPLOX_LIVE=1 SPLOX_API_KEY=... SPLOX_HARNESS_ID=<harness uuid or h_...> \
+SPLOX_BASE_URL=http://localhost:4000 \
+go test -v -run TestLiveE2E -timeout 15m
+```

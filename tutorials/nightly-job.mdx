@@ -1,0 +1,208 @@
+---
+title: "A job that runs every day"
+description: "A program in your harness that wakes on a schedule, hands work to an agent, and leaves the result on disk"
+---
+
+Half an hour. At the end there is a directory on your machine that gains a file
+every morning, written by an agent, with nobody watching.
+
+There is no scheduler to register with and no cron tab to edit. A scheduled job
+on Splox is a [program](/concepts/program): a directory in your harness with a
+`main.py` that loops, sleeps, and calls an agent when the calendar says so.
+
+## The program
+
+```python
+# programs/nightly/main.py
+"""A briefing about what was spent, once a day, left on the machine's disk."""
+
+import datetime as dt
+import json
+import time
+from pathlib import Path
+
+from splox import agent
+
+STATE = Path("/home/daytona/.nightly.json")
+AT_HOUR = 7  # UTC: the machine's clock is UTC
+
+briefer = agent(
+    "Briefer",
+    system_prompt=(
+        "You write one short briefing a day and leave it on disk. Read what you are "
+        "told to read, write the file you are told to write, and answer with the path "
+        "you wrote and nothing else."
+    ),
+    model="kimi-k3",
+    provider="splox",
+    tools=["system:compute"],
+    max_iterations=40,
+)
+
+
+def due(state, now):
+    """Once a day, after AT_HOUR, whatever the loop's own timing has been."""
+    return now.hour >= AT_HOUR and state.get("last") != now.date().isoformat()
+
+
+def main():
+    while True:
+        state = json.loads(STATE.read_text()) if STATE.exists() else {}
+        now = dt.datetime.now(dt.timezone.utc)
+        if due(state, now):
+            day = now.date().isoformat()
+            print(f"{now:%H:%M} briefing for {day}", flush=True)
+            wrote = briefer(
+                f"Read /home/daytona/expenses.csv and write /home/daytona/briefings/{day}.md: "
+                "what was spent, by category, in two short paragraphs. If the ledger is not "
+                "there, write that nothing was recorded.",
+                wait=True,
+            ).output()
+            STATE.write_text(json.dumps({"last": day, "wrote": wrote}))
+            print(f"{now:%H:%M} {wrote}", flush=True)
+        time.sleep(300)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+Three things are worth pausing on.
+
+**`agent(...)` is a declaration and calling it starts a run.** `briefer(prompt,
+wait=True)` blocks until there is an answer and `.output()` is the answer. That
+run is a run like any other: it is billed, it is kept, and you can read its whole
+conversation afterwards.
+
+**The state file is the schedule.** `due()` asks about the calendar — *has today's
+briefing been written?* — not about how long the loop has been asleep. A machine
+that was off at 07:00 runs the job the moment it wakes. A machine restarted three
+times at noon runs it once.
+
+**The job's result is a file.** The agent writes it; the program only records
+that it happened. Nothing is buffered in memory waiting to be lost.
+
+## Prove the schedule before you trust it
+
+`due()` is an ordinary function, so run the clock past it. On the machine:
+
+```bash
+python3 - <<'PY'
+import datetime as dt, sys
+sys.path.insert(0, "/home/daytona/harness/programs/nightly")
+from main import due
+
+def at(day, hour):
+    return dt.datetime(2026, 9, day, hour, 0, tzinfo=dt.timezone.utc)
+
+state = {}
+for now in (at(2, 3), at(2, 7), at(2, 9), at(3, 7)):
+    verdict = due(state, now)
+    print(now.strftime("%b %d %H:%M"), "->", verdict)
+    if verdict:
+        state = {"last": now.date().isoformat()}
+PY
+```
+
+```
+Sep 02 03:00 -> False
+Sep 02 07:00 -> True
+Sep 02 09:00 -> False
+Sep 03 07:00 -> True
+```
+
+Not due before the hour, due at it, quiet for the rest of the day, due again
+tomorrow. That is a test you can run in two seconds, and it is the difference
+between a job that runs once a day and a job that runs whenever the process
+happened to restart.
+
+## Publish it and start it
+
+The program is code in the harness, so it is committed and pushed like anything
+else, and then started **by hand, once**, from a chat on the machine:
+
+```bash
+setsid nohup python3 ~/harness/programs/nightly/main.py > /tmp/nightly.log 2>&1 &
+```
+
+Nothing about that command is special, and that is the point: the harness is
+already checked out in the sandbox, so the program is simply there, on disk, at
+the version this run is executing.
+
+```bash
+pgrep -af nightly/main.py
+```
+
+```
+1032 python3 /home/daytona/harness/programs/nightly/main.py
+```
+
+It keeps running after that turn ends, after that chat ends, and into tomorrow.
+It stops when the machine stops — and after a stop, somebody has to start it
+again.
+
+## The first briefing
+
+Started at 10:11 UTC with no state file and the hour already past, the loop found
+the job due and ran it immediately:
+
+```bash
+tail -3 /tmp/nightly.log
+```
+
+```
+10:11 briefing for 2026-09-02
+10:11 /home/daytona/briefings/2026-09-02.md
+```
+
+Between those two lines is a whole agent run, and you can open it:
+
+<Frame caption="The job's own run: it read the ledger, wrote 305 bytes, and answered with the path">
+  <img src="/images/tutorials/nightly-briefing.png" alt="A Splox chat showing the Briefer agent reading expenses.csv and writing a briefing file" />
+</Frame>
+
+Eleven seconds, two tool calls, 18,078 tokens, $0.0155. What it left behind:
+
+```markdown
+On 2026-09-02 a total of 163.50 was recorded across three expenses. The largest
+outlay was 120.00 in software for a JetBrains license, followed by 24.50 in food
+for lunch with the team.
+
+Travel accounted for the remaining 19.00, covering a taxi to the airport. No
+other categories were recorded that day.
+```
+
+<Note>
+The job's run does not appear in the chat list in the sidebar — chats started by
+code rather than by a person are not listed there — but it is a real run with a
+real transcript, and `GET /v2/runs` returns it like any other. See
+[Runs](/api/runs).
+</Note>
+
+## Making it yours
+
+The ledger is only an example. What changes for a different job is the prompt and
+the hour:
+
+- **A digest of a repository** — point the prompt at a checkout on the machine and
+  ask for what changed since the commit named in the state file.
+- **A morning summary of an inbox** — give the agent
+  [`system:email`](/tools/communication) and ask it to send the summary as well as
+  write it.
+- **Twice a day** — keep `{"last": "2026-09-02T07"}` in the state file instead of a
+  date, and compare on the hour bucket rather than the day.
+
+Two rules carry over unchanged: write the state file **after** the work, so a
+crash retries the job instead of skipping it; and make starting the program twice
+harmless, which the state file already does.
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="A bot that answers from outside" icon="paper-plane" href="/tutorials/telegram-bot">
+    The same shape with a different trigger: a message from Telegram instead of the clock.
+  </Card>
+  <Card title="Programs" icon="folder" href="/build/programs">
+    What a program is, what `handle(msg)` decides, and how a program calls the agents it declares.
+  </Card>
+</CardGroup>

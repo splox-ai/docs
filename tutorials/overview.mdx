@@ -1,0 +1,69 @@
+---
+title: "Tutorials"
+description: "Five things to build end to end, each one finishing with something that works"
+---
+
+Each of these is a whole job done once, start to finish, on a real account. You
+type the message, the agent does the work, and at the end there is a file, a
+tool, a running program or a script on your laptop that talks to the API.
+
+They were all performed exactly as written before they were published — the
+transcripts, the timings and the screenshots come from those runs, on an account
+like yours.
+
+<CardGroup cols={2}>
+  <Card title="Your first real result" icon="file-lines" href="/tutorials/first-result">
+    Ask for a job that ends in a file, watch the tool calls, then find the file from a different chat. No code. **15 minutes.**
+  </Card>
+  <Card title="A tool of your own" icon="wrench" href="/tutorials/custom-tool">
+    Write a Python function into your harness, publish it with a push, and watch the agent call it by name. **20 minutes.**
+  </Card>
+  <Card title="A job that runs every day" icon="clock" href="/tutorials/nightly-job">
+    A program that wakes on a schedule, hands work to an agent, and leaves the result on disk. **30 minutes.**
+  </Card>
+  <Card title="A Telegram bot" icon="paper-plane" href="/tutorials/telegram-bot">
+    The same shape with a different trigger: a message from outside answered by your agent. **30 minutes.**
+  </Card>
+  <Card title="Drive a run from your own code" icon="code" href="/tutorials/api-run">
+    Create a run over HTTP, stream its events, read its outputs. **10 minutes.**
+  </Card>
+</CardGroup>
+
+## What you need
+
+**An account and the machine it came with.** Signing up gives you both, plus a
+harness copied from the assistant starter. Nothing to install for the first three.
+
+**A paid plan for one of them.** The API tutorial needs an API key, and minting
+one is refused on a free account. Everything else works on any plan.
+
+**A Telegram account** for the bot — you create the bot itself with
+[@BotFather](https://t.me/botfather), which takes about a minute.
+
+**Under a dollar of usage, all five together.** The runs behind these pages cost
+between $0.015 and $0.15 each, and the whole set came to about seventy cents. See
+[Usage](/account/usage).
+
+## The order they are in
+
+They stand alone, but they are written to be read in the order above, and two of
+them share a thread: the tool you write in
+[A tool of your own](/tutorials/custom-tool) keeps a spending ledger on the
+machine, and [A job that runs every day](/tutorials/nightly-job) is the program
+that writes a briefing about it every morning. Doing them in that order means the
+second one has something real to work on.
+
+## What they are not
+
+They are not a tour of the API surface or a reference for the harness. Each page
+is one worked case with the reasoning kept short; when you want the whole
+mechanism, every tutorial ends with the pages that have it:
+[Concepts](/concepts/overview) for the words,
+[Changing what your agent is](/build/overview) for the harness,
+[API](/api/introduction) for the endpoints.
+
+<Note>
+Timings are the wall clock of an unhurried human, not the agent's. The machine's
+own part of every tutorial on this page adds up to about six minutes of run time;
+the rest is you reading, typing and looking at what came back.
+</Note>

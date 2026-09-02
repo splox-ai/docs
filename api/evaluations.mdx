@@ -1,0 +1,254 @@
+---
+title: "Evaluations"
+description: "Record a graded run of a suite against one exact harness version, and finish it"
+---
+
+An evaluation is a scoreboard pinned to one tree. You create it with the cases
+you are about to try, record which run answered each case and how the scorer
+judged it, then complete it — and the server recomputes every metric from what
+you recorded. Nothing about the score is authored by the client.
+
+The whole lifecycle is four calls.
+
+## Create
+
+```bash
+curl -s "$SPLOX_BASE_URL/v2/evaluations" \
+  -H "Authorization: Bearer $SPLOX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -d '{
+    "harness_id": "h_5V125BR7R4AA189NRYAB3DQC6D",
+    "harness_commit": "371758ecf28e8240192e4731080a7436fb492a09",
+    "suite": {"key": "compute-contract", "version": "v1", "name": "Compute contract"},
+    "scorer": {"id": "compute-contract", "version": "v1"},
+    "k": 1,
+    "cases": [
+      {"key": "uname", "name": "reports the kernel and arch",
+       "input": {"prompt": "Run `uname -sm` and reply with what it printed."},
+       "expected": {"contains": "Linux"}},
+      {"key": "arch", "name": "remembers the architecture",
+       "input": {"prompt": "What architecture did you just report?"},
+       "expected": {"contains": "x86_64"}}
+    ]
+  }'
+```
+
+```json
+{
+  "id": "eval_01M1GFXMZ8EDKS45DA3VXS7B42",
+  "status": "running",
+  "harness_version": {"number": 1, "commit": "371758ecf28e8240192e4731080a7436fb492a09"},
+  "baseline_version": null,
+  "scorer": {"id": "compute-contract", "version": "v1"},
+  "suite": {"key": "compute-contract", "version": "v1", "name": "Compute contract"},
+  "k": 1,
+  "progress": {"done": 0, "total": 2},
+  "metrics": null,
+  "comparison": null,
+  "cases": [
+    {"id": "ecase_01M1GFXMZ9F5JBZNQBGC2JTXP4", "key": "uname", "name": "reports the kernel and arch", "status": "pending", "recorded_attempts": null, "missing_attempts": [0]},
+    {"id": "ecase_01M1GFXMZFFE2VMGY7C2B0Z7FW", "key": "arch",  "name": "remembers the architecture",  "status": "pending", "recorded_attempts": null, "missing_attempts": [0]}
+  ],
+  "created_at": "2026-09-02T07:21:48.254011Z",
+  "completed_at": null
+}
+```
+
+<ParamField body="harness_id" type="string" required>The harness under test.</ParamField>
+<ParamField body="harness_commit" type="string">
+  The exact tree. Omit it and the evaluation takes the harness as it stands — but an evaluation wants one fixed tree, so naming the commit is the honest choice.
+</ParamField>
+<ParamField body="baseline_harness_commit" type="string">
+  The tree to compare against, which fills in `comparison` with improved and regressed counts.
+</ParamField>
+<ParamField body="suite" type="object" required>
+  `{key, version, name}`. Keep the key stable across attempts at the same suite so an interrupted process can resume it; change the version when the suite's definition changes.
+</ParamField>
+<ParamField body="scorer" type="object">`{id, version}` — what judged the attempts.</ParamField>
+<ParamField body="k" type="integer" default="1">Trials per case, 1–100. It is what pass@k and pass^k are computed over.</ParamField>
+<ParamField body="cases" type="array" required>
+  1–2000 cases of `{key, name, input, expected}`. `input` and `expected` are arbitrary JSON snapshots — the server stores them, it does not interpret them.
+</ParamField>
+
+`missing_attempts` on every case is the resume list: an interrupted process reads
+the evaluation back and knows exactly what it still owes.
+
+## Record attempts
+
+Each attempt links a case and a trial index to a real run of the pinned version,
+and carries the scorer's verdict. The server derives the output, the duration,
+the tokens and the cost from that run — you cannot type them in.
+
+```bash
+curl -s "$SPLOX_BASE_URL/v2/evaluations/eval_01M1GFXMZ8EDKS45DA3VXS7B42/attempts:batch" \
+  -H "Authorization: Bearer $SPLOX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "attempts": [
+      {"case_key": "uname", "attempt_index": 0, "run_id": "run_01M1GFRNR5F4N8S2JZV85T30A4",
+       "verdict": "passed", "judge_score": "1.00", "judge_feedback": "printed Linux x86_64",
+       "scorer_id": "compute-contract", "scorer_version": "v1"},
+      {"case_key": "arch", "attempt_index": 0, "run_id": "run_01M1GFWT5ZEBP9V9M289WMNBEF",
+       "verdict": "passed", "judge_score": "1.00",
+       "scorer_id": "compute-contract", "scorer_version": "v1"}
+    ]
+  }'
+```
+
+```json
+{
+  "results": [
+    {"case_id": "ecase_01M1GFXMZ9F5JBZNQBGC2JTXP4", "attempt_index": 0, "status": "recorded"},
+    {"case_id": "ecase_01M1GFXMZFFE2VMGY7C2B0Z7FW", "attempt_index": 0, "status": "recorded"}
+  ],
+  "evaluation": {
+    "id": "eval_01M1GFXMZ8EDKS45DA3VXS7B42",
+    "status": "running",
+    "progress": {"done": 2, "total": 2},
+    "metrics": {"pass_at_1": 1, "pass_hat_k": 1, "k": 1, "judge_score": 1, "tokens": 52318, "amount": "0.05413", "currency": "USD"},
+    "cases": [
+      {"id": "ecase_01M1GFXMZ9F5JBZNQBGC2JTXP4", "key": "uname", "status": "passed", "recorded_attempts": [0], "missing_attempts": []},
+      {"id": "ecase_01M1GFXMZFFE2VMGY7C2B0Z7FW", "key": "arch",  "status": "passed", "recorded_attempts": [0], "missing_attempts": []}
+    ],
+    "completed_at": null
+  }
+}
+```
+
+Name the case by `case_key` or by `case_id`. `verdict` is `passed` or `failed`
+and it is the **scorer's** verdict: a run that executed cleanly and answered
+wrongly is a failure, and the API never confuses the two.
+
+The batch is atomic. Re-sending the same `(case, attempt_index, run)` is a no-op
+that comes back as `"status": "duplicate"`; sending a *different* run for a
+`(case, attempt_index)` that already exists rejects the whole batch with `409
+attempt_conflict` and applies nothing.
+
+## Complete
+
+```bash
+curl -s -X POST "$SPLOX_BASE_URL/v2/evaluations/eval_01M1GFXMZ8EDKS45DA3VXS7B42/complete" \
+  -H "Authorization: Bearer $SPLOX_API_KEY"
+```
+
+```json
+{
+  "id": "eval_01M1GFXMZ8EDKS45DA3VXS7B42",
+  "status": "completed",
+  "progress": {"done": 2, "total": 2},
+  "metrics": {"pass_at_1": 1, "pass_hat_k": 1, "k": 1, "judge_score": 1, "tokens": 52318, "amount": "0.05413", "currency": "USD"},
+  "comparison": null,
+  "created_at": "2026-09-02T07:21:48.254011Z",
+  "completed_at": "2026-09-02T07:21:48.491193Z"
+}
+```
+
+Completing recomputes every case verdict, the run-level `pass_at_1` and
+`pass_hat_k`, the judge score, the tokens, the cost, and the diff against the
+baseline. It is idempotent once completed.
+
+It also refuses to finish a job that is not done, and names what is missing:
+
+```json
+{
+  "type": "https://api.splox.com/problems/evaluation_incomplete",
+  "title": "Conflict",
+  "status": 409,
+  "detail": "The evaluation cannot be completed until every case has all required attempts.",
+  "code": "evaluation_incomplete",
+  "errors": [{"name": "/cases/ecase_01M1GFXNF2FCFSBX95C97TXBR3", "location": "server", "reason": "case has 0 of 1 required attempts", "code": "incomplete"}]
+}
+```
+
+## Cancel
+
+Stopping early keeps everything already recorded and recomputes the metrics from
+it:
+
+```bash
+curl -s -X POST "$SPLOX_BASE_URL/v2/evaluations/eval_01M1GFXNF1EN89K84VKNBB34FM/cancel" \
+  -H "Authorization: Bearer $SPLOX_API_KEY"
+```
+
+```json
+{
+  "id": "eval_01M1GFXNF1EN89K84VKNBB34FM",
+  "status": "cancelled",
+  "progress": {"done": 0, "total": 1},
+  "metrics": {"pass_at_1": null, "pass_hat_k": null, "k": 1, "judge_score": null, "tokens": 0, "amount": "0", "currency": "USD"},
+  "cases": [{"id": "ecase_01M1GFXNF2FCFSBX95C97TXBR3", "key": "solo", "name": "solo", "status": "pending", "recorded_attempts": null, "missing_attempts": [0]}]
+}
+```
+
+Rates are null when there is nothing to compute a rate from. Cancelling is
+idempotent, and a completed evaluation cannot be cancelled:
+
+```json
+{"type":"https://api.splox.com/problems/evaluation_completed","title":"Conflict","status":409,"detail":"A completed evaluation cannot be cancelled.","code":"evaluation_completed"}
+```
+
+## Read and list
+
+`GET /v2/evaluations/{evaluation_id}` returns the evaluation with the same
+per-case resume information. Listing is scoped to one exact tree — the point of
+an evaluation is to be about a commit, so the commit is required:
+
+```bash
+curl -s "$SPLOX_BASE_URL/v2/evaluations?harness_commit=371758ecf28e8240192e4731080a7436fb492a09&limit=5" \
+  -H "Authorization: Bearer $SPLOX_API_KEY"
+```
+
+```json
+{
+  "data": [
+    {
+      "id": "eval_01M1GFXMZ8EDKS45DA3VXS7B42",
+      "name": "Compute contract",
+      "status": "completed",
+      "harness_version": {"number": 1, "commit": "371758ecf28e8240192e4731080a7436fb492a09"},
+      "progress": {"done": 2, "total": 2},
+      "pass_at_1": 1,
+      "created_at": "2026-09-02T07:21:48.254011Z"
+    }
+  ],
+  "page": {"has_more": false, "next_cursor": null}
+}
+```
+
+`status` also filters, comma-separated: `running`, `completed`, `failed`,
+`cancelled`.
+
+## Doing all of it in Python
+
+`splox.evals` drives the four calls above — it launches the runs, grades them
+with an ordinary Python function, records the attempts and completes the
+evaluation, and hands back a `[case][attempt]` grid with the server's own metrics
+on `grid.evaluation`:
+
+```python
+from splox import evals
+
+def grade(result, case):
+    passed = result.status == "succeeded" and case.expected["required_tool"] in result.tools_used
+    return evals.Score(verdict="passed" if passed else "failed",
+                       score="1.00" if passed else "0.00")
+
+grid = evals.run_cases(
+    client,
+    ["Run uname -sm", "Print only the current working directory"],
+    expected=[{"required_tool": "compute_exec"}, {"required_tool": "compute_exec"}],
+    k=3,
+    concurrency=3,
+    budget_cap=0.25,
+    suite_id="compute-contract-v1",
+    harness_id=harness.id,
+    scorer=evals.Scorer(id="compute-contract", version="v1", score_fn=grade),
+)
+
+print(grid.evaluation.metrics.pass_at_1)
+```
+
+There is no eval DSL: the grader is a function, and `budget_cap` is a soft launch
+cap rather than a billing limit. For the checks a harness carries in its own tree
+— `evals/cases/*.yaml` and the graders beside them — see [Checks](/build/evals).

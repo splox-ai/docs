@@ -1,0 +1,163 @@
+---
+title: "Media"
+description: "Reading PDFs and documents, transcribing audio, describing video, and generating images and 3D"
+---
+
+`system:media` turns files the agent cannot read into things it can. Every tool
+takes an **HTTPS URL** — a path on the machine is refused with
+`url must use HTTPS protocol`, so upload first
+([`compute_download`](/tools/compute#handing-something-over) gives you a URL for
+a file that is already on disk).
+
+```python
+from tools.media import media_read_pdf
+
+media_read_pdf("https://arxiv.org/pdf/1706.03762v7", pages="1")
+# "1706.03762v7 (1 page(s) rendered)"
+```
+
+<Note>
+That string is what the **code** gets back. The rendered pages go to the model as
+images — the same way [`compute_view`](/tools/compute#seeing-things) works. So
+call these tools for their effect on what the model can see, and do not try to
+parse their return value into text.
+</Note>
+
+## Documents
+
+<ParamField path="media_read_pdf(url, pages)">
+  Renders a PDF's pages as images. `pages` is `"1"`, a range `"1-5"`, or
+  `"all"` — 10 pages at a time, defaulting to the first.
+</ParamField>
+
+<ParamField path="media_read_document(url, pages)">
+  The same, for DOCX, XLSX, PPTX, DOC, XLS, PPT, ODT, ODS, ODP and RTF. It
+  converts to PDF first, so a spreadsheet arrives laid out in pages rather than
+  as cells.
+</ParamField>
+
+Rendering rather than extracting is a deliberate trade: a scanned invoice, a
+two-column paper and a slide deck all work, and the model reads the page the way
+a person would. A 200-page report is ten calls, so find the pages you need before
+you start — the contents page is page 2, and `pages="2"` is cheap.
+
+## Audio
+
+```python
+from tools.media import media_transcribe_audio
+
+media_transcribe_audio("https://download.samplelib.com/mp3/sample-9s.mp3")
+```
+
+```text
+**Audio transcription of sample-9s.mp3:**
+
+[rhythmic tapping]
+```
+
+MP3, WAV, OGG, FLAC, AAC, M4A and WebM. `language="Spanish"` when you know it;
+it is detected otherwise. Non-speech is described in brackets rather than
+invented, which is how you tell an empty recording from a failed one.
+
+## Video
+
+Two tools, and the difference is what you are asking.
+
+<ParamField path="media_describe_video(url, prompt)">
+  What happens in it, as text. YouTube links work here, as do MP4, MOV, AVI, MKV
+  and WebM files up to 100 MB. `prompt="What error does the terminal show?"`
+  narrows the answer to the thing you care about.
+</ParamField>
+
+<ParamField path="media_extract_frame(url, timestamp)">
+  One frame, at `timestamp` seconds, as an image. Direct video files only — **not
+  YouTube**. This is the tool for reading text on screen or checking a UI state
+  at an exact moment.
+</ParamField>
+
+The pair is how you debug a screen recording: describe it to find the moment,
+extract the frame to read it.
+
+## Images
+
+```python
+from tools.media import media_crop_image
+
+media_crop_image("https://…/screenshot.png", 0.15, 0.25, 0.40, 0.50)
+# "Cropped to (0.15,0.25)-(0.40,0.50): 720x450px (original 2880x1800px)"
+```
+
+Coordinates are normalized: `(0, 0)` is the top-left, `(1, 1)` the bottom-right.
+Cropping before looking is the cheapest thing in this package — a 2880×1800
+screenshot costs a lot of tokens to see whole and very little to see the corner
+you actually need.
+
+`media_generate_image` makes one from a description, or edits ones you give it:
+
+```python
+from tools.media import media_generate_image
+
+media_generate_image(
+    prompt="a plain wooden desk with a closed laptop, top-down, soft daylight",
+    size="1K",          # 1K, 2K, 4K, or WIDTHxHEIGHT; 4K only without references
+    count=1,            # 1-4, each one billed
+)
+```
+
+Pass `images=[…]` — up to nine HTTPS URLs or `data:` strings — and the prompt
+becomes an instruction about *them* rather than a description of something new.
+`seed` with the same prompt reproduces the same image. The prompt carries the
+whole intent: subject, composition, style, lighting, text to render. Describe the
+result you want, not the settings of a camera you do not have.
+
+{/* TODO(verify): the exact response shape of media_generate_image. Every call on
+    the stand answered `image generation failed: 502 Bad Gateway`, so this is
+    from the tool's signature, not from a live response. */}
+
+## 3D, and the job shape
+
+Meshes take minutes, so these two tools may answer before they are finished:
+
+```python
+from tools.media import media_generate_3d, media_rig_3d, media_job
+
+result = media_generate_3d(prompt="a wooden chair, mid-century, four legs")
+# {"status": "processing", "job_id": "…"}
+
+media_job(result["job_id"])
+# the finished GLB, or {"status": "processing"} to try again shortly
+```
+
+That is the whole pattern: a `job_id` instead of a result means call `media_job`
+with it. Nothing else in this package works that way.
+
+<ParamField path="media_generate_3d(prompt, image, extra_views, face_count, geometry_only, pbr)">
+  A GLB from a description or from photographs. A photograph gives a far more
+  faithful result than a prompt, and `extra_views` — more views of the same
+  object, as `left`, `right`, `bottom`, `left_front` and `right_front` URLs —
+  makes the hidden sides less of a guess. `face_count` is 40000–1500000, default
+  500000. `pbr` adds metallic/roughness/normal maps; `geometry_only` returns
+  untextured white.
+</ParamField>
+
+<ParamField path="media_rig_3d(model_url, animations, height_meters)">
+  Fits a skeleton to a humanoid model so it can move, and returns the rigged GLB
+  plus one GLB per motion. Motions by name: `walk`, `run`, `idle`, `jump`,
+  `dance`, `wave`, `sit`, `bow`, `clap`, `cheer`, `talk`, `phone`, `punch`,
+  `kick`, `die`, `sneak`, `swim`, `climb` — up to 10. The model has to be a
+  humanoid with separated limbs: a character from `media_generate_3d` works, a
+  chair does not.
+</ParamField>
+
+## When a media tool fails
+
+An exception, with the reason as its message:
+
+```text
+RuntimeError: failed to download image: URL returned HTTP 403
+RuntimeError: url must use HTTPS protocol
+```
+
+A 403 usually means the host refuses the downloader rather than that the URL is
+wrong — Wikimedia does this. Serve the file from somewhere else, or fetch it to
+the machine and hand over a URL of your own.

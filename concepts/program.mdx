@@ -1,0 +1,132 @@
+---
+title: "Program"
+description: "A directory with a main.py that declares agents — the one a chat reaches, and the ones that run on their own"
+---
+
+A harness is programs. A program is a directory under `programs/` with a
+`main.py` at its top, and that file is what declares the agents.
+
+```
+programs/splox/main.py             the agents, and who answers a message
+programs/splox/hooks/<point>.py    the points of the loop this program takes over
+programs/splox/prompts/*.md        what its agents are told, as data it reads
+programs/telegram/main.py          another program, with its own agents and hooks
+programs/telegram/README.md        what it does, for whoever finds it in six months
+```
+
+`main.py` and `hooks/<point>.py` are the only files with fixed names. The
+platform imports `main.py` to ask who an agent is and who answers a message, it
+imports the hooks to run the points of the loop, and it opens nothing else in the
+directory. Prompts, data, a second script, a package of helpers are the program's
+own business.
+
+## programs/splox answers the chat
+
+The name is fixed. A person opens a harness, not a program, so a chat has nowhere
+to carry the name of one — and a harness with no `programs/splox` does not answer
+in the chat at all.
+
+```python programs/splox/main.py
+def handle(msg):
+    return assistant
+```
+
+`msg` carries `text`, `chat_id` and `user_id`. Answer with an agent this program
+declared, with its name, or with an object naming one:
+
+```python
+def handle(msg):
+    if msg.text.startswith("/support"):
+        return {"agent": triage, "message": msg.text.removeprefix("/support").strip()}
+    return assistant
+```
+
+A `message` handed back replaces what that agent is given, which is how a program
+rewrites what arrived before anybody sees it. What the person actually said is
+what the chat holds either way.
+
+The choice is a function rather than a setting because it is the one thing only
+the harness can know: read `msg.text`, `msg.chat_id`, `msg.user_id` and hand the
+message to a triage agent for a question, an executor for a command, a different
+one for a user you recognize. Answering with an agent this program does not
+declare fails the run with that sentence.
+
+## A program that nobody sends a message to
+
+Everything above holds for any other directory under `programs/`, minus the chat:
+its `main.py` declares agents, its `hooks/` shape their turns, and nobody asks it
+who answers a message, because no message arrives on its own.
+
+A Telegram loop, a watcher on a repository, a nightly job — each is a program, and
+each lives in the harness rather than on somebody's laptop because it is useless
+without its agents: it calls them by name, expects the tools they have, and has to
+change in the same commit they do.
+
+A declaration is callable, and calling it starts a run:
+
+```python
+print(assistant("A user wrote: " + text, chat_id=chat, wait=True).output())
+```
+
+`wait=True` blocks until there is an answer to read with `.output()`. Pass that
+`chat_id` back on a later call to continue the same conversation. Ordinary Python
+around it — `while True`, a queue, a retry, a database — is what a program is made
+of.
+
+## Who starts it
+
+An agent does, in its sandbox, with the ordinary command it would use for any
+script:
+
+```bash
+setsid nohup python3 ~/harness/programs/telegram/main.py \
+    > /tmp/telegram.log 2>&1 &
+```
+
+Nothing about that is special, and that is the point. The tree is checked out in
+the sandbox already, so the program is simply there, on disk, at the version this
+run is executing.
+
+<Warning>
+Do not have an agent write a program's source into the sandbox line by line. The
+file belongs in the tree, where it is reviewed, versioned and read by whoever
+comes next. `programs/` exists to end that habit.
+</Warning>
+
+## Its life is the machine's life
+
+The sandbox belongs to the machine — not to the run, and not to the chat. A
+program started in one turn keeps running after that turn ends: the next run in
+this chat finds it going, and so does the next chat on this machine, tomorrow.
+
+It stops when the machine stops, and only then. Nothing reaps it on a schedule and
+no conversation ending takes it down. State that has to survive a restart belongs
+in a file the program writes and re-reads on start.
+
+Its output is a file, and a file is read by the agent that started it:
+
+```bash
+tail -50 /tmp/telegram.log
+```
+
+When the program calls an agent, that run shows up in the chat list too, with its
+whole conversation — so a program that logs its inputs and an agent run that
+records its own reasoning together say what happened.
+
+## Hooks belong to their program
+
+`programs/<name>/hooks/<point>.py` shapes every run that program starts, and a
+sub-agent spawned from inside one runs on the same files, because it is the same
+program still working. There is exactly one place a point can live: no tree-wide
+hooks above the programs, and nothing under an individual agent. A program that
+keeps none of them runs every point on the platform's own answer.
+
+<CardGroup cols={2}>
+  <Card title="Programs, in full" icon="folder" href="/build/programs">
+    `sys.path`, the rewrite form of `handle`, calling agents from outside a
+    program, the log.
+  </Card>
+  <Card title="Patterns" icon="shapes" href="/build/patterns">
+    A router, a Telegram bot, a nightly job and a fan-out, written out.
+  </Card>
+</CardGroup>

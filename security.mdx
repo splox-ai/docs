@@ -1,0 +1,217 @@
+---
+title: "Security"
+description: "Where the work happens, what can reach it, where credentials live, and what deleting actually deletes"
+---
+
+Your agent has a computer, and a computer that runs code somebody else wrote is
+a thing worth being precise about. This page says where that computer is, what
+it can read, what holds the keys to the services you connect, and what leaves
+it.
+
+Every claim here is checked against the running system. Where something is not
+checkable from outside, it is left out rather than reassured about.
+
+## The machine is a sandbox of its own
+
+A machine is one container on the runner, with its own filesystem, its own
+processes and its own network stack. It is not shared with another account and
+not shared with another machine of yours: two machines are two computers with
+two disks, and a second harness of yours runs on a machine of its own.
+
+The card in the app reads `2 vCPU · 4 GB RAM` and a 30 GB disk. Inside it, the
+agent's home is `/home/daytona` and the root filesystem is read-only:
+
+```console
+$ touch /newfile
+touch: cannot touch '/newfile': Permission denied
+$ mkdir -p /data
+mkdir: cannot create directory '/data': Permission denied
+```
+
+Everything the agent creates lives under the home directory, which is also
+everything that survives a stop. See [Machine](/concepts/machine).
+
+## What the agent can read
+
+Anything on its own disk, and specifically:
+
+| | |
+| --- | --- |
+| `~/harness` | the checkout of the harness this machine runs — code, prompts, hooks, tools |
+| `~/tools`, `~/skills` | the platform's tool packages and the skills library |
+| environment variables | the secrets you put on **Connections → Secrets**, injected into the process environment |
+| `$SPLOX_API_KEY` | the machine's own credential (below) |
+
+Environment secrets are the one class of credential that is deliberately handed
+to the agent: you add them so that a program or a tool of yours can use them, and
+the agent can print any of them. They are resolved for whoever started the run,
+not for the harness owner, so a run somebody else started never surfaces your
+keys. Names beginning with `SPLOX_` are refused at write time (*"keys starting
+with SPLOX\_ are reserved"*), and the platform's own variables are written after
+yours, so nothing you set can shadow the run's credentials.
+
+`$SPLOX_SECRET_KEYS` lists the names that were injected — names only, never
+values.
+
+## The credential inside the machine is not your API key
+
+`SPLOX_API_KEY` in a sandbox is a signed token minted for that machine. Decoded,
+its claims are `scope: run_delegate`, `sub` (the harness owner), `mid` (the
+machine) and nothing else — no chat, no run, no expiry to keep re-minting,
+because a sandbox outlives every conversation on it.
+
+What it can do is bounded by the routes that accept it. Against the live API,
+with that token as a bearer credential:
+
+```console
+GET /api/v1/machines      401  {"message": "You must be authenticated to access this resource"}
+GET /api/v1/chats/agent   401  {"message": "You must be authenticated to access this resource"}
+GET /api/v2/runs          200
+```
+
+The v1 account surface — machines, billing, API keys, connections — does not
+accept it at all. It is accepted on the runtime callbacks a run needs (the model
+call a hook makes, the run's own history, the harness store, git over HTTP) and
+on the v2 API as the identity that started the run, which is what lets in-run
+code spawn sub-agents and read their outputs. Each runtime handler then checks
+that the run or harness named in the URL is the one the token was minted for.
+
+So a leaked sandbox token is a serious thing — it acts as you on the v2 API —
+but it is not an account API key, and it cannot mint one. [API
+keys](/account/api-keys) are separate, are minted by you, and are revocable.
+
+## Where credentials for connected servers live
+
+They stay on the platform. A connected MCP server's credential is stored
+encrypted with AES-256-GCM and is marked as never serializable, so it does not
+appear in any API response: what comes back is `has_credential` and
+`credential_expires_at`. When the agent calls a tool on that server, the
+platform attaches the credential to the outbound request. It is never written
+into the sandbox and the agent cannot read it.
+
+This is the opposite of environment secrets, which exist precisely to be read by
+your own code. The rule of thumb:
+
+| | Where it lives | Can the agent read it? |
+| --- | --- | --- |
+| MCP server credential (OAuth or manual) | platform, encrypted | no |
+| Model provider key you added | platform, encrypted | no |
+| Environment secret | injected into the sandbox | yes |
+| `SPLOX_API_KEY` | minted per machine, in the sandbox | yes |
+
+[Connections](/tools/connections) covers adding and revoking; a revoked
+connection is a server whose next call has nothing to authenticate with.
+
+## Who else can get into the machine
+
+You can, two ways, both from the chat inspector and both time-bounded:
+
+- **SSH.** A grant mints a command of the form `ssh -p 2222 <token>@sandbox.splox.io`
+  and lives for 60 minutes. **Revoke access** ends it immediately.
+- **An editor in the browser.** A signed link, good for an hour.
+
+Both open the container the conversation has already been working in, not a
+fresh one. Nothing provisions a sandbox for a chat that never needed one.
+
+## What leaves the machine
+
+Outbound network is open — the agent browses, installs packages, calls APIs. Two
+things are worth knowing about it:
+
+- Traffic routed through the platform's egress relay authenticates with the same
+  machine token, and the relay refuses ports 25, 465, 587 and 2525. Nothing a
+  browsing agent does needs SMTP, and an IP range that sends mail gets reported
+  faster than anything else.
+- The agent has [an email address and an SMS number](/tools/communication) of its
+  own. Mail it sends goes out through the platform, under that address.
+
+Separately from the machine, the text of a turn goes to a model provider —
+whichever endpoint the run resolved to. On a platform endpoint that is Splox's
+own account with that provider; on [your own connection](/app/connections) it is
+your account and your key. What is sent, and to whom, is set out in the
+[privacy policy](https://splox.io/privacy); [Data and
+privacy](/data-and-privacy) is the operational summary.
+
+## What a shared chat exposes
+
+**Share** on a chat mints a 256-bit random token and turns it into a URL:
+
+```json
+{
+  "success": true,
+  "token": "t2HBf2V9lZbRUPmiSQQlnixdewCi1RLtdwmGsrdQTfg",
+  "public_url": "https://splox.io/chat/t2HBf2V9lZbRUPmiSQQlnixdewCi1RLtdwmGsrdQTfg"
+}
+```
+
+Anyone holding that URL reads the conversation with no account and no sign-in.
+That is the whole of the access control: there is no per-person grant, no expiry
+and no list of who opened it. What they see is the transcript — every message,
+every tool call, and therefore every file path, command output and value the
+agent printed along the way.
+
+<Warning>
+Share a chat the way you would share a document with no password. A transcript
+carries more than the answers: the contents of files the agent read, the output
+of a connected server, an id or a token that appeared in a tool call. Read the
+turns before you send the link.
+</Warning>
+
+**Make private** clears the token, and the URL dies at once:
+
+```console
+GET /api/v1/public/chats/<token>   200   ← shared
+POST /api/v1/chats/<id>/unshare    200   {"message": "Chat is now private"}
+GET /api/v1/public/chats/<token>   404
+```
+
+Sharing again mints a **new** token. An old link stays dead, so revoking is real
+rather than cosmetic. Deleting the chat kills the link too, by the same check.
+
+## What deleting actually deletes
+
+<Steps>
+<Step title="Deleting a machine">
+The sandbox is destroyed first and then the row is archived, in that order, so
+no disk is ever left on the runner with nothing naming it. The disk goes with
+it — notes, checkouts, databases, a program you left running. The harness is
+untouched: it is the code, it is in git, and other machines may be running it.
+Your chats are kept, though a chat whose machine was deleted has nothing to run
+on.
+</Step>
+
+<Step title="Deleting a harness">
+The repository goes, and so does every machine running it — a machine whose
+harness is gone can never run again. Chats are kept.
+</Step>
+
+<Step title="Deleting a chat">
+The chat stops being listed and stops being readable: it 404s for you, and its
+share link 404s for everyone. The row is marked deleted rather than erased, so
+this is removal from the product, not erasure from the database. Erasure is
+account deletion.
+</Step>
+
+<Step title="Deleting the account">
+**Settings → Privacy → Delete account**, confirmed by typing the phrase. Every
+sandbox you own is destroyed first — including sandboxes of machines that were
+already archived — any Stripe subscription is canceled immediately and the
+customer record is deleted, and then one database transaction removes your
+chats, messages, tool-call records, runs and their events, machines, MCP
+servers, skills, push tokens, webhooks, sessions, identities, balances,
+transactions, subscriptions and usage rows. It is not reversible.
+
+Two things survive by design: the consent log, kept with your user id set to
+null as the record that consent was asked for, and the git repositories
+themselves — deleting your rows has never deleted git history.
+</Step>
+</Steps>
+
+<CardGroup cols={2}>
+  <Card title="Data and privacy" icon="shield" href="/data-and-privacy">
+    What is stored, for how long, and who can see it.
+  </Card>
+  <Card title="Connections" icon="key" href="/tools/connections">
+    Where a connected server's credential comes from, and how to revoke it.
+  </Card>
+</CardGroup>

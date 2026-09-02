@@ -1,0 +1,151 @@
+---
+title: "Authentication"
+description: "Where an API key comes from, how it is sent, what it can reach, and what a refusal looks like"
+---
+
+Every call carries an API token in an `Authorization` header:
+
+```bash
+curl -s "$SPLOX_BASE_URL/v2/harnesses" \
+  -H "Authorization: Bearer $SPLOX_API_KEY"
+```
+
+```json
+{"data":[{"id":"h_5V125BR7R4AA189NRYAB3DQC6D","name":"My Agent"}],"page":{"has_more":false,"next_cursor":null}}
+```
+
+That is the only way in. The v2 API is Bearer-only: it does not read cookies, so
+a browser session is not a credential and there is no CSRF surface to think
+about. The same token also works on the `/v1/...` paths, which is how you reach
+the things that only live there — machines, and the tokens themselves.
+
+## Getting a token
+
+Tokens are minted by the API, not by a settings page:
+
+```bash
+curl -s -X POST "$SPLOX_BASE_URL/v1/api-tokens" \
+  -H "Cookie: session=$SESSION" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "docs-api-reference", "duration_minutes": 43200}'
+```
+
+<ParamField body="name" type="string">
+  What the token is for. Defaults to `API Token - <timestamp>` when you leave it out.
+</ParamField>
+
+<ParamField body="duration_minutes" type="integer" default="60">
+  How long it lives. Anything above 525600 (a year) is clamped to a year.
+</ParamField>
+
+The response carries the token itself — `token`, plus `name`, `expires_at`,
+`expires_in` in seconds and `scope: "api"`. **The plaintext is returned once and
+is not stored anywhere you can read it again**; the server keeps a hash. Lose it
+and you mint another.
+
+Minting requires a paid plan. On a free account the request is refused, and says so:
+
+```json
+{"message": "Paid plan required to generate API tokens"}
+```
+
+with status `403`.
+
+{/* TODO(verify): the 201 body's field list is read from the server's handler
+    (cmd/api/api_tokens.go). The docs account is on the free plan, so the only
+    response actually exercised here was the 403 above. */}
+
+List the ones you have — expired tokens are dropped from the listing rather than
+shown as dead rows:
+
+```bash
+curl -s "$SPLOX_BASE_URL/v1/api-tokens" \
+  -H "Authorization: Bearer $SPLOX_API_KEY"
+```
+
+```json
+{"tokens": []}
+```
+
+Each entry is `{id, name, expires_at, created_at, scope, status}`. Revoke one by
+its id:
+
+```bash
+curl -s -X POST "$SPLOX_BASE_URL/v1/api-tokens/revoke" \
+  -H "Authorization: Bearer $SPLOX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"token_id": "..."}'
+```
+
+## What a token can reach
+
+A token is the account, not a subset of it. There are no per-resource scopes to
+configure: every v2 resource is filtered to the principal the token names, and a
+run is visible to the account that started it or the account being billed for it.
+
+The consequence worth knowing is that **a resource belonging to somebody else and
+a resource that does not exist are the same answer**:
+
+```bash
+curl -s "$SPLOX_BASE_URL/v2/runs/run_01JAZ6Y5M3Q8F7N2R4T6V9W0XC" \
+  -H "Authorization: Bearer $SPLOX_API_KEY"
+```
+
+```json
+{"type":"https://api.splox.com/problems/not_found","title":"Not Found","status":404,"detail":"The resource does not exist or is not visible to the principal.","code":"not_found"}
+```
+
+The API will not tell you that an id exists but is not yours, because that is
+itself information about somebody else's account. Malformed ids answer 404 too.
+
+## What a refusal looks like
+
+No header, a malformed header, an expired token or a revoked one all produce the
+same 401:
+
+```bash
+curl -si "$SPLOX_BASE_URL/v2/runs"
+```
+
+```http
+HTTP/2 401
+content-type: application/problem+json
+www-authenticate: Bearer realm="splox"
+
+{"type":"https://api.splox.com/problems/unauthorized","title":"Unauthorized","status":401,"detail":"Authentication is missing or invalid.","code":"unauthorized"}
+```
+
+A suspended account gets `403 forbidden` with `Account suspended.` instead — the
+credential was fine, the account is not.
+
+<Warning>
+A token is a bearer credential: whoever holds it is the account. Keep it in an
+environment variable or a secret store, give a short `duration_minutes` to
+anything that only needs a short life, and revoke rather than rotate silently.
+</Warning>
+
+## In the SDKs
+
+All three read the environment, so nothing in your code has to hold the key:
+
+<CodeGroup>
+```python Python
+from splox import SploxClient
+
+client = SploxClient()  # SPLOX_API_KEY, SPLOX_BASE_URL
+```
+
+```ts Node
+import Splox from "splox";
+
+const client = new Splox(); // SPLOX_API_KEY, SPLOX_BASE_URL
+```
+
+```go Go
+client := splox.NewClient() // SPLOX_API_KEY, SPLOX_BASE_URL
+```
+</CodeGroup>
+
+A 401 arrives as a typed error — `SploxAuthError` in Python,
+`AuthenticationError` in Node, `splox.ErrUnauthorized` in Go — so you can tell a
+bad key from a bad request without reading status codes yourself.

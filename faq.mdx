@@ -1,0 +1,185 @@
+---
+title: "FAQ"
+description: "The twenty questions this documentation gets asked, answered short, each pointing at the page that goes deeper"
+---
+
+## Is this a chatbot with plugins?
+
+No. You get a Linux machine that keeps running between conversations, and an
+agent that works on it — a shell, a filesystem, a browser, a package manager. A
+turn is not a request to a model with some tools bolted on; it is a program
+running on a computer that still has yesterday's files.
+→ [How it fits together](/concepts/overview)
+
+## Do I have to write code to use it?
+
+No. Sign in, type in the chat, and the agent works on the machine you were given.
+Writing code is how you change *who the agent is* — its prompt, its tools, the
+programs it runs — and you can go a long way before you need to.
+→ [Quickstart](/quickstart)
+
+## Does the machine stay running when I close the tab?
+
+On Pro and above, yes: nothing stops it, and anything the agent left running
+keeps running. On the free plan it stops itself after 30 minutes with nobody
+talking to it, and starts again on your next message. Either way the disk
+survives.
+→ [Machine](/concepts/machine)
+
+## What happens to files between conversations?
+
+They stay. `/home/daytona` is the agent's home and everything under it survives a
+stop, a restart and the end of a chat — files, checkouts, installed packages, a
+database a program wrote. The read-only root is the exception: `/work`, `/data`
+and `/app` do not exist.
+→ [Memory and what persists](/build/memory)
+
+## Can I have more than one machine?
+
+Free and Pro run one at a time, Max three, Max 20x five. A machine runs one
+harness at one ref, so a second harness of yours needs a machine of its own. A
+plan that shrinks does not delete anything; the extra machines simply stop
+starting.
+→ [Plans](/account/plans)
+
+## Where does the agent's prompt live, and how do I change it?
+
+In the harness, as code: `agent("Assistant", system_prompt=…)` inside
+`programs/splox/main.py`. Ask your agent to edit that file, or edit it in the
+checkout at `~/harness` yourself. There is no prompt box in settings, on purpose
+— the prompt is versioned with everything else that decides behavior.
+→ [Agent](/concepts/agent)
+
+## When does an edit take effect? Do I have to publish?
+
+An edit to the checkout on the machine lands on the **next turn** — the platform
+asks `main.py` who an agent is at the moment it needs to know. Publishing
+(`git push origin main`) makes a numbered version, which is what a *new* chat and
+any other machine on that harness pick up. So: try it in place, publish when it
+is right.
+→ [Publishing a version](/build/versions)
+
+## What is a starter, and what happens when I copy one?
+
+A working harness you copy to get your own. Copying creates a repository at the
+starter's current commit and a machine to run it on; from then on it is yours and
+diverges however you edit it. The provenance is recorded, so you can merge the
+starter's later changes if you want them.
+→ [Starters](/app/starters)
+
+## Why does the agent write Python instead of calling tools normally?
+
+Because a tool here is a Python function it imports, so one block of code can
+call four tools, loop over the results and print only the answer — instead of
+four round trips through the model with every intermediate result pasted back
+into the context. It is cheaper, faster and easier to read afterwards.
+→ [Tools](/build/tools)
+
+## How do I connect Gmail, Linear or Notion?
+
+On the **Tools** screen, as MCP servers. Pick one from the catalog and authorize
+it; the credential stays on the platform and is attached to the call, never
+written into the machine.
+→ [Tools](/app/tools) · [Connections](/tools/connections)
+
+## What is the Connections screen, then?
+
+Model providers and environment secrets. Add your own OpenAI, Anthropic or Gemini
+key and it becomes an endpoint the composer can pick; add a secret and it is
+injected into the machine's environment for your own code to read. Connecting a
+*service* is the Tools screen, not this one.
+→ [Connections](/app/connections)
+
+## Which model does it use, and can I bring my own key?
+
+The composer's *Harness decides* means no selection at all — the harness picks,
+in code. Choose a model there and that chat uses it. A key you add on Connections
+becomes an endpoint you can select, and calls through it are billed by your
+provider rather than by us.
+→ [Model](/concepts/model)
+
+## Can I run a Telegram bot, a watcher, or something nightly?
+
+Yes — that is a program in the harness, started once and left running. It
+survives the turn that started it, the end of the chat and the next day; it dies
+only when the machine does. Write it so that starting it twice is harmless.
+→ [Programs](/build/programs) · [Patterns](/build/patterns)
+
+## Can I drive an agent from my own code?
+
+Yes, over the HTTP API with a Bearer key. Note that a run needs a `machine_id`
+(the public `m_…` id) as well as a harness, and that no published SDK sends that
+field today — so use the API directly for starting runs until they do.
+→ [Runs](/api/runs) · [Python SDK](/sdk/python)
+
+## Why did my turn stop with "You have used your 5-hour limit"?
+
+A plan window filled. Nothing is lost — the messages, the tool calls and the
+files on the machine all stay — and the message names the moment the window frees
+up. Retrying sooner, a new chat or a second machine change nothing, because the
+windows belong to the account.
+→ [When a limit is reached](/account/limits)
+
+## Does topping up raise the limit?
+
+No. Money in the wallet does not change the cap; it pays for calls past a full
+window at list prices, which is what extra usage is. A bigger plan raises the
+cap, and what you have already spent is measured against the new one.
+→ [Extra usage](/account/extra-usage)
+
+## Who can see a chat I shared?
+
+Anyone with the link, with no account and no sign-in — the token *is* the access
+control. They see the whole transcript, including tool calls, so read the turns
+before you send it. **Make private** kills the link at once, and sharing again
+mints a different one.
+→ [Security](/security)
+
+## Is my data used to train models?
+
+The text of a turn goes to whichever model provider the run resolved to, and the
+app asks for explicit consent before the first time that happens. The privacy
+policy names the providers and the safeguards; it makes no statement about
+training in either direction, so do not assume one — ask [support](/support) if
+it decides whether you can put a piece of work here.
+→ [Data and privacy](/data-and-privacy)
+
+## What happens if I delete a machine? Do I lose my chats?
+
+The sandbox and its disk are destroyed; the harness is untouched and your chats
+are kept, though a chat whose machine is gone has nothing to run on. Deleting a
+*harness* takes the repository and every machine running it. Neither is
+reversible.
+→ [Machines](/app/machines)
+
+## The agent says it wrote a file and I cannot find it.
+
+Four usual causes: it used `~`, which the starter's file tools do not expand
+(`/home/daytona/notes` works); a sub-agent wrote it in its own worktree at
+`/home/daytona/workspace-<name>`; it tried to write outside the home directory,
+where the filesystem is read-only; or it ran on a different computer — another
+machine, or a `local:`/`ssh:` target.
+→ [Troubleshooting](/troubleshooting)
+
+## Can two people share one agent?
+
+Not as an account. There are no teams, seats or invitations: an account is one
+person, and what you can hand somebody else is a read-only share link to a
+conversation. Two people wanting their own agents want two accounts.
+→ [Chat](/app/chat)
+
+## Is there a desktop app, and can the agent work on my own computer?
+
+There is a desktop app for macOS, Windows and Linux; it is the same product in a
+window, plus a small daemon that lets a tool call address your own machine as
+`local:<device_id>`. Machines on your own hardware are not switched on yet.
+→ [Desktop app](/app/desktop)
+
+<CardGroup cols={2}>
+  <Card title="Glossary" icon="book" href="/glossary">
+    The fifteen words, defined once.
+  </Card>
+  <Card title="Troubleshooting" icon="wrench" href="/troubleshooting">
+    The failures that actually happen, with their exact messages.
+  </Card>
+</CardGroup>

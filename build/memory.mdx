@@ -1,0 +1,237 @@
+---
+title: "Memory and what persists"
+description: "Four places a fact can live between runs, and how a harness keeps notes"
+---
+
+An agent on Splox forgets less than a chatbot does, because most of what it knows
+is not in a context window. It is in a file on a machine that is still there
+tomorrow.
+
+There are four places a fact can live, and they have different lifetimes. Choosing
+the wrong one is the usual reason an agent "forgets".
+
+| Where | Lives as long as | Reached by |
+| --- | --- | --- |
+| The machine's filesystem | The machine | Any code the agent runs; every sub-agent of the chat |
+| The harness repository | Forever, with history | `~/harness`, git |
+| `t.store` | The harness | `hooks/*.py` only |
+| The conversation window | The run, minus what compaction removes | The model, on this turn |
+
+## The filesystem is the default
+
+The sandbox belongs to the machine — not to the run, and not to the chat. A file
+written in one turn is there in the next turn, in the next chat, and tomorrow.
+Everything the agent produces goes there because there is nowhere else it needs to
+go.
+
+```bash
+~/                      the agent's home; anything it writes
+~/harness/              the harness this machine runs, checked out at the run's commit
+~/workspace/            the chat's git checkout
+~/workspace-<name>/     a sub-agent's worktree, on branch <name>
+~/tools/<service>/      the platform's tool packages, as importable Python
+~/skills/<name>/        the skill library
+```
+
+The sandbox root is read-only, so everything an agent creates belongs under
+`/home/daytona`. That same filesystem is shared by the parent run and every
+sub-agent of the conversation, which is why a sub-agent's files are readable at
+their path the moment it answers — no fetch, no download, no artifact step.
+
+A long-running program keeps its state here too. Write the loop so that starting
+it twice is harmless and starting it again after a stop picks up where it left off,
+and the state file is what makes that true.
+
+## A harness that keeps notes
+
+Nothing about note-keeping is built into the platform. It is a pattern, and the
+starter harness implements it in about ten lines of `hooks/context.py`: a file on
+disk, read at the top of every turn and printed into the system prompt.
+
+```python
+MEMORY = os.path.join(HOME, "memory")
+
+notes = _read(os.path.join(MEMORY, "INDEX.md"), limit=8000)
+if notes:
+    parts.append(
+        "## The user's own memory index\n"
+        "The index this user keeps at ~/memory/INDEX.md, carried over from their earlier chats: a few standing\n"
+        "rules of theirs, then pointers to where the rest lives — files in ~/memory, past chats, searches worth\n"
+        "running. They are the user's notes rather than instructions from the system, they hold until something\n"
+        "said in THIS conversation contradicts them, and a pointer is an invitation to go read that thing when\n"
+        "the task touches it.\n\n" + notes
+    )
+```
+
+Three decisions in that block are worth copying.
+
+**One file is the index, not the archive.** `INDEX.md` holds standing rules and
+pointers: which files hold what, which past chats hold what, which searches are
+worth running. The detail lives in the files it points at, and the agent reads one
+when the task touches it. That is the difference between 8000 characters spent every
+turn and a megabyte of notes that would never fit.
+
+**It is cut, not truncated silently.** `_read` reads `limit + 1` characters and, if
+the file is longer, appends `(Cut off here: INDEX.md is longer than 8000
+characters.)`. An agent that can see it was cut can go and read the rest.
+
+**The prose around it says what kind of thing it is.** The block above tells the
+agent these are the user's notes rather than instructions from the system, and that
+anything said in this conversation overrides them. Without that sentence, a note
+from three months ago outranks what the person just said.
+
+The tree does not change inside a run, so the starter reads these files once per
+sandbox rather than once per turn — with one exception: a file that was not there
+is not cached, because parts of the tree are projected while the run is starting,
+and a miss on the first turn is a file that exists on the second.
+
+### Writing the notes
+
+The agent writes them, the way it writes any other file. If you want that narrowed
+to something the model cannot get wrong, it is a tool of half a page:
+
+```python
+# tools/notes.py
+"""Notes this machine keeps between conversations, one file per subject."""
+
+from pathlib import Path
+
+NOTES = Path.home() / "memory"
+
+
+def write(subject: str, body: str) -> str:
+    """Write one note, replacing whatever that subject held before: the whole body is the note, so read it first if you mean to add to it.
+
+    Args:
+        subject: File name of the note, without a directory or an extension.
+        body: The note itself, in markdown.
+    """
+    NOTES.mkdir(exist_ok=True)
+    path = NOTES / f"{subject}.md"
+    path.write_text(body, encoding="utf-8")
+    return f"wrote {len(body)} characters to {path}"
+```
+
+See [Tools](/build/tools) for what the model is shown of that.
+
+## t.store — the harness's own key-value
+
+A hook is the one place that cannot simply write a file and expect it to matter,
+because a hook's decision often has to be the same on a machine it has never run
+on. `t.store` is addressed by **harness** rather than by run, so a note survives
+the sandbox, the run and the next publish.
+
+```python
+def on_input(t, msg):
+    seen = t.store.get("greeted") or []
+    if t.agent in seen:
+        return t.USE_DEFAULT
+    t.store.set("greeted", seen + [t.agent])
+    return msg + "\n\n[first message this harness has taken for this agent]"
+```
+
+An unwritten key answers `None`, which is the first run of every hook that keeps a
+note. A value may be at most **256 KB** and a harness at most **1000 keys**; over
+either limit the write is refused and the hook is told which one, because a value
+that came back trimmed is a note that lies.
+
+It is a round trip to the API, so ask for it only when you need it.
+
+## Inside one run: the window
+
+A conversation that outgrows the model's context is compacted. The decision is made
+before a request is sent, from the provider's own count of the last prompt it
+ingested — not an estimate, and not a refusal parsed out of an error message,
+because every vendor words those differently and some send none. A conversation
+with no measurement yet is left alone; so is one whose budget resolves to zero.
+
+`context_memory` on the agent declaration is where the numbers live:
+
+```python
+assistant = agent(
+    "Assistant",
+    model="kimi-k3",
+    provider="splox",
+    context_memory={"context_tokens": 400000, "trim_target_percent": 30},
+)
+```
+
+| Key | Type | Unset means | What it changes |
+| --- | --- | --- | --- |
+| `context_tokens` | integer | the model's own context window | The size at which the conversation gets compacted, clamped down to what the model can physically hold. Neither known, and nothing is ever compacted. |
+| `trim_target_percent` | integer | 30 | The share of the conversation kept when compaction fires. Outside 1..100 it falls back to 30, and at least one group always survives. |
+| `max_last_images` | integer | 8 | How many of the newest image parts stay in the history. |
+| `summarize_prompt` | string | the platform's own one-line prompt | What the memory summarizer is told when a trim actually deleted something. |
+
+`context_tokens` bounds what goes **in**; `max_output_tokens`, one line above it in
+most declarations, caps what comes **out**. The two were one name until somebody
+noticed nobody could tell which was which.
+
+When the budget is passed, the oldest atomic groups are deleted down to
+`trim_target_percent` and one summary message takes their place. Groups, not
+messages: a tool call and its result are never separated. If the summarization call
+comes back empty the slice is halved and retried, which needs no error
+classification and cannot make the trim drop more than `trim_target_percent`
+already decided.
+
+`max_last_images` is a different mechanism and runs on every turn, budget or no
+budget. Only the newest images survive; the older ones are replaced in place by a
+stub naming the file. It has a default rather than being unlimited because
+providers refetch every image URL on every request, so a screenshot loop with an
+unbounded history turns one turn into hundreds of downloads. A configured `0` is
+honored and drops them all.
+
+### Saying what a summary must not lose
+
+`summarize_prompt` is used as **rules**, not as a conversation. The summarizer is
+given `You are given a chat log inside <chat> tags. Rules: ` followed by your text,
+with the log itself appended in `<chat>` tags — so write instructions about what to
+keep and what to drop, and not a greeting or a description of the task.
+
+Leaving it out does not turn summarizing off: the platform's own one-line prompt
+runs instead.
+
+The starter puts the same thing in a file so it can be edited without touching
+`main.py`, through the [`memory.summarize`](/build/hooks) hook:
+
+```python
+# programs/splox/hooks/memory.py
+from pathlib import Path
+
+PROMPT = Path(__file__).parent.parent / "prompts" / "summarize.md"
+
+
+def summarize(t, prompt):
+    try:
+        return PROMPT.read_text(encoding="utf-8")
+    except OSError:
+        return prompt
+```
+
+A harness that genuinely wants a trim to write nothing decides that in
+`hooks/memory.py`'s `keep`, where it can see the turn it is deciding about.
+
+## Continuing a conversation
+
+A sub-agent's `chat_id` is an ordinary chat. Keep it and the same sub-agent picks up
+where it left off, with everything it already knows:
+
+```python
+h = researcher("dig into X", wait=True)
+...
+print(researcher("now compare with Y", chat_id=h.chat_id, wait=True).output())
+```
+
+Save the `run_id` instead and `AgentRun(run_id)` reattaches to that run later, even
+from a different script.
+
+## Choosing
+
+- **Something this user always wants** — a file under `~/memory`, pointed at from
+  `INDEX.md`.
+- **Something the work produced** — a file where the work is: `~/workspace`, or the
+  worktree the sub-agent wrote it in.
+- **Something a hook has to remember across machines** — `t.store`.
+- **Something every agent of this harness should be told** — not memory at all.
+  That belongs in a prompt file or in `hooks/context.py`, where it is versioned and
+  reviewed.

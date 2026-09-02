@@ -1,0 +1,208 @@
+---
+title: "Node SDK"
+description: "Install it, make the first call, stream a run, page through a list, and handle errors"
+---
+
+The TypeScript/Node SDK is the v2 API with the retries, the pagination, the SSE
+reconnection and the id encoding already written. Node 18 or newer; zero
+dependencies — it uses the built-in `fetch` and Web Crypto.
+
+```bash
+npm install splox
+```
+
+```ts
+import Splox from "splox";
+
+const client = new Splox();                    // SPLOX_API_KEY, SPLOX_BASE_URL
+// or: new Splox("your-api-key", { baseURL: "https://splox.io/api" })
+```
+
+`new Splox(apiKey?, { baseURL, fetch, maxRetries, timeoutMs })`. `baseURL` is the
+server API root and paths are appended already versioned (`/v1/...`, `/v2/...`),
+so nothing is rewritten. Resources are `client.runs`, `client.interactions`,
+`client.harnesses`, `client.harnessVersions`, `client.llmEndpoints`,
+`client.toolServers` and `client.mcp`.
+
+## The first call
+
+```ts
+const endpoints = await client.llmEndpoints.list();
+console.log(endpoints.map((e) => [e.name, e.isDefault]));
+```
+
+```
+[ [ 'OpenAI', false ], [ 'Anthropic', true ], [ 'Gemini', false ], [ 'Splox', false ] ]
+```
+
+Everything is camelCase in TypeScript and snake_case on the wire. The original
+wire payload is always on `.raw`, so a field the SDK does not map yet is still
+reachable.
+
+## Reading a run
+
+```ts
+import Splox, { messageText } from "splox";
+
+const run = await client.runs.get("run_01M1GFRNR5F4N8S2JZV85T30A4");
+console.log(run.status, run.harnessCommit, run.chatId);
+
+const msgs = await run.messages();
+for (const m of msgs.data) console.log(`[${m.role}] ${messageText(m)}`);
+
+const outs = await run.outputs();
+for (const o of outs.data) console.log(o.type, o.name, o.value);
+
+const usage = await run.usage();
+console.log(usage.inputTokens, usage.outputTokens, usage.toolCalls, usage.amount, usage.currency, usage.final);
+console.log(usage.raw.total_tokens, usage.raw.cache_read_tokens);
+```
+
+```
+succeeded 371758ecf28e8240192e4731080a7436fb492a09 chat_01M1GFRNQHF6W9Q9RMP1QMZQR8
+[user] Run `uname -sm` in your sandbox and reply with exactly what it printed.
+[assistant] 
+[tool] 
+[assistant] Linux x86_64
+result final_message Linux x86_64
+3215 96 1 0.027065 USD true
+26159 22848
+```
+
+`messageText` joins a message's text parts — the two empty lines are the tool call
+and its result, which live in `content` as `json` parts. `RunUsage` maps
+`inputTokens`, `outputTokens`, `toolCalls`, `durationMs`, `amount`, `currency`,
+`final` and `updatedAt`; the token totals and the cache counters are on
+`usage.raw`.
+
+A `Run` is a handle: `run.wait()`, `run.cancel()`, `run.reload()`,
+`run.events()`, `run.messages()`, `run.outputs()`, `run.tree()`, `run.usage()`,
+`run.pendingInteractions()`.
+
+## Creating a run
+
+```ts
+const run = await client.runs.create({
+  harnessId: "h_...",
+  input: "Summarize the latest sales report in three bullet points.",
+  metadata: { source: "docs" },
+  chatId,                      // optional; continues a chat
+  idempotencyKey,              // optional; crypto.randomUUID() when omitted
+});
+
+await run.wait({ timeoutMs: 120_000 });
+
+if (run.status === "succeeded") {
+  for (const output of (await run.outputs()).data) console.log(output.type, output.value);
+} else {
+  console.error(run.status, run.failure);
+}
+```
+
+<Warning>
+`runs.create` in 0.5.4 does not send `machineId`, which the API now requires, so
+it throws `ValidationError 422 validation_failed` with
+`/machine_id: machine_id is required`. Until the SDK ships the field, create runs
+over HTTP — see [Runs](/api/runs) — and use the SDK for everything after that.
+</Warning>
+
+## Streaming
+
+```ts
+for await (const event of run.events({ stream: true })) {
+  console.log(event.sequence, event.type, event.data);
+}
+```
+
+```
+1 run.created { chat_id: 'chat_01M1GFRNQHF6W9Q9RMP1QMZQR8', ... }
+2 run.status_changed { to: 'running' }
+...
+16 run.status_changed { to: 'succeeded' }
+```
+
+The stream reconnects with `Last-Event-ID`, deduplicates by event id, and
+finishes after the terminal `run.status_changed`. Pass `stream: false` to walk the
+durable journal instead — same events, page by page, ending when you are caught
+up.
+
+## Paging
+
+A page is async-iterable and pages itself:
+
+```ts
+const page = await client.runs.list({ status: ["running", "waiting"], limit: 2 });
+let n = 0;
+for await (const run of page) n++;      // walks every cursor page
+console.log("auto-paginated runs:", n); // auto-paginated runs: 5
+```
+
+`page.data` is the first page if you would rather hold the cursor yourself.
+
+## Errors
+
+```ts
+import {
+  SploxAPIError, BadRequestError, AuthenticationError, ForbiddenError,
+  NotFoundError, ConflictError, CursorExpiredError, ValidationError,
+  RateLimitError, ServerError, ConnectionError, TimeoutError, StreamError,
+} from "splox";
+
+try {
+  await client.runs.create({ harnessId, input });
+} catch (err) {
+  if (err instanceof ValidationError) {
+    for (const e of err.errors) console.log(e.name, e.reason);
+  } else if (err instanceof ConflictError) {
+    console.log(err.code);              // "idempotency_key_conflict"
+  } else if (err instanceof RateLimitError) {
+    console.log("retry in", err.retryAfter, "seconds");
+  }
+}
+```
+
+```
+/machine_id machine_id is required
+```
+
+| Error | Status |
+| --- | --- |
+| `BadRequestError` | 400 |
+| `AuthenticationError` | 401 |
+| `ForbiddenError` | 403 |
+| `NotFoundError` | 404 |
+| `ConflictError` | 409 |
+| `CursorExpiredError` | 410 |
+| `ValidationError` | 422 (`.errors[]` with JSON Pointers) |
+| `RateLimitError` | 429 (`.retryAfter` in seconds) |
+| `ServerError` | 5xx |
+| `ConnectionError`, `TimeoutError`, `StreamError` | no response: network, `run.wait()` deadline, SSE gave up |
+
+Every API error carries `statusCode`, `code`, `detail`, `traceId`, `problem` and
+`responseBody`. GETs retry up to three times (network, 408, 429, 5xx); POSTs
+retry only when they carry an `Idempotency-Key`, always the same one.
+
+## Ids
+
+```ts
+import { encodePublicId, decodePublicId, toHarnessId } from "splox";
+
+toHarnessId("019f455e-a84c-7d4c-87b0-c951d38bc224");  // "h_01KX2NXA2CFN68FC69A79RQGH4"
+```
+
+`harnessId` parameters accept a raw UUID directly.
+
+## Harnesses
+
+```ts
+const wf = await client.harnesses.create({
+  name: "assistant",
+  files: { "programs/splox/main.py": main },
+});
+const snapshot = await client.harnessVersions.get(wf.id, wf.versions[0].commit);
+snapshot.files["programs/splox/main.py"];
+await client.harnesses.update(wf.id, { name: "renamed" });
+```
+
+A harness is `{ id, name, versions }` and nothing else — the prose lives in the
+files and the age is the commit. See [Harnesses](/api/harnesses).

@@ -1,0 +1,155 @@
+---
+title: "LLM endpoints"
+description: "Which providers an account can use, which models each one offers, and what those models accept"
+---
+
+An agent names a model and the credential it runs on. These two endpoints are how
+you find out which names are valid for your account before you write them into a
+harness.
+
+## The endpoints
+
+```bash
+curl -s "$SPLOX_BASE_URL/v2/llm-endpoints" \
+  -H "Authorization: Bearer $SPLOX_API_KEY"
+```
+
+```json
+{
+  "data": [
+    {"id": "019e2d78-0f8e-7f47-8c59-46bfa4f8f076", "name": "OpenAI",    "client": "openai",    "is_platform": true, "is_default": false},
+    {"id": "019e2d78-0f8f-7fc5-b2a9-ed2b8ce9edbe", "name": "Anthropic", "client": "anthropic", "is_platform": true, "is_default": true},
+    {"id": "019e2d78-0f8f-7581-9dbd-2adbfd795691", "name": "Gemini",    "client": "gemini",    "is_platform": true, "is_default": false},
+    {"id": "019f0eb5-32a0-7291-bdc3-36441b60f86f", "name": "Splox",     "client": "splox",     "is_platform": true, "is_default": false}
+  ]
+}
+```
+
+The list is the platform's own endpoints plus any you have connected yourself.
+
+<ResponseField name="id" type="uuid">
+  What an agent writes as `text_llm_endpoint_id`. It is a raw UUID, not a public id: endpoints are referenced inside a harness's files, not addressed as API resources.
+</ResponseField>
+<ResponseField name="client" type="string">
+  The provider slug — `anthropic`, `openai`, `gemini`, `splox` — which is also what an agent writes as `provider`.
+</ResponseField>
+<ResponseField name="is_platform" type="boolean">
+  True when the platform holds the credential, so you need none of your own.
+</ResponseField>
+<ResponseField name="is_default" type="boolean">
+  True for at most one endpoint: the one the server stamps into an agent that names none.
+</ResponseField>
+
+Naming an endpoint is optional. Leave `text_llm_endpoint_id` out of an agent and
+it gets the default one — above, Anthropic. What you cannot do is leave the agent
+with neither a provider nor an endpoint: nothing then says whose credential the
+turn runs on, and the run fails on its first turn.
+
+## The models of one endpoint
+
+```bash
+curl -s "$SPLOX_BASE_URL/v2/llm-endpoints/019e2d78-0f8f-7fc5-b2a9-ed2b8ce9edbe/models" \
+  -H "Authorization: Bearer $SPLOX_API_KEY"
+```
+
+```json
+{
+  "data": [
+    {
+      "id": "claude-haiku-4-5-20251001",
+      "name": "claude-haiku-4-5-20251001",
+      "operation": "chat_completion",
+      "capabilities": {
+        "context_window": 200000,
+        "modalities": ["text", "image"],
+        "reasoning": {"control": "effort", "levels": ["off", "high"], "default_level": "high"},
+        "supports_realtime": false,
+        "supports_reasoning": true,
+        "supports_streaming": true,
+        "supports_tools": true
+      },
+      "input_schema": { "type": "object", "properties": { "...": "..." } }
+    }
+  ]
+}
+```
+
+Models come back in display order, across every operation the provider serves —
+`chat_completion`, `responses`, `realtime`. The Anthropic endpoint above answers
+with eleven, all `chat_completion`, ids from `claude-haiku-4-5-20251001` to
+`claude-opus-5`.
+
+`id` is the value an agent writes as `model`:
+
+```python
+assistant = agent(
+    "Assistant",
+    system_prompt="Answer in one sentence.",
+    model="claude-sonnet-4-6",
+    provider="anthropic",
+)
+```
+
+Model choice is optional too — omit it and the server assigns its default.
+
+## What a model accepts
+
+`capabilities` is what the model can do; `input_schema` is the JSON Schema of the
+knobs it accepts, which are the ones you may pass to the agent as
+`additional_llm_config`. It is a real schema, with types, bounds and defaults:
+
+```json
+{
+  "temperature": {
+    "type": ["number", "null"],
+    "default": null,
+    "maximum": 2,
+    "minimum": 0,
+    "description": "What sampling temperature to use, between 0 and 2"
+  },
+  "thinking_tokens": {
+    "type": "integer",
+    "default": 4096,
+    "minimum": 1,
+    "description": "Maximum number of tokens budgeted for hidden reasoning"
+  }
+}
+```
+
+The knobs differ per model, which is the point of asking: on this endpoint the
+4.5-generation models take `thinking_tokens`, the 5-generation models take
+`thinking_effort`, and only the Sonnet models offer `enable_1m_context`. Reading
+the schema beats guessing at a parameter the provider will reject.
+
+## Visibility
+
+Platform endpoints are visible to everybody; an endpoint you connected is visible
+only to you. An endpoint that belongs to somebody else and one that does not exist
+answer the same way:
+
+```json
+{"type":"https://api.splox.com/problems/not_found","title":"Not Found","status":404,"detail":"The resource does not exist or is not visible to the principal.","code":"not_found"}
+```
+
+## In the SDKs
+
+<CodeGroup>
+```python Python
+endpoints = client.llm_endpoints.list()
+default = next(e for e in endpoints if e.is_default)
+models = client.llm_endpoints.models(default.id)
+print(default.client, [m.id for m in models][:3])
+# anthropic ['claude-fable-5-1', 'claude-opus-5', 'claude-fable-5']
+```
+
+```ts Node
+const endpoints = await client.llmEndpoints.list();
+const defaultEp = endpoints.find((e) => e.isDefault)!;
+const models = await client.llmEndpoints.models(defaultEp.id);
+```
+
+```go Go
+endpoints, err := client.LLMEndpoints.List(ctx)
+models, err := client.LLMEndpoints.Models(ctx, endpointID)
+```
+</CodeGroup>

@@ -1,0 +1,137 @@
+---
+title: "Glossary"
+description: "The fifteen words this documentation uses, in one place, each linking to the page that goes deeper"
+---
+
+Splox uses a small vocabulary and uses it precisely. If a page reads oddly, one
+of these words probably means something narrower than you assumed.
+
+## Machine
+
+The Linux computer your agent runs on. It is created for you when you sign up,
+it can be started and stopped, and what it writes to disk is still there next
+time — in the next turn, in the next chat, tomorrow. The agent's home is
+`/home/daytona`; the root filesystem is read-only. One machine runs one harness
+at one ref, so a second harness of yours needs a machine of its own. How many
+you may have, and whether they stay up when you are not talking to them, comes
+from the plan. → [Machine](/concepts/machine)
+
+## Harness
+
+The agent's own git repository: the code that decides who the agent is. Programs,
+agents, hooks, tools, evals and the documentation the tree carries, with a
+version history where every version is published and immutable. The checkout
+lives at `~/harness` on the machine and is edited with ordinary file tools;
+`git push origin main` is not a push but a publish. → [Harness](/concepts/harness)
+
+## Program
+
+A directory under `programs/` in the harness with a `main.py` that declares the
+agents in code. `programs/splox/` is the one a chat is answered by, and its
+`handle(msg)` says which agent takes the message. A program can also be a
+long-running loop — a Telegram bot, a watcher, a nightly job — started once and
+still going in tomorrow's chat. → [Program](/concepts/program)
+
+## Agent
+
+Declared inside a program: `agent("Assistant", system_prompt=…, model=…,
+tools=[…])`. The platform asks `main.py` who an agent is at the moment it needs
+to know rather than storing a copy, so an edit to the file lands on the next
+turn. An agent listed in another agent's `agents=[…]` becomes a tool of that
+agent. → [Agent](/concepts/agent)
+
+## Run
+
+One execution of an agent: it has a status, events, messages, outputs, a tree of
+sub-agent runs and usage. Every turn of a chat is a run, every sub-agent is a
+run, every call from a program is a run — they are all billed, listed and
+recorded the same way. → [Run](/concepts/run)
+
+## Chat
+
+A conversation in the app. It belongs to one machine and stays on it; a turn of
+it is a run. A chat can be renamed, forked from any message, moved into a
+project, shared as a public URL, or deleted. → [Chat](/app/chat)
+
+## Hook
+
+A Python file at `programs/<name>/hooks/<point>.py` that answers one point of the
+run loop — context, model, tools, guard, memory, errors, stop and the rest. Hooks
+are how a run is shaped without touching the agent, and they belong to the
+program whose directory they sit in. → [Hooks](/build/hooks)
+
+## Tool
+
+A Python function the agent imports and calls in code, rather than a JSON call it
+emits. Platform packages arrive projected at `tools/<service>/<tool>.py`, a
+connected MCP server appears the same way, and a file you write at
+`tools/<name>.py` in the harness becomes tools named `<file>__<function>`. What a
+turn may call is decided by the agent's `tools=[…]`, the account's system-tools
+switch and `hooks/tools.py`. → [Tools](/build/tools) · [Tool catalog](/tools/overview)
+
+## Skill
+
+A folder with a `SKILL.md` that the agent reads when the task calls for it. The
+description in its frontmatter is the whole selection mechanism — it is what the
+model sees when deciding whether this skill is relevant — and the body is the
+instructions it follows once it opens the file. Skills come from the library or
+from your own harness. → [Skills](/build/skills)
+
+## Starter
+
+A working harness you copy to get your own. Copying one creates a repository at
+its current commit and a machine to run it on; from that moment it is yours and
+diverges however you edit it. The provenance is recorded on the first version, so
+you can always merge later changes from the starter you came from. →
+[Starters](/app/starters)
+
+## Version
+
+A published state of a harness, numbered, at `refs/versions/N` in the repository.
+Publishing is a push to `main`, which is checked before it becomes a version:
+files in places a harness has no room for, a tree with no program, tools that
+would not import, two tool files that would be shown under one name, an eval case
+naming a grader that is not there. A machine runs `main` unless you pin it to a
+ref. → [Publishing a version](/build/versions)
+
+## Window
+
+One of the two rolling periods a plan grants — five hours and a week. Both
+measure what your runs cost, both are read as a percentage of the plan's cap, and
+a full one is refused with the moment it frees up. The 5-hour window bounds a
+burst; the weekly one bounds living at that burst indefinitely. Windows belong to
+the account, so a new chat or a second machine does not reset one. →
+[Usage](/account/usage) · [When a limit is reached](/account/limits)
+
+## Endpoint
+
+Where a model call is sent, and which credential pays for it. A platform endpoint
+is Splox's own account with a provider; an endpoint you add on **Connections** is
+your key and your account. An agent names a model plus exactly one of a provider
+slug or an endpoint id, and *Harness decides* in the composer means no selection
+at all — the harness picks. → [Model](/concepts/model) · [Connections](/app/connections)
+
+## Interaction
+
+A run stopping to ask a person something. The agent raises one, the run's status
+goes to `waiting`, and nothing happens until somebody answers — in the app, or
+through the API. A confirm surface becomes a choice; a form becomes text. →
+[Interactions](/api/interactions)
+
+## Workspace
+
+The git checkout an agent works in. The caller's is `/home/daytona/workspace`; a
+sub-agent spawned with `workspace="landing-ui"` gets a git worktree of its own at
+`/home/daytona/workspace-landing-ui`, on a branch of that name, so no two agents
+ever write the same tree. The files are at that path the moment the sub-agent
+finishes — there is nothing to fetch and nothing to serialize. →
+[Sub-agents](/build/subagents)
+
+<CardGroup cols={2}>
+  <Card title="How it fits together" icon="diagram-project" href="/concepts/overview">
+    The same words, in the order they depend on each other.
+  </Card>
+  <Card title="What changed" icon="clock-rotate-left" href="/what-changed">
+    If you are here from the old documentation, start with this.
+  </Card>
+</CardGroup>

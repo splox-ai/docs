@@ -1,0 +1,180 @@
+---
+title: "Interactions"
+description: "When a run stops to ask a person something, how to find the question and how to answer it"
+---
+
+An interaction is a run asking a person a question and waiting for the answer.
+The agent raises one, the run's status goes to `waiting`, and nothing else
+happens until somebody responds — through the app, or through this API.
+
+Two endpoints matter: list what is pending, and answer it.
+
+```bash
+curl -s "$SPLOX_BASE_URL/v2/interactions?status=pending" \
+  -H "Authorization: Bearer $SPLOX_API_KEY"
+```
+
+```json
+{"data":[],"page":{"has_more":false,"next_cursor":null}}
+```
+
+An empty inbox, which is the normal state: nothing is waiting on this account
+right now.
+
+{/* TODO(verify): no pending interaction existed on the docs account while these
+    pages were written, and a run that raises one needs an agent whose tools
+    include system:splox. The object below is the wire schema (v2 contract +
+    internal/v2api/wire.go); only the listing and the error paths on this page
+    were exercised live. */}
+
+## Where they come from
+
+An agent raises one by calling `splox_ui`, the interactive-UI tool on the
+`system:splox` tool server. What it draws decides the interaction's type:
+
+| The agent draws | You get |
+| --- | --- |
+| a confirm surface, with buttons | `type: "choice"`, and `payload.options` is one `{id, label}` per button |
+| a form | `type: "text"`, and `payload.fields` describes the fields |
+
+The API also carries `approval` and `confirmation` types, which are the
+yes-or-no shapes of the same idea.
+
+An agent whose `tools` do not include `system:splox` cannot ask anything, and its
+runs never wait.
+
+## The object
+
+<ResponseField name="id" type="string">`int_...`</ResponseField>
+<ResponseField name="run_id" type="string">The run that is waiting.</ResponseField>
+<ResponseField name="type" type="string">`approval`, `text`, `choice` or `confirmation`.</ResponseField>
+<ResponseField name="status" type="string">`pending`, `answered`, `expired` or `cancelled`.</ResponseField>
+<ResponseField name="prompt" type="string">The question, as the agent wrote it.</ResponseField>
+<ResponseField name="payload" type="object">
+  Type-specific data safe to render: the options of a choice, the fields of a form.
+</ResponseField>
+<ResponseField name="response" type="object | null">
+  The answer once given, with `submitted_at` merged into it. Null while pending.
+</ResponseField>
+<ResponseField name="expires_at" type="string | null">
+  When it stops being answerable, if it has a deadline.
+</ResponseField>
+<ResponseField name="created_at, updated_at, answered_at" type="string">
+  Timestamps; `answered_at` is null until somebody answers.
+</ResponseField>
+
+## Finding one
+
+List, newest first, filtered by `status` and `run_id`, cursor-paged like every
+other collection:
+
+```bash
+curl -s "$SPLOX_BASE_URL/v2/interactions?run_id=run_01M1GFRNR5F4N8S2JZV85T30A4&status=pending" \
+  -H "Authorization: Bearer $SPLOX_API_KEY"
+```
+
+Or read one by id with `GET /v2/interactions/{interaction_id}`.
+
+If you are already watching the [event stream](/api/streaming), you do not have
+to poll: an `interaction.created` event arrives the moment a run stops to ask,
+and `interaction.answered` when it is resolved.
+
+## Answering
+
+```bash
+curl -s -X POST "$SPLOX_BASE_URL/v2/interactions/int_01M1.../responses" \
+  -H "Authorization: Bearer $SPLOX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -d '{"type": "approval", "approved": true, "comment": "ship it"}'
+```
+
+The body is the response variant, and **it must match the interaction's type**:
+
+| Type | Body |
+| --- | --- |
+| `approval` | `{"type": "approval", "approved": true, "comment": "optional"}` |
+| `text` | `{"type": "text", "text": "blue"}` |
+| `choice` | `{"type": "choice", "option_ids": ["opt_a"]}` — ids from `payload.options` |
+| `confirmation` | `{"type": "confirmation", "confirmed": true}` |
+
+The answer is applied atomically and the answered interaction comes back with
+`status: "answered"`, `answered_at` set, and `response` carrying what you sent
+plus `submitted_at`. The waiting run picks the answer up and continues.
+
+`Idempotency-Key` is required here, not optional — answering is a decision, and a
+retried request must not be able to answer twice.
+
+## When it goes wrong
+
+An id that is not yours, or not an id at all, is a 404 before anything else is
+looked at — including a missing idempotency key:
+
+```bash
+curl -s -X POST "$SPLOX_BASE_URL/v2/interactions/int_01JAZ6Y5M3Q8F7N2R4T6V9W0XC/responses" \
+  -H "Authorization: Bearer $SPLOX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: 9d2a...c1" \
+  -d '{"type": "approval", "approved": true}'
+```
+
+```json
+{"type":"https://api.splox.com/problems/not_found","title":"Not Found","status":404,"detail":"The resource does not exist or is not visible to the principal.","code":"not_found"}
+```
+
+| Answer | When |
+| --- | --- |
+| `404 not_found` | unknown interaction, or one belonging to somebody else |
+| `409 interaction_not_pending` | already answered, expired or cancelled |
+| `422 interaction_type_mismatch` | the variant does not match the interaction's type |
+| `422 validation_failed` | a field the variant does not have, reported as `unknown_field` on that field |
+| `409 idempotency_key_conflict` | same key, different body |
+
+Who may answer: the account the interaction belongs to, or the account being
+billed for the run. Anybody else gets the 404.
+
+## In the SDKs
+
+<CodeGroup>
+```python Python
+for interaction in run.pending_interactions():
+    print(interaction.type, interaction.prompt, interaction.payload)
+
+client.interactions.respond(interaction.id, type="approval", approved=True)
+client.interactions.respond(interaction.id, type="text", text="blue")
+client.interactions.respond(interaction.id, type="choice", option_ids=["opt_a"])
+client.interactions.respond(interaction.id, type="confirmation", confirmed=True)
+
+page = client.interactions.list(status="pending", limit=50)
+```
+
+```ts Node
+const pending = await client.interactions.list({ status: "pending" });
+for await (const interaction of pending) {
+  await client.interactions.respond(interaction.id, { type: "approval", approved: true });
+  // { type: "text", text: "..." } | { type: "choice", optionIds: ["a"] } | { type: "confirmation", confirmed: true }
+}
+```
+
+```go Go
+it := client.Interactions.List(ctx, splox.ListInteractionsParams{
+    RunID:  run.ID,
+    Status: []splox.InteractionStatus{splox.InteractionPending},
+})
+for it.Next() {
+    in := it.Value()
+    switch in.Type {
+    case splox.InteractionApproval:
+        client.Interactions.Respond(ctx, in.ID, splox.Approve("ship it"))
+    case splox.InteractionChoice:
+        client.Interactions.Respond(ctx, in.ID, splox.Choose("option-1"))
+    case splox.InteractionText:
+        client.Interactions.Respond(ctx, in.ID, splox.RespondText("blue"))
+    case splox.InteractionConfirmation:
+        client.Interactions.Respond(ctx, in.ID, splox.Confirm(true))
+    }
+}
+```
+</CodeGroup>
+
+All three generate the idempotency key for you and reuse it on retry.

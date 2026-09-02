@@ -1,0 +1,131 @@
+---
+title: "Agent"
+description: "agent() in a program's main.py: the prompt, the model, the tools, and why none of it is stored"
+---
+
+An agent is a call to `agent()` in a program's `main.py`, and the name it is given
+is the whole of its identity.
+
+```python programs/splox/main.py
+from splox import agent
+
+assistant = agent(
+    "Assistant",
+    system_prompt=prompt("assistant"),
+    model="kimi-k3",
+    provider="splox",
+    tools=["system:compute"],
+    skills=["system:agent-browser", "system:memory"],
+    agents=[executor],
+    max_iterations=1000,
+)
+```
+
+The variable is only how the rest of the file refers to it. What travels to the
+platform is `"Assistant"`, because a run stores an address and nothing else: the
+program it belongs to, and the agent inside it.
+
+## Asked, not stored
+
+The prompt, the model, the provider, the tools and the iteration cap are not
+configuration the platform keeps. They are a question it asks `main.py`, and the
+answer is whatever the file says at the moment it is asked. Nothing is parsed at
+publish, frozen into the run, or migrated afterwards.
+
+A chat message is a run, so a line edited between two messages is read by the
+second one, with nothing published in between.
+
+Inside one run the question is asked once, at its start, and that is deliberate: a
+loop whose prompt and tools changed under its own turns would be two runs. What a
+turn *can* take back are the points of the loop — `context.build` rebuilds what
+the model is given on every turn, `model.choose` names the model on every turn.
+See [Hooks](/build/hooks).
+
+## The fields
+
+| Field | Unset means | What it changes |
+| --- | --- | --- |
+| `system_prompt` | empty | The prompt a turn of this agent starts from. Text, or something to call. |
+| `model` | refused at run | The model every turn runs on. |
+| `provider` | — | A provider slug (`anthropic`, `openai`, `gemini`, `openrouter`, `splox`), meaning the platform's own credential. |
+| `tools` | no tools | One tool source per entry. |
+| `skills` | told about no skills | The skills this agent is told it has. |
+| `agents` | no sub-agents | The agents this one may spawn, as the declarations themselves. |
+| `max_iterations` | 10 | How many rounds the tool loop may take. |
+
+An agent names exactly one of `provider` and `text_llm_endpoint_id`, and neither
+is optional. Naming both is refused rather than resolved: an agent that names a
+provider while running on somebody else's credential lies to whoever reads it, and
+there is no reading of it that bills the right account. Both are checked when the
+run starts — which is the first moment anybody can ask the program what it says —
+so `agent()` itself accepts the line and the run is where it fails. See
+[Models](/concepts/model).
+
+Generation settings — `reasoning`, `max_output_tokens`, `temperature`,
+`cache_control`, `modalities` and the rest — are written flat on the same call. A
+name the platform does not know is refused where it is written, rather than
+traveling to the server as a key nobody reads. [Agents](/build/agents) has all of
+them.
+
+## The prompt is a file the program reads
+
+```python
+HERE = Path(__file__).parent
+
+def prompt(name: str):
+    return lambda: (HERE / "prompts" / f"{name}.md").read_text(encoding="utf-8")
+```
+
+`system_prompt=` takes text, or something to call. A callable is called at the
+moment the spec is asked for, which is what makes an edit to
+`prompts/assistant.md` land on the next message rather than the next time
+somebody imports `main.py`. A plain string is read once, when the declaration
+runs.
+
+That distinction is `system_prompt=` alone. `prompts/` is data: the platform never
+opens it, the program does, so its format is the program's business.
+
+## An agent as another agent's tool
+
+`agents=[executor]` names the declarations, and what travels is their names. The
+calling model sees the name sanitized into an identifier — the Executor next door
+is `executor` — and `description` is the only thing it knows before it decides.
+Write that description as an instruction to the caller rather than a summary of
+the callee:
+
+```python
+executor = agent(
+    "Executor",
+    system_prompt=prompt("executor"),
+    model="kimi-k3",
+    provider="splox",
+    tools=["system:compute"],
+    max_iterations=1000,
+    description=(
+        "Hand off a self-contained piece of work and get back the answer. Give it everything it "
+        "needs in the prompt, because it does not see this conversation, and ask for the result "
+        "rather than a description of the result."
+    ),
+)
+```
+
+A spawn is an ordinary run in a chat of its own, parented to the caller's, and it
+belongs to the same program — so it runs on the same hooks. Two things are
+refused: an agent cannot spawn itself, and a sub-agent cannot spawn at all. Both
+are recursion with no floor, and every level costs a run and its tokens before the
+next one starts.
+
+## Naming
+
+Two agents of one program may not share a name: the loop asks for one by name, and
+the first declaration matching it answers. Renaming an agent leaves every run that
+named the old one asking for an agent the program no longer declares.
+
+<CardGroup cols={2}>
+  <Card title="Agents, in full" icon="robot" href="/build/agents">
+    Every field, the generation keys, `context_memory`, and what each edit changes.
+  </Card>
+  <Card title="Sub-agents" icon="sitemap" href="/build/subagents">
+    Handing work out: workspaces, schemas, parallel calls, what comes back.
+  </Card>
+</CardGroup>

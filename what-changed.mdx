@@ -1,0 +1,95 @@
+---
+title: "What changed"
+description: "The workflow canvas is gone. This is what replaced it, and where each old idea now lives."
+---
+
+If you used Splox before, you built workflows: a canvas, nodes you dragged onto
+it, edges between them, an entry node at the top. None of that exists now. The
+product is an agent with its own Linux machine, and what the agent is, is Python
+in a git repository.
+
+This page is the map from the old vocabulary to the new one. Nothing here is a
+rename — most of these are a different mechanism that does the same job.
+
+## The vocabulary
+
+| Old | Now | Where |
+| --- | --- | --- |
+| Workflow | **Harness** — a git repository with a version history | [Harness](/concepts/harness) |
+| The canvas | `programs/<name>/main.py`, Python you edit | [Programs](/concepts/program) |
+| Agent node | `agent("Name", system_prompt=…, model=…, tools=[…])` | [Agents](/concepts/agent) |
+| Entry node | `handle(msg)` in `programs/splox/main.py` | [Programs](/build/programs) |
+| Tool node | a Python function in `tools/`, imported and called in code | [Tools](/build/tools) |
+| Switch node, conditional edge | `if` | [Programs](/build/programs) |
+| Parallel edges | `parallel(...)` and `Pool` over sub-agent runs | [Sub-agents](/build/subagents) |
+| Merge node | the code after those calls return | [Sub-agents](/build/subagents) |
+| Error edge | `hooks/errors.py` — `on(t, err)` answers a provider that failed | [Hooks](/build/hooks) |
+| Tool edge | `tools=[…]` on the agent; `hooks/tools.py` sees every call | [Hooks](/build/hooks) |
+| Variable mappings | ordinary Python variables, and the prompt you hand a sub-agent | [Sub-agents](/build/subagents) |
+| Node lifecycle | the turn loop and its ten hook points | [Hooks](/build/hooks) |
+| Workflow version | a harness version: `refs/versions/N`, published by pushing | [Versions](/build/versions) |
+| Execution tree | the run tree: `GET /v2/runs/{run_id}/tree` | [Runs](/api/runs) |
+| Run a workflow | `POST /v2/runs` | [Runs](/api/runs) |
+| Trigger webhook | a program in the harness that listens, started on the machine | [Patterns](/build/patterns) |
+| Memory instance | files on the machine, and the window's own compaction | [Memory](/build/memory) |
+| MCP connection | **Connections**; a connected server shows up as a tool package | [Tools](/build/tools) |
+| Provider pages | **Connections**, and `provider=` or `text_llm_endpoint_id=` on the agent | [Models](/concepts/model) |
+| `chat.splox.io`, `app.splox.io` | one app | — |
+
+The v1 endpoints behind the old canvas — `/api/v1/workflows`,
+`/api/v1/memory/instances`, `/api/v1/mcp/connections` — return 404. The current
+API is [v2](/api/introduction).
+
+## Why the canvas went
+
+**A graph draws the decisions in advance.** The model makes them per message,
+with the whole conversation in front of it. Every branch that was drawn as a
+switch node was a decision taken away from the model and frozen at design time.
+What is left that a graph really did own — *which agent takes this message* — is
+now a function, because it is the one thing only your own code can know:
+
+```python programs/splox/main.py
+def handle(msg):
+    if msg.text.startswith("/support"):
+        return triage
+    return assistant
+```
+
+**Code is reviewable and versioned.** A harness is a git repository. A version is
+a commit. A run records the exact commit it executed, so you can read back the
+tree that produced any answer. A canvas had a version number; it did not have a
+diff.
+
+**Tools compose when they are called in code.** A JSON tool call gets one result
+back into the context window and the model pays for all of it. A tool that is a
+Python function can be chained with four others in one script, filtered, and made
+to print only the answer. That is why tools here are imports rather than calls.
+
+**Hooks instead of forks.** The turn loop has ten named points — context, model,
+tools, guard, memory, errors, stop — and a hook is a file that answers one of
+them. You change one decision without owning the loop, and a hook that fails
+falls back rather than taking the run down.
+
+## What has no replacement
+
+There is no visual editor. If what you want is a fixed pipeline with phases and
+checkpoints, you write it: it is ordinary Python in a program, with `while True`,
+a queue, a retry and a database if it needs one. The starter tree carries
+`programs/compiler/` as a worked example of that shape — several agents, phases,
+resumable — and its README is the thing to read before building anything similar.
+
+## If you are coming back
+
+<Steps>
+  <Step title="Your account already has a machine">
+    Sign in and you have a harness copied from the Assistant starter and a machine
+    running it. [Quickstart](/quickstart).
+  </Step>
+  <Step title="Read the six words">
+    Machine, harness, program, agent, run, chat. [Concepts](/concepts/overview).
+  </Step>
+  <Step title="Port the one workflow you actually miss">
+    Write it as a program. [Patterns](/build/patterns) has four shapes to copy: a
+    router, a bot, a nightly job and a fan-out.
+  </Step>
+</Steps>

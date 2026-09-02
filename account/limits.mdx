@@ -1,0 +1,153 @@
+---
+title: "When a limit is reached"
+description: "What a full usage window does to a request, to a chat and to a run in progress — and what does not lift it"
+---
+
+A full window is not a broken account and not an empty one. It means you are
+going faster than your plan allows, and the useful facts are which window ran
+out, how full it is, and the moment it frees up. Every surface below carries all
+three.
+
+## First: a full window is not always a refusal
+
+The funding decision is made once per call, in this order:
+
+1. **The plan pays** while neither window is full.
+2. **The wallet pays** when a window is full and there is money in it — at list
+   prices, as [extra usage](/account/extra-usage).
+3. **Nothing pays**, and the call is refused.
+
+So a window at 100% only refuses you when there is nothing behind it. On a free
+account there is nothing behind it by definition: the wallet cannot be filled
+without a paid plan. On Pro or Max with a funded wallet, a full window changes
+what you are charged, not whether you are served.
+
+## The refusal
+
+A request refused by the gate answers `429` with the whole quota in the body —
+the same object [Usage](/account/usage) renders, so a client can show somebody
+exactly what happened without inventing wording:
+
+```json
+{
+  "error": "usage_window_exceeded",
+  "retry_after_seconds": 5400,
+  "mode": "blocked",
+  "windows": [
+    {"kind": "5h",   "status": "limited", "used_percent": 104, "window_seconds": 18000,
+     "resets_at": "2026-09-02T12:19:14Z", "resets_in_seconds": 5400},
+    {"kind": "week", "status": "allowed", "used_percent": 31,  "window_seconds": 604800,
+     "resets_at": "2026-09-09T07:19:14Z", "resets_in_seconds": 178200}
+  ],
+  "extra": {"enabled": false, "spent_micro_usd_this_cycle": 0, "wallet_micro_usd": 0}
+}
+```
+
+`Retry-After` on the response carries the same number of seconds as
+`retry_after_seconds`. It is the **latest** reset among the limited windows, not
+the earliest: clearing the 5-hour window while the weekly one is also full only
+buys you a second refusal, so the wait quoted is the one that actually ends it.
+The figure is rounded up, so waiting exactly that long is enough.
+
+`used_percent: 104` is not a bug. Admission does not hold an estimate back
+against the cap, so you get the whole cap and the last call admitted can carry
+the window a little past it.
+
+<Note>
+A full window cannot be produced on demand on a shared account, so the body
+above is the shape the gate builds — field for field, from the server's own
+renderer and the client contract tests it is checked against — with this
+account's timestamps in it rather than a captured response.
+</Note>
+
+{/* TODO(verify): body shape from internal/billing/errors.go
+    (UsageWindowExceededPayload) and cmd/api/billing_gate.go, cross-checked
+    against the frontend's fixtures in
+    components/features/chat/chat-panel/__tests__/usage-window-limit.test.ts.
+    Not captured live — see the note above. */}
+
+## In the app
+
+A refused request raises one warning toast, titled with the window that refused
+(`5-hour limit reached`) and reading *"You are going faster than your plan
+allows. Resets 12:19 PM UTC · in 4h 5m"*. No modal, no checkout button: you have
+not run out of money, and offering a payment page would be both wrong and
+expensive. The usage screen refreshes behind it so the bars agree with what the
+gate just saw.
+
+A burst of parallel calls all failing at once still produces one toast.
+
+## In a chat
+
+If the window fills before a turn starts, the turn does not start and the toast
+is all there is. If it fills **while the agent is working**, the run stops where
+it is and the assistant's last message is the reason, in plain words:
+
+> You have used your 5-hour limit. It frees up at 12:19 UTC on 2 Sep 2026.
+
+Everything the run had already done stays: the messages, the tool calls, the
+files it wrote on the machine. Nothing is rolled back. Send the message again
+after the reset and the agent picks up from a machine that still has its work on
+it.
+
+## In the API
+
+A run stopped this way is not an HTTP error — the request that started it
+already succeeded. The run comes back terminal, with the reason on it:
+
+```json
+{
+  "status": "failed",
+  "failure": {
+    "code": "usage_window_exceeded",
+    "message": "You have used your 5-hour limit. It frees up at 12:19 UTC on 2 Sep 2026.",
+    "retryable": false
+  }
+}
+```
+
+`usage_window_exceeded` and `out_of_funds` are deliberately different codes. One
+is fixed by waiting and the other by paying, and sending somebody with money in
+their account to a checkout helps nobody. Branch on the code, not on the
+sentence. [Errors](/api/errors) lists both alongside every other code the API
+returns.
+
+## What lifts it
+
+| | |
+| --- | --- |
+| **Waiting for `resets_at`** | The whole window comes back at that moment, not gradually. |
+| **Moving up a plan** | Raises the cap now. What you have spent is frozen; the number it is measured against is the new plan's, so a window that read 100% reads a fraction of that as soon as the subscription is active. |
+| **Money in the wallet** (paid plans) | Does not raise the cap. It funds calls past the full window at list prices, which is what `mode: "extra"` means. |
+
+## What does not
+
+- **Retrying sooner.** The window has not moved; you get the same refusal.
+- **A new chat, a new machine, a second harness.** The windows belong to the
+  account. Nothing about where the work runs changes them.
+- **Topping up, on a free account.** The wallet needs a paid plan before it can
+  hold anything, so on Free the only two answers are waiting and upgrading.
+- **Canceling and resubscribing.** The window records what the account spent,
+  not what the subscription did. A new subscription changes the cap; it does not
+  erase the spend inside an open window.
+
+## Refusals that look alike
+
+| Code | Where | What it is | What fixes it |
+| --- | --- | --- | --- |
+| `usage_window_exceeded` | 429, or on the run | a plan window is full, with nothing behind it | waiting, or a bigger plan |
+| `rate_limited` | 429 | too many requests per second, or too many at once | `Retry-After`, then retry |
+| `machine_limit_reached` | 402 | more machines than the plan runs | delete one, or a bigger plan |
+| `out_of_funds` | on the run | the wallet is under $0.50 with the windows full | topping up |
+
+The second one is about request rate and has nothing to do with your allowance;
+[Errors](/api/errors) covers it.
+
+<CardGroup cols={2}>
+  <Card title="Usage" icon="gauge" href="/account/usage">
+    The windows, and how to read them before they fill.
+  </Card>
+  <Card title="Extra usage" icon="wallet" href="/account/extra-usage">
+    What pays once a window is full.
+  </Card>
+</CardGroup>

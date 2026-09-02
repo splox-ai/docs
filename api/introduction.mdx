@@ -1,0 +1,162 @@
+---
+title: "The API"
+description: "What the HTTP API does, where it lives, and what a request and an answer look like"
+---
+
+The API starts a run of a harness on a machine, reads everything that run did, and
+answers the questions it asks. It is the same API the Splox app is built on, so
+anything you can watch happen in a chat you can drive from your own code.
+
+The first call needs nothing but a key:
+
+```bash
+export SPLOX_BASE_URL=https://splox.io/api
+export SPLOX_API_KEY=...
+
+curl -s "$SPLOX_BASE_URL/v2/llm-endpoints" \
+  -H "Authorization: Bearer $SPLOX_API_KEY"
+```
+
+```json
+{
+  "data": [
+    { "id": "019e2d78-0f8e-7f47-8c59-46bfa4f8f076", "name": "OpenAI",    "client": "openai",    "is_platform": true, "is_default": false },
+    { "id": "019e2d78-0f8f-7fc5-b2a9-ed2b8ce9edbe", "name": "Anthropic", "client": "anthropic", "is_platform": true, "is_default": true },
+    { "id": "019e2d78-0f8f-7581-9dbd-2adbfd795691", "name": "Gemini",    "client": "gemini",    "is_platform": true, "is_default": false },
+    { "id": "019f0eb5-32a0-7291-bdc3-36441b60f86f", "name": "Splox",     "client": "splox",     "is_platform": true, "is_default": false }
+  ]
+}
+```
+
+## Base URL and versions
+
+`https://splox.io/api` is the root, and every path under it carries its own
+version. Nothing is rewritten: the path you write is the path that is served.
+
+| Prefix | What lives there |
+| --- | --- |
+| `/v2/...` | Runs, run events, messages, outputs, tree, usage, interactions, harnesses, evaluations, and the model and tool-server catalogs. |
+| `/v1/...` | The older surface the app still uses. Machines and API tokens are here, and nowhere else yet. |
+
+v2 is the contract the rest of these pages describe. It is contract-first: paths,
+fields, statuses and error codes come from a spec the server is built against,
+and every response body is JSON with `snake_case` fields.
+
+<Note>
+Every request and response on these pages was run against a live Splox instance
+with `SPLOX_BASE_URL` pointing at it. Ids, timestamps and token counts are as
+they came back.
+</Note>
+
+## What a request looks like
+
+A key in a header, JSON in the body:
+
+```bash
+curl -s "$SPLOX_BASE_URL/v2/runs" \
+  -H "Authorization: Bearer $SPLOX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -d '{
+    "harness_id": "h_5V125BR7R4AA189NRYAB3DQC6D",
+    "machine_id": "m_01M1GEXZXMEDP9GRYV3ZQ5R4YZ",
+    "input": {"role": "user", "content": [{"type": "text", "text": "Run `uname -sm` and reply with what it printed."}]}
+  }'
+```
+
+Three rules hold everywhere:
+
+- **Bearer only.** No cookies, no query-string keys. See [Authentication](/api/authentication).
+- **Writes carry an `Idempotency-Key`.** It is required — not optional — on
+  `POST /v2/runs`, `POST /v2/harnesses`, `POST /v2/evaluations` and
+  `POST /v2/interactions/{id}/responses`. Repeat the request with the same key
+  and the same body and you get the original answer back, with
+  `Idempotency-Replayed: true` on it. Same key, different body, and you get
+  `409 idempotency_key_conflict`.
+- **Unknown fields are refused.** A typo is an error, not a silently ignored key:
+
+  ```json
+  {"type":"https://api.splox.com/problems/unknown_field","title":"Bad Request","status":400,"detail":"Unknown field \"conversation_id\" in request body.","code":"unknown_field"}
+  ```
+
+A v2 request other than the event stream is given 30 seconds on the server; the
+stream has no such limit and stays open for the length of the run.
+
+## What an answer looks like
+
+A single resource comes back as itself. A collection comes back as a page:
+
+```json
+{
+  "data": [ ... ],
+  "page": { "has_more": false, "next_cursor": null }
+}
+```
+
+Paging is by cursor, never by offset. Pass `cursor=<next_cursor>` to continue and
+`limit=` to size the page (1–100, default 20; the event journal allows up to 500).
+A cursor is bound to the endpoint and the filters that produced it — reuse it
+somewhere else and the API says so rather than quietly returning the wrong rows.
+
+Anything that is not a 2xx is an [RFC 9457 problem document](/api/errors) with
+`application/problem+json` and a stable `code`.
+
+## Ids
+
+Public ids are a prefix and 26 Crockford base32 characters — a UUID in a form
+that says what it names:
+
+| Prefix | Resource |
+| --- | --- |
+| `run_` | a run |
+| `chat_` | a chat, the conversation a run belongs to |
+| `h_` | a harness |
+| `m_` | a machine |
+| `int_` | an interaction |
+| `msg_`, `out_`, `evt_` | a message, an output, an event |
+| `eval_`, `ecase_` | an evaluation and one of its cases |
+
+`/v1/...` speaks raw UUIDs for the same objects. The SDKs convert both ways, and
+the conversion is pure — the same UUID always encodes to the same public id:
+
+```python
+from splox import encode_id, decode_id
+
+encode_id("m", "01a060ee-ffb4-736c-9863-db1fee5c13df")  # 'm_01M1GEXZXMEDP9GRYV3ZQ5R4YZ'
+decode_id("m_01M1GEXZXMEDP9GRYV3ZQ5R4YZ")               # UUID('01a060ee-ffb4-736c-9863-db1fee5c13df')
+```
+
+Timestamps are RFC 3339 in UTC. Money is a decimal **string** — `"0.027065"`,
+never a JSON float, because a float would round somebody's bill.
+
+## What the SDKs add over raw HTTP
+
+The wire is simple enough to use with `curl`, and the [Python](/sdk/python),
+[Node](/sdk/node) and [Go](/sdk/go) SDKs are the same wire with the tedious parts
+done for you:
+
+- an `Idempotency-Key` on every write, and retries that reuse it rather than
+  duplicating work
+- cursor pagination as an iterator
+- the SSE stream reconnected with `Last-Event-ID`, deduplicated by event id, and
+  closed after the terminal event
+- problem documents as typed exceptions with `.code`, `.status_code` and
+  `.trace_id`
+- public-id encoding, so a raw UUID is accepted wherever an id is
+
+## Where to go next
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/api/authentication">
+    Where a key comes from and how it is sent.
+  </Card>
+  <Card title="Runs" icon="play" href="/api/runs">
+    Start one, watch it, read what it produced.
+  </Card>
+  <Card title="Streaming" icon="rss" href="/api/streaming">
+    The event journal, live or by page.
+  </Card>
+  <Card title="Errors" icon="triangle-exclamation" href="/api/errors">
+    The problem shape and every code it carries.
+  </Card>
+</CardGroup>

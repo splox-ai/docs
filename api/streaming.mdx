@@ -1,0 +1,208 @@
+---
+title: "Streaming events"
+description: "The run journal live over SSE or page by page, how to resume it, and how it ends"
+---
+
+Every run writes a journal: numbered events, durable, in order. One endpoint
+serves it both ways — live as Server-Sent Events, or as JSON pages you can walk
+at your own pace — and the events are identical either way.
+
+```bash
+curl -sN "$SPLOX_BASE_URL/v2/runs/run_01M1GFRNR5F4N8S2JZV85T30A4/events" \
+  -H "Authorization: Bearer $SPLOX_API_KEY" \
+  -H "Accept: text/event-stream"
+```
+
+```
+id: cur_eyJ2IjoxLCJlIjoibGlzdFJ1bkV2ZW50cyIsImYiOiJkNzM0NDM2MGZiMjhmMjk3IiwiayI6eyJzZXEiOjF9fQ
+event: run.created
+data: {"id":"evt_01M1GFRNRXEY0SPH1072CKK9GR","cursor":"cur_eyJ2Ijox...","run_id":"run_01M1GFRNR5F4N8S2JZV85T30A4","sequence":1,"type":"run.created","created_at":"2026-09-02T07:19:05.239492Z","data":{"chat_id":"chat_01M1GFRNQHF6W9Q9RMP1QMZQR8","harness_id":"h_5V125BR7R4AA189NRYAB3DQC6D","run_id":"run_01M1GFRNR5F4N8S2JZV85T30A4"}}
+
+id: cur_eyJ2IjoxLCJlIjoibGlzdFJ1bkV2ZW50cyIsImYiOiJkNzM0NDM2MGZiMjhmMjk3IiwiayI6eyJzZXEiOjJ9fQ
+event: run.status_changed
+data: {"id":"evt_01M1GFRP0ZEYRAVRJW5MBNF9FF","cursor":"cur_eyJ2Ijox...","run_id":"run_01M1GFRNR5F4N8S2JZV85T30A4","sequence":2,"type":"run.status_changed","created_at":"2026-09-02T07:19:05.499701Z","data":{"to":"running"}}
+```
+
+The response is `text/event-stream; charset=utf-8` with `Cache-Control: no-cache`,
+and each frame carries three lines:
+
+- `id` — the event's **cursor**. It is what you send back to resume.
+- `event` — the event type, so a client can dispatch without parsing the body.
+- `data` — the whole event object, the same JSON the paged mode returns.
+
+Every 15 seconds of silence the server writes a comment frame, `:hb`, to keep the
+connection from being reaped by something in the middle. Ignore it; SSE clients
+already do.
+
+## Or read it as pages
+
+Ask for JSON — or send no `Accept` at all — and the same journal comes back a
+page at a time:
+
+```bash
+curl -s "$SPLOX_BASE_URL/v2/runs/run_01M1GFRNR5F4N8S2JZV85T30A4/events?limit=2" \
+  -H "Authorization: Bearer $SPLOX_API_KEY"
+```
+
+```json
+{
+  "data": [
+    {
+      "id": "evt_01M1GFRNRXEY0SPH1072CKK9GR",
+      "cursor": "cur_eyJ2IjoxLCJlIjoibGlzdFJ1bkV2ZW50cyIsImYiOiJkNzM0NDM2MGZiMjhmMjk3IiwiayI6eyJzZXEiOjF9fQ",
+      "run_id": "run_01M1GFRNR5F4N8S2JZV85T30A4",
+      "sequence": 1,
+      "type": "run.created",
+      "created_at": "2026-09-02T07:19:05.239492Z",
+      "data": {"chat_id": "chat_01M1GFRNQHF6W9Q9RMP1QMZQR8", "harness_id": "h_5V125BR7R4AA189NRYAB3DQC6D", "run_id": "run_01M1GFRNR5F4N8S2JZV85T30A4"}
+    },
+    {
+      "id": "evt_01M1GFRP0ZEYRAVRJW5MBNF9FF",
+      "cursor": "cur_eyJ2IjoxLCJlIjoibGlzdFJ1bkV2ZW50cyIsImYiOiJkNzM0NDM2MGZiMjhmMjk3IiwiayI6eyJzZXEiOjJ9fQ",
+      "run_id": "run_01M1GFRNR5F4N8S2JZV85T30A4",
+      "sequence": 2,
+      "type": "run.status_changed",
+      "created_at": "2026-09-02T07:19:05.499701Z",
+      "data": {"to": "running"}
+    }
+  ],
+  "page": {"has_more": true, "next_cursor": "cur_eyJ2IjoxLCJlIjoibGlzdFJ1bkV2ZW50cyIsImYiOiJkNzM0NDM2MGZiMjhmMjk3IiwiayI6eyJzZXEiOjJ9fQ"}
+}
+```
+
+`limit` runs from 1 to 500 and defaults to 100. `next_cursor` is the last row's
+cursor even when `has_more` is false, so a client that has caught up can keep the
+cursor and resume later instead of starting over.
+
+Asking for something neither mode serves is a 406:
+
+```json
+{"type":"https://api.splox.com/problems/not_acceptable","title":"Not Acceptable","status":406,"detail":"listRunEvents supports application/json and text/event-stream.","code":"not_acceptable"}
+```
+
+## The event types
+
+`sequence` counts from 1 and is monotonic per run, so it also tells you whether
+you missed anything.
+
+| Type | `data` carries |
+| --- | --- |
+| `run.created` | `run_id`, `chat_id`, `harness_id` |
+| `run.status_changed` | `to`: the new status |
+| `message.created` | `message_id`, `role` — fetch the body from [messages](/api/runs#read-the-transcript) |
+| `output.created` | `output_id`, `type`, `name` |
+| `interaction.created` | the [interaction](/api/interactions) a person is now being asked |
+| `interaction.answered` | that interaction, once answered |
+| `usage.updated` | the running total of tokens and cost |
+| `hook.called` | `hook`, `source`, `decision`, `duration_ms` |
+| `hook.fallback` | a hook that deferred, raised or timed out, so the platform answered instead |
+| `output.rejected` | an output the run produced and the platform refused |
+
+`hook.called` is the one worth watching while you build: it names the file that
+answered each point of the loop and what it decided.
+
+```json
+{"hook": "guard.on_input", "source": "programs/splox/hooks/guard.py", "decision": "use_default", "duration_ms": 69}
+{"hook": "context.build",  "source": "programs/splox/hooks/context.py", "decision": "answered",    "duration_ms": 17}
+```
+
+A whole short run, in order, looks like this — 16 events for one question with one
+tool call in it:
+
+```
+1  run.created
+2  run.status_changed  {"to": "running"}
+3  message.created     {"role": "user"}
+4  hook.called         guard.on_input
+5  hook.called         context.build
+6  hook.called         model.choose
+7  hook.called         stop.done
+8  message.created     {"role": "assistant"}     <- the tool call
+9  hook.called         tools.before
+10 message.created     {"role": "tool"}          <- the tool result
+11 hook.called         context.build
+12 hook.called         model.choose
+13 hook.called         stop.done
+14 message.created     {"role": "assistant"}     <- the answer
+15 output.created      {"name": "final_message"}
+16 run.status_changed  {"to": "succeeded"}
+```
+
+## Reconnecting
+
+Delivery is at-least-once, so a client that reconnects may see an event it
+already has. **Deduplicate by event `id`** and you can reconnect as often as you
+like.
+
+To resume, hand back the last cursor you saw — either as the standard SSE header
+or as a query parameter:
+
+```bash
+curl -sN "$SPLOX_BASE_URL/v2/runs/$RUN/events" \
+  -H "Authorization: Bearer $SPLOX_API_KEY" \
+  -H "Accept: text/event-stream" \
+  -H "Last-Event-ID: cur_eyJ2IjoxLCJlIjoibGlzdFJ1bkV2ZW50cyIsImYiOiJkNzM0NDM2MGZiMjhmMjk3IiwiayI6eyJzZXEiOjJ9fQ"
+```
+
+Browser `EventSource` sends that header for you. The stream continues strictly
+after the named event.
+
+Cursors are opaque and bound to the endpoint and run that issued them. Three ways
+to get it wrong, three distinct answers:
+
+| Answer | When |
+| --- | --- |
+| `400 cursor_invalid` | the cursor is malformed |
+| `400 cursor_filter_mismatch` | the cursor was issued for a different endpoint or filter set |
+| `410 event_cursor_expired` | the cursor points before the retained window — "Restart without a cursor." |
+
+## How a stream ends
+
+The stream closes after the `run.status_changed` event whose `to` is `succeeded`,
+`failed` or `cancelled`. That event is the last frame you will see:
+
+```
+id: cur_eyJ2IjoxLCJlIjoibGlzdFJ1bkV2ZW50cyIsImYiOiJkNzM0NDM2MGZiMjhmMjk3IiwiayI6eyJzZXEiOjE2fX0
+event: run.status_changed
+data: {"id":"evt_01M1GFS0ZRFTTA72410A246DBB","run_id":"run_01M1GFRNR5F4N8S2JZV85T30A4","sequence":16,"type":"run.status_changed","created_at":"2026-09-02T07:19:16.726649Z","data":{"to":"succeeded"}}
+```
+
+The server drains anything that landed in the moment around that transition
+before it hangs up, but the journal is the authority and the stream is not: if
+you need to be certain you have everything, do one paged read from your last
+cursor after the stream closes. It is cheap, and it is the difference between
+usually complete and complete.
+
+## In the SDKs
+
+The reconnect, the deduplication and the terminal close are already written:
+
+<CodeGroup>
+```python Python
+for event in run.events():                 # SSE; stream=True is the default
+    print(event.sequence, event.type, event.data)
+
+page = run.events(stream=False, limit=100)  # durable pages instead
+```
+
+```ts Node
+for await (const event of run.events({ stream: true })) {
+  console.log(event.sequence, event.type, event.data);
+}
+
+for await (const event of run.events({ stream: false })) { /* journal, stops when caught up */ }
+```
+
+```go Go
+stream, err := client.Runs.Events(ctx, run.ID, splox.EventsOpts{Stream: true})
+defer stream.Close()
+for ev := range stream.Events() {
+    fmt.Println(ev.Sequence, ev.Type, string(ev.Data))
+}
+err = stream.Err() // nil after a clean terminal close
+```
+</CodeGroup>
+
+All three reconnect with `Last-Event-ID`, drop duplicates by event id, and end the
+iteration after the terminal event — leaving you the same "do a final paged read"
+choice the raw protocol does.

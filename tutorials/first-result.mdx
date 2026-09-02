@@ -1,0 +1,148 @@
+---
+title: "Your first real result"
+description: "Give the agent a job that ends in a file, watch it work, and find the file from another chat"
+---
+
+Fifteen minutes, no code, one file on your machine at the end of it. You need an
+account and the machine it came with — nothing else.
+
+The job below is a loan schedule because it is small and checkable, but the shape
+is the point: **ask for something that ends in a file**, then go and find the
+file. That is what separates an agent with a computer from a chat window.
+
+<Steps>
+
+<Step title="Ask for the file">
+
+Open a new chat and send this:
+
+```text
+Work out the repayment schedule for a $10,000 loan at 7% a year over 12 months.
+Write the month-by-month table to /home/daytona/reports/loan.csv, and tell me the
+monthly payment and the total interest.
+```
+
+Two things about that message are deliberate. It names an **absolute path**, so
+there is no doubt where the file lands — `/home/daytona` is the agent's home, and
+`~` is not expanded by the file tools. And it asks for a file *and* an answer, so
+you can check one against the other.
+
+</Step>
+
+<Step title="Watch the tool calls">
+
+While it works you get a collapsed chip — `Ran /home/daytona/reports/loa… (+1 more)`.
+Click it.
+
+<Frame caption="The same turn opened: the reasoning, the Python it wrote and ran, and the file it read back">
+  <img src="/images/tutorials/first-result-turn.png" alt="A Splox turn expanded, showing reasoning, a bash tool call and a file read" />
+</Frame>
+
+The run took 31 seconds and made two tool calls. The first was not "call the
+loan-calculator tool" — there is no such tool. It wrote a Python program and ran
+it in its shell:
+
+```python
+from decimal import Decimal, getcontext
+import csv
+
+P = Decimal("10000")        # principal
+annual = Decimal("0.07")    # annual rate
+n = 12
+r = annual / 12
+...
+with open("/home/daytona/reports/loan.csv", "w", newline="") as f:
+    w = csv.writer(f)
+    w.writerow(["month", "payment", "principal", "interest", "remaining_balance"])
+    w.writerows(rows)
+```
+
+The second call read the file back to check it. Then it answered:
+
+```text
+Monthly payment: $865.27 — Total interest: $383.22 (total paid $10,383.22)
+```
+
+Under the answer is the footer for that turn: `kimi-k3 · Sep 2, 9:54 AM · 31.2s ·
+60.5 tok/s` — the model, when it ran, how long it took, how fast it generated.
+One turn is one [run](/concepts/run), and everything it did is kept.
+
+<Tip>
+If the numbers matter to you, the reasoning is worth opening too. This run
+noticed that a fixed payment leaves two cents on the table and made the last
+payment $865.25 so the balance lands on zero.
+</Tip>
+
+</Step>
+
+<Step title="Find the file from a different chat">
+
+Start a **new chat** — not a new message in the old one — and ask:
+
+```text
+Read /home/daytona/reports/loan.csv and tell me the total interest across the
+twelve months.
+```
+
+It reads the file and answers `$383.22`, with the twelve numbers it added up. The
+second conversation knows nothing about the first one; the *machine* is what they
+share. That is the difference between this and a sandbox that resets between
+sessions.
+
+</Step>
+
+<Step title="Take the file with you">
+
+Still in that chat:
+
+```text
+Give me a download link for that CSV.
+```
+
+<Frame caption="A new chat reads a file the first one wrote, and hands it back as a link">
+  <img src="/images/tutorials/first-result-download.png" alt="A Splox chat showing a file read and a download link for loan.csv" />
+</Frame>
+
+Behind the chip is one tool call, `compute_download`, and what it returned:
+
+```json
+{"url": "https://41999-aonmiuynlxeublg6.splox.app/loan.csv", "filename": "loan.csv", "expires_in_seconds": 3600}
+```
+
+The link is served from the machine and lasts an hour. Fetched from a laptop with
+no session and no key, it is the file:
+
+```
+month,payment,principal,interest,remaining_balance
+1,865.27,806.94,58.33,9193.06
+2,865.27,811.64,53.63,8381.42
+```
+
+</Step>
+
+</Steps>
+
+## What you just saw
+
+**The agent writes code instead of filling in forms.** No loan tool was
+installed, and none was needed: the model's own tool is a shell, and the answer
+came from a program it wrote. See [Tools](/build/tools) for why the platform is
+built this way.
+
+**Files outlive conversations.** `/home/daytona/reports/loan.csv` belongs to the
+[machine](/concepts/machine). Stop the machine and it is still there; start
+another chat next week and it is still there.
+
+**Every turn is inspectable.** The reasoning, each call, its arguments, its
+output and the bill are all kept against the run.
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="Give it a tool of your own" icon="wrench" href="/tutorials/custom-tool">
+    Twenty minutes: write a Python function into your harness, publish it, and watch the agent call it by name.
+  </Card>
+  <Card title="Drive it from your own code" icon="code" href="/tutorials/api-run">
+    The same run over HTTP: create it, stream its events, read its outputs.
+  </Card>
+</CardGroup>

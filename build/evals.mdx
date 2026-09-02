@@ -1,0 +1,208 @@
+---
+title: "Checks"
+description: "Cases and graders your harness carries, how to run them, and how to read the result"
+---
+
+A harness says what it is checked by, and carries the checks in its own tree:
+
+```
+evals/cases/<name>.yaml     one scripted check of this harness
+evals/graders/<name>.py     the judges those cases call
+evals/results/              artifacts a run left behind
+```
+
+A case is a file in git, so it survives the chat that wrote it and travels with the
+version it checks.
+
+```yaml
+# evals/cases/tone.yaml
+defaults: {trials: 3, timeout: 300s}
+
+scenarios:
+  - id: answers-in-one-line
+    user: What is the capital of France?
+    expect:
+      - final_answer_contains: Paris
+      - final_answer_max_chars: 120
+      - no_error: true
+
+  - id: uses-the-shell-rather-than-guessing
+    user:
+      - List the files in the home directory.
+      - Now count them.
+    trials: 5
+    expect:
+      - tool_called: {name: shell__run}
+      - min_tool_calls: {name: shell__run, count: 2}
+      - grader: {name: quality.answers, pass_below: 0.7}
+```
+
+```
+harness_eval
+```
+
+Name cases to run some of them — by file name, without the directory and without
+the extension — or name none and every case runs. A draft that is not a file yet
+goes into the call as `scenarios` and ends up in the same runner, which is how a
+case is tried before it becomes a file.
+
+Cases are independent of one another, a chat and a run each, so they run in
+parallel. The scenarios inside one case run in order, because they share a
+conversation.
+
+<Warning>
+`harness_eval` drives the same path a chat run takes — billing, SSE events, chat
+history, worker task — so what it exercises is the harness and not a
+re-implementation of it. It also means it costs what a real conversation costs, and
+that its runs appear in the chat list.
+</Warning>
+
+## A case
+
+`user` is one turn or a list of them; a list is sequential turns on the same chat,
+each starting after the previous run reached a terminal state. `trials` and
+`timeout` default from `defaults` and are overridable per scenario.
+
+A case in the tree carries nothing else. `suite:`, `agent:`, `tool:`,
+`harness_id:`, `machine_id:` and `files:` all describe a throwaway harness to test
+and the computer to test it on, and a case in the tree tests the harness the tree
+**is**, wherever that tree is already running. Each of them is refused by name, with
+the reason.
+
+## What a scenario may assert
+
+| Assertion | Passes when |
+| --- | --- |
+| `tool_called: {name, args}` | that tool was called; `args` is a subset match |
+| `tool_not_called: {name}` | it never was |
+| `tool_order: {first, then}` | the first was called before the second |
+| `min_tool_calls: {name, count}` | it was called at least that many times |
+| `max_tool_calls: {name, count}` | it was called at most that many times |
+| `result_contains: {name, substring}` | that tool's result carried the substring |
+| `final_answer_contains: <text>` | the answer carried it |
+| `final_answer_not_contains: <text>` | the answer did not |
+| `final_answer_max_chars: <n>` | the answer was no longer than that |
+| `hook_called: {name, decision}` | the hook ran, and decided that; name it alone for "ran at all" |
+| `no_error: true` | the run finished without one |
+| `grader: {name, pass_below}` | the judge passed it, at or above that score |
+
+A trial passes when **every** assertion of its scenario passes. There is no partial
+credit inside a trial.
+
+`hook_called` is the one that pays for itself fastest. A hook that agrees with the
+platform and a hook that has been timing out all week produce the same conversation;
+`hook_called: {name: tools.before, decision: deny}` is a check that the guard is
+actually guarding.
+
+## Two numbers, three verdicts
+
+A scenario is run `trials` times, and the two numbers that come out of it are the
+ones worth knowing:
+
+| | Means |
+| --- | --- |
+| `pass@k` | at least one trial passed — it **can** do it |
+| `pass^k` | every trial passed — it **reliably** does it |
+
+The verdict is those two together: **pass** when both hold, **flaky** when it passed
+at least once but not always, **fail** when no trial passed.
+
+Flaky is its own word on purpose. A check that passes four times in five is not a
+check that passes, and one trial cannot tell you which of the three you have — so
+`trials: 1` can only ever report pass or fail, and a case that matters is worth
+running three or five times.
+
+Scoring is a pure function of the artifact, so `evals/results/` from last month can
+be scored again by today's rules without running anything.
+
+## A grader
+
+Assertions match text and calls. Anything that needs judgment is a grader: Python
+in the tree, called by name from a case, running in the sandbox that holds the tree
+— which is the whole point, because it is handed `t`, and so `t.llm`: a judge model
+called through the platform, on the platform's key, against the platform's
+accounting.
+
+```python
+# evals/graders/quality.py
+
+import re
+
+
+def answers(t, case, run):
+    """Did the answer actually answer, and in the register we want?"""
+    verdict = t.llm(
+        "Answer with a number from 0 to 1 and one sentence of why.\n\n"
+        f"Question: {case['user'][0]}\n"
+        f"Answer: {run['final_answer']}"
+    )
+    found = re.search(r"\d+(?:\.\d+)?", verdict)
+    score = float(found.group()) if found else 0.0
+    return {"pass": score >= 0.7, "score": score, "why": verdict}
+```
+
+<Warning>
+Read the judge's answer loosely. A model told to answer with a number answers `0.8`,
+or `**1.0**`, or "Score: 0.9" — `float(verdict.split()[0])` raises on the second of
+those, and a grader that raises is a trial that failed for a reason that has nothing
+to do with the harness under test.
+</Warning>
+
+A grader is named `<file>.<function>` — `quality.answers` above — the way a tool is
+`<file>__<function>`, and the name is read back to the **first** dot, so neither the
+file nor the function may carry one. A case calling a judge the tree does not hold
+is refused at publish time, not discovered on a run.
+
+It is handed one scenario and one trial of it, not the file:
+
+```python
+case = {"id": ..., "user": [...], "expect": [...]}
+run  = {"final_answer": ..., "tool_calls": [...], "error": ..., "turns": ..., "duration_ms": ...}
+```
+
+It answers `True`/`False`, or `{"pass": bool, "score": float, "why": str}`. Anything
+else is malformed and is recorded as an error, not as a decision: counting an
+unreadable answer as a pass is worse than not grading at all. Same for a grader that
+raised or ran over its 30 seconds — longer than a hook gets, because a judge is
+allowed to call a model.
+
+`pass_below` in the case is the score the case passes at: the trial fails when the
+grader answered below it, and fails too when it answered no score at all. The
+grader's own `pass` still has to hold either way.
+
+<Note>
+A judge is a file in a checkout, and a checkout is on a machine. Any case whose
+`expect` names a grader needs `machine_id` — one of the harness owner's machines
+that runs this harness. `harness_eval` without one runs the assertion-only cases
+fine.
+</Note>
+
+## Reading the result
+
+`harness_eval` answers one line per scenario — case, scenario, PASS or FAIL, the
+first failure in the words the assertion used, how long it took — and the path of
+the full artifact.
+
+The artifact holds every trial: what was said, every tool call, every hook decision,
+every verdict. When a case fails, the first failure tells you **what** broke; the
+artifact tells you **why**.
+
+Two follow-ups are usually the fastest:
+
+- `harness_hook_trace` for the same run, if the failure smells like a hook. It says
+  whether your file answered, deferred, failed or was never asked.
+- The artifact's tool calls, if the failure is a `tool_called` that did not happen.
+  An agent that never called the tool usually was not told it had one — check the
+  `tools=` entry and whether it was narrowed after a `#`.
+
+## Checking a harness that is not this one
+
+`harness_eval` with no `harness_id` is about the harness being run, the checkout at
+`~/harness`. Passing `harness_id` points it at another harness of the same owner —
+one this machine does not carry, which is how you evaluate a harness you just built.
+A harness this account does not own is refused.
+
+<Warning>
+An eval executes real chats and real runs against the harness named. Point it at a
+disposable harness, not at one holding somebody's real conversations.
+</Warning>

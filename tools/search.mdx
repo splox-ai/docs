@@ -1,0 +1,153 @@
+---
+title: "Search and fetch"
+description: "Searching the live web, reading pages as text, and when to reach for the browser instead"
+---
+
+Two tools. `search` finds URLs, `fetch` reads them. Neither runs JavaScript and
+neither carries a login — when the page needs either of those, you want
+[the browser](/tools/browser).
+
+```python
+from tools.search import search
+
+results = search("ripgrep changelog", max_results=3)
+for r in results["results"]:
+    print(f'{r["score"]:.2f}  {r["title"][:60]}  {r["url"]}')
+```
+
+```text
+1.00  BurntSushi / ripgrep: ripgrep recursively searches directori  https://github.com/BurntSushi/ripgrep
+0.50  ripgrep - Lightning-Fast Search Tool for Developers  https://ripgrep.dev/
+0.33  Download ripgrep - Free Fast Search Tool for Windows, macOS   https://ripgrep.dev/download/
+```
+
+## search
+
+The full record for one result, and the envelope around it:
+
+```json
+{
+  "query": "ripgrep changelog",
+  "search_type": "web",
+  "source": "searxng",
+  "number_of_results": 10700,
+  "partial": false,
+  "results": [
+    {
+      "title": "BurntSushi / ripgrep: ripgrep recursively searches directories … - GitHub",
+      "url": "https://github.com/BurntSushi/ripgrep",
+      "snippet": "ripgrep recursively searches directories for a regex pattern …",
+      "content": "ripgrep recursively searches directories for a regex pattern …",
+      "engine": "bing",
+      "score": 1,
+      "published_date": null,
+      "category": "general"
+    }
+  ],
+  "answers": [],
+  "suggestions": [],
+  "infoboxes": []
+}
+```
+
+`score` is the aggregator's ranking, not a relevance percentage: it falls off as
+`1, 0.5, 0.33` down the list. `engine` says which search engine produced the row,
+and `engine_stats` in the full response says which ones were asked and how long
+they took — useful exactly once, when results look wrong and you want to know
+whether one engine answered for all of them.
+
+<ParamField path="search_type" type="string" default="web">
+  The vertical: `web`, `news`, `images`, `videos`, `repos`, `science`, `x`, `tg`
+  or `reddit`. Picking the right one beats adding "site:" to the query.
+</ParamField>
+
+<ParamField path="time_range" type="string">
+  `day`, `week`, `month` or `year`. Use it for anything where a stale answer is
+  worse than no answer — prices, releases, what happened.
+</ParamField>
+
+<ParamField path="max_results" type="integer" default="10">
+  1 to 50.
+</ParamField>
+
+{/* TODO(verify): the `filters` parameter takes a dict and has no description in
+    the tool's schema; I could not find what keys it accepts. */}
+
+<Warning>
+A vertical is a hint to the engines, not a filter you can lean on. Asking
+`search_type="news"` for a query with no news in it returns whatever the engines
+had — a GitHub README came back top for one of ours. Read the URLs before you
+trust the vertical.
+</Warning>
+
+## fetch
+
+`fetch` reads a page and gives back structured JSON, using an extractor that
+knows the site:
+
+```python
+from tools.search import fetch
+
+fetch("https://en.wikipedia.org/wiki/Model_Context_Protocol")
+```
+
+```json
+{
+  "url": "https://en.wikipedia.org/wiki/Model_Context_Protocol",
+  "kind": "wikipedia",
+  "title": "Model Context Protocol",
+  "description": "Protocol for communicating between LLMs and applications",
+  "summary": "The Model Context Protocol (MCP) is an open standard … introduced by Anthropic in November 2024 …",
+  "content": "The Model Context Protocol (MCP) is an open standard …",
+  "content_chars": 7452,
+  "lang": "en",
+  "truncated": false
+}
+```
+
+`kind` tells you which extractor ran. There are dedicated ones for Reddit threads
+and subreddits, Hacker News items, GitHub repositories, issues and files, arXiv
+papers, Wikipedia articles, YouTube transcripts and PDFs; anything else falls
+back to a generic browser extraction, and if that fails or answers 4xx/5xx, the
+Wayback Machine snapshot is tried automatically.
+
+### A batch is one call
+
+Pass a list — up to 32 URLs — and they are fetched in parallel. One bad URL never
+aborts the batch:
+
+```python
+fetch(["https://news.ycombinator.com/item?id=1",
+       "https://example.com/definitely-not-here-404"])
+```
+
+```json
+{
+  "requested": 2,
+  "succeeded": 1,
+  "failed": 1,
+  "results": [
+    {"url": "https://news.ycombinator.com/item?id=1", "kind": "hackernews_item", "…": "…"},
+    {"url": "https://example.com/definitely-not-here-404", "kind": "page", "error": "HTTP 404"}
+  ]
+}
+```
+
+A string returns one result dict; a list returns the envelope. Search first to
+find the URLs, then fetch the ones worth reading — in a single batch, because
+thirty-two pages in one call cost one round trip and thirty-two calls cost
+thirty-two.
+
+## When to use the browser instead
+
+`fetch` sees what an HTTP client sees. Reach for
+[agent-browser](/tools/browser) when:
+
+- the content is rendered by JavaScript after load
+- the page is behind a login or any session you had to establish
+- you need to click, type, scroll or submit something
+- the answer is `Just a moment...` — that is bot protection, and it needs a real
+  browser with a real pointer
+
+And stay with `fetch` when you just need the text of a public page. It is faster,
+it costs a fraction of the tokens, and it does not hold a browser open.

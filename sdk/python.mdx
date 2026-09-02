@@ -1,0 +1,226 @@
+---
+title: "Python SDK"
+description: "Install it, make the first call, stream a run, use the async client, and handle errors"
+---
+
+The Python SDK is the v2 API with the retries, the pagination, the SSE
+reconnection and the id encoding already written. Python 3.11 or newer.
+
+```bash
+pip install splox
+```
+
+```python
+from splox import SploxClient
+
+client = SploxClient()          # SPLOX_API_KEY, SPLOX_BASE_URL
+```
+
+`SploxClient(api_key=None, *, base_url=None, timeout=300.0)`. `base_url` is the
+server API root — `https://splox.io/api` by default — and every path is appended
+to it already versioned, so nothing is rewritten behind your back.
+
+## The first call
+
+```python
+endpoints = client.llm_endpoints.list()
+print([(e.name, e.is_default) for e in endpoints])
+```
+
+```
+[('OpenAI', False), ('Anthropic', True), ('Gemini', False), ('Splox', False)]
+```
+
+The resources are `client.runs`, `client.interactions`, `client.harnesses`,
+`client.harness_versions`, `client.llm_endpoints`, `client.tool_servers`,
+`client.evaluations`, plus `client.mcp` for the MCP catalog.
+
+## Reading a run
+
+```python
+run = client.runs.get("run_01M1GFRNR5F4N8S2JZV85T30A4")
+print(run.status, run.harness_commit, run.chat_id)
+
+for message in run.messages().data:
+    print(f"[{message.role}] {message.text}")
+
+for output in run.outputs().data:
+    print(output.type, output.name, output.value)
+
+usage = run.usage()
+print(usage.total_tokens, usage.amount, usage.currency, usage.final)
+```
+
+```
+succeeded 371758ecf28e8240192e4731080a7436fb492a09 chat_01M1GFRNQHF6W9Q9RMP1QMZQR8
+[user] Run `uname -sm` in your sandbox and reply with exactly what it printed.
+[assistant] 
+[tool] 
+[assistant] Linux x86_64
+result final_message Linux x86_64
+26159 0.027065 USD True
+```
+
+`message.text` joins the text parts, which is why the two middle lines are empty:
+that turn was a tool call and its result, and both live in `message.content` as
+`json` parts. `usage.amount` is a decimal string, never a float.
+
+A `Run` is a handle as well as a snapshot — `run.wait()`, `run.cancel()`,
+`run.events()`, `run.messages()`, `run.outputs()`, `run.tree()`, `run.usage()`,
+`run.pending_interactions()`, `run.refresh()` — and the same operations exist on
+`client.runs` taking a run id.
+
+## Creating a run
+
+```python
+run = client.runs.create(
+    "Summarize the latest sales report",     # str, MessageInput, or content parts
+    harness_id="h_...",
+    metadata={"ticket": "T-123"},            # optional
+    chat_id="chat_...",                      # optional; continues a chat
+    idempotency_key="my-key",                # optional; generated when omitted
+)
+run = run.wait()                             # polls until terminal
+```
+
+`input` takes a plain string, a full `{"role": "user", "content": [...]}` dict, or
+a list of content parts.
+
+<Warning>
+`runs.create` in 0.5.4 does not send `machine_id`, which the API now requires, so
+it raises `SploxValidationError` — a 422 whose `.errors` names `/machine_id` as
+required. Until the SDK ships the field, create runs over HTTP — see
+[Runs](/api/runs) — and use the SDK for everything after that.
+</Warning>
+
+## Streaming
+
+```python
+for event in run.events():           # SSE; stream=True is the default
+    print(event.sequence, event.type, event.data)
+```
+
+```
+1 run.created {'chat_id': 'chat_01M1GFRNQHF6W9Q9RMP1QMZQR8', ...}
+2 run.status_changed {'to': 'running'}
+3 message.created {'message_id': 'msg_01M1GFRW76F68T8K49222Z36KB', 'role': 'user'}
+...
+16 run.status_changed {'to': 'succeeded'}
+```
+
+The iterator reconnects with `Last-Event-ID`, drops events it has already
+yielded, and stops after the terminal `run.status_changed`. For the durable
+journal instead of a live stream:
+
+```python
+page = run.events(stream=False, limit=100)
+for event in page.data:
+    print(event.sequence, event.type)
+```
+
+## Paging
+
+Every list returns a page with `.data` and `.page`:
+
+```python
+page = client.runs.list(status=["running", "waiting"], limit=20)
+while True:
+    for run in page.data:
+        print(run.id, run.status)
+    if not page.page.has_more:
+        break
+    page = client.runs.list(status=["running", "waiting"], cursor=page.page.next_cursor)
+```
+
+## The async client
+
+Every resource has an async twin with the same shape:
+
+```python
+import asyncio
+from splox import AsyncSploxClient
+
+async def main():
+    async with AsyncSploxClient() as client:
+        run = await client.runs.get("run_01M1GFRNR5F4N8S2JZV85T30A4")
+
+        async for event in run.events():      # SSE with auto-reconnect
+            print(event.type, event.data)
+
+        run = await run.wait()
+        page = await run.messages()
+        print([m.text for m in page.data])
+
+asyncio.run(main())
+```
+
+`AsyncSploxClient.harnesses` and `.harness_versions` mirror the sync ones.
+`splox.evals` is deliberately synchronous.
+
+## Errors
+
+```python
+from splox.exceptions import (
+    SploxAPIError,          # base: .status_code / .code / .trace_id / .problem
+    SploxBadRequestError,   # 400
+    SploxAuthError,         # 401
+    SploxForbiddenError,    # 403
+    SploxNotFoundError,     # 404
+    SploxConflictError,     # 409
+    SploxGoneError,         # 410
+    SploxValidationError,   # 422, with .errors
+    SploxRateLimitError,    # 429, with .retry_after
+    SploxServerError,       # 5xx
+    SploxTimeoutError,      # run.wait() / result() deadline
+    SploxConnectionError,   # network failure
+    SploxStreamError,       # the SSE stream gave up reconnecting
+)
+
+try:
+    run = client.runs.create("hi", harness_id=harness_id)
+except SploxValidationError as e:
+    for item in e.errors:
+        print(item["name"], item["reason"])
+except SploxRateLimitError as e:
+    print("retry after", e.retry_after)
+except SploxAPIError as e:
+    print(e.status_code, e.code, e.trace_id)
+```
+
+```
+/machine_id machine_id is required
+```
+
+Retries: GETs are retried up to three times with exponential backoff on
+connection errors, 429 and 5xx. POSTs are retried **only** when they carry an
+`Idempotency-Key` — always the same one — so a replay returns the original answer
+instead of doing the work twice.
+
+## Ids
+
+```python
+from splox import encode_id, decode_id
+
+encode_id("h", "019f455e-a84c-7d4c-87b0-c951d38bc224")   # 'h_01KX2NXA2CFN68FC69A79RQGH4'
+decode_id("h_01KX2NXA2CFN68FC69A79RQGH4")                # UUID('019f455e-...')
+```
+
+Harness ids may be passed as raw UUIDs; the SDK encodes them for you.
+
+## Harnesses and evaluations
+
+```python
+harness = client.harnesses.create("researcher", files={"programs/splox/main.py": program})
+version = client.harness_versions.get(harness.id, harness.versions[0].commit)
+version.files["programs/splox/main.py"]
+client.harnesses.update(harness.id, name="Renamed")
+```
+
+`splox.evals` grades a harness with ordinary Python — `run_cases()`, a
+`Scorer(score_fn=...)`, and `judge()` for LLM grading — and records the result as
+a server-side [evaluation](/api/evaluations).
+
+<Note>
+The SDK's `client.mcp`, `client.chats`, `client.memory` and `client.billing`
+surfaces speak the v1 API and are unchanged by the v2 work.
+</Note>

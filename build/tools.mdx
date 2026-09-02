@@ -1,0 +1,382 @@
+---
+title: "Tools"
+description: "A tool is a Python function the agent imports and calls in code"
+---
+
+A tool of your harness is a Python file in `tools/`, and it runs inside the
+sandbox of whoever is talking to the harness rather than on the platform.
+
+```python
+# tools/notes.py
+"""Notes the agent keeps on this machine, one file per subject."""
+
+from pathlib import Path
+
+NOTES = Path.home() / "notes"
+
+
+def write(subject: str, body: str) -> str:
+    """Write one note, replacing whatever that subject held before: the whole body is the note, so read it first if you mean to add to it.
+
+    Args:
+        subject: File name of the note, without a directory or an extension.
+        body: The note itself, in markdown.
+    """
+    NOTES.mkdir(exist_ok=True)
+    path = NOTES / f"{subject}.md"
+    path.write_text(body, encoding="utf-8")
+    return f"wrote {len(body)} characters to {path}"
+```
+
+Give an agent `tools=["tools/notes.py"]` and it has a tool called `notes__write`,
+described by that first docstring line, taking two required strings. Nothing else
+is registered, deployed or restarted: the file is the tool.
+
+## Why a function and not a JSON call
+
+Most of what an agent does on Splox is written as code, not as a tool call. The
+agent's own tool is `compute_exec`, which executes Python inside the sandbox, and
+every other tool of the platform is a Python function sitting on that same
+filesystem, ready to import:
+
+```python
+compute_exec(command="""python3 - <<'PY'
+from tools.media import media_read_pdf
+from tools.search import search
+
+pages = media_read_pdf("/tmp/report.pdf")
+print(search(f"who published {pages[0][:60]}"))
+PY""")
+```
+
+Two calls, one round trip. Composed with a loop, a filter or an `if`, they would
+still be one round trip. The same work as separate JSON tool calls is four
+messages through the model, each carrying the last one's output back through the
+context window.
+
+That is the opinion the platform has, and it is worth understanding before you
+fight it: **the model writes a program, and the program calls the tools**.
+Branching, retrying, filtering and aggregating happen in Python, where they cost
+nothing, instead of in the conversation, where each step costs a turn.
+
+The projected packages live under `~/tools/`, one directory per service, one file
+per tool:
+
+```
+~/tools/compute/compute_exec.py
+~/tools/search/search.py
+~/tools/media/media_read_pdf.py
+~/tools/harness/harness_eval.py
+~/tools/<service>/INDEX.md      what the service is, and when to reach for it
+```
+
+Each file is a plain function with type hints and a docstring, so an agent reads
+the signature before the first call rather than guessing at it.
+
+## Your own tools
+
+Your harness's `tools/` directory is different in shape and in purpose. It is
+flat, one file per group, and its tools are offered to the model directly, by
+name.
+
+```
+tools/notes.py      -> notes__write, notes__read
+tools/shell.py      -> shell__run, shell__cd
+tools/_helpers.py   -> not a tool; a helper the others import
+```
+
+Only `tools/*.py` counts. Subdirectories are not scanned, and a file whose name
+starts with an underscore is a helper rather than a tool — the loader skips it,
+and the other files import it, because the tools directory and its parent are
+both on `sys.path`.
+
+A tool's name is the file plus the entry point joined by **two underscores**. The
+separator is not a dot because a provider refuses the whole request when one tool
+name fails `^[a-zA-Z0-9_-]{1,128}$`, and a dotted name fails it. Name the file the
+way you would name a Python module — letters, digits and underscores only — since
+a source id like `tools/my-tool.py` is not one the platform can resolve.
+
+A harness tool is usually not new capability. It is capability with a smaller
+surface and a docstring that says what to do with it:
+
+```python
+# tools/files.py
+from tools.compute import compute_read_file
+```
+
+That is the same `compute_read_file` the agent would call directly, wrapped in
+something narrower and better described.
+
+## What the model sees
+
+Three things, and only three: the name, the first line of the docstring, and the
+schema derived from the type hints.
+
+The docstring is not documentation. The **first line** of the docstring is the
+description; the `Args:` block below it describes the parameters; everything else
+in that docstring is for the human reading the file, and the model never sees it.
+
+```python
+def ls(path: str = ".") -> str:
+    """List one directory, one level deep and never recursive: its entries with a slash after the directories, hidden ones included, directories first.
+
+    Only that first line reaches the model.
+
+    Args:
+        path: Directory to list, absolute or relative to the sandbox home.
+    """
+```
+
+That line is long because it **is** the description. Write it for the reader who
+has to decide whether this is the tool for the job: say what the tool refuses to
+do as well as what it does, and put the rest below the blank line where it costs
+the model nothing.
+
+Here is what the platform actually derives from the `notes.py` at the top of this
+page:
+
+```json
+{
+  "name": "notes__write",
+  "description": "Write one note, replacing whatever that subject held before: the whole body is the note, so read it first if you mean to add to it.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "subject": {"type": "string", "description": "File name of the note, without a directory or an extension."},
+      "body": {"type": "string", "description": "The note itself, in markdown."}
+    },
+    "required": ["subject", "body"]
+  },
+  "scope": "call"
+}
+```
+
+### The type hints are the schema
+
+The mapping is fixed and never guessed:
+
+| Annotation | Schema |
+| --- | --- |
+| `str`, `int`, `float`, `bool` | the matching scalar |
+| `list[X]` | an array of `X` |
+| `dict`, `dict[str, X]` | an object |
+| `Literal[...]` | an enum |
+| `X \| None` | the schema of `X`, no longer required |
+| a parameter with a default | not required, and the default travels into the schema |
+
+Anything else — an unsupported annotation, a missing hint, `*args`, `**kwargs`, a
+positional-only parameter — is an error against the file, and that error is what
+refuses a publish. Positional-only is refused for the plainest of reasons: the
+server calls the tool with keyword arguments.
+
+## A class, when calls should share state
+
+A file holds either one public class or plain module-level functions. If there is
+a public class, its public methods are the tools and the module-level functions
+are not. Two public classes in one file is an error against that file, and
+nothing in it is exported.
+
+```python
+# tools/shell.py
+import subprocess
+
+scope = "run"
+
+
+class Shell:
+    """The session persists for the whole run: cd, exports and background jobs survive between calls."""
+
+    def __init__(self):
+        self.cwd = "/home/daytona"
+
+    def run(self, cmd: str, timeout: int = 60) -> str:
+        """Run one shell command in the session's current directory and return its combined output.
+
+        Args:
+            cmd: The command line to run.
+            timeout: Seconds to wait before giving up.
+        """
+        done = subprocess.run(cmd, shell=True, cwd=self.cwd, capture_output=True,
+                              text=True, timeout=timeout)
+        return (done.stdout + done.stderr).strip()
+
+    def cd(self, path: str) -> str:
+        """Change the session's directory, for this call and every call after it.
+
+        Args:
+            path: Directory to move to.
+        """
+        self.cwd = path
+        return self.cwd
+```
+
+A file-level `scope` decides how long the instance lives. The default `"call"`
+builds a fresh one for every call; `"run"` builds one and keeps it for the whole
+run, which is the difference between a shell that forgets the directory you were
+in and one that does not. Functions have no instance and so have no scope. The
+model is shown the name, the description and the schema, and never this.
+
+The class docstring is appended in parentheses to every one of its methods'
+descriptions, which is how a whole file says one thing once:
+
+```
+"description": "Run one shell command in the session's current directory and return its combined output.\n(The session persists for the whole run: cd, exports and background jobs survive between calls.)"
+```
+
+A class whose `__init__` takes an argument is handed a `ctx`:
+
+- `ctx.tool("shell")` is the instance of another file of the same tree — the very
+  instance the run is already using, not a second one, which is how an editing
+  tool resolves its relative paths against the directory a shell tool is sitting
+  in. A file cannot ask for itself that way.
+- `ctx.system.<service>` is the platform's own tool package, imported on first
+  touch: `ctx.system.search.search(...)` is the same import as
+  `from tools.search import search`.
+
+In a file of functions, `@tool` from `splox.toolkit` narrows the file to the
+marked ones. With no `@tool` anywhere, every public function is a tool. Order is
+source order, not alphabetical.
+
+## What comes back, and what happens when it does not
+
+Whatever the tool returns has to be JSON, and a result that is not is an error
+before it reaches the wire.
+
+A string longer than 20000 characters is written whole to `/tmp/tool-<uuid>.txt`
+in the sandbox and cut to its first 4000 and last 1000 characters. The model is
+told the path along with the cut result, and can read the rest with the file tools
+it already has.
+
+An exception is not a crash. It comes back as `<Type>: <message>`, the model reads
+it as a failed tool call, and the run continues — so a `ValueError` whose message
+says what to do instead is the cheapest teaching a tool can do:
+
+```python
+if start < 1:
+    raise ValueError("lines are counted from 1; start=0 reads nothing")
+```
+
+That sentence is the feature.
+
+One call is bounded at 120 seconds, and the bound is enforced by the server in the
+sandbox rather than by a deadline on the backend's side: the call answers
+`TimeoutError`, the server stays up, and the next call is served normally.
+
+## Editing one
+
+On every list and every call, the server compares the mtime of each `*.py` in the
+tree. A file that moved is re-imported and its kept instance dropped, and the
+others are left alone. Edit a tool in the checkout and the next call runs the new
+code — no restart, and no publish either.
+
+Two consequences worth knowing before you go looking for them:
+
+- The catalog is asked once per run, so a **signature or a description** changed
+  mid-run reaches the model on the next run, while the **body** of the tool is
+  re-read on the very next call.
+- The reload is per file: editing `_helpers.py` does not re-import the tool file
+  that imported it, so touch that file as well.
+
+The projection leaves a dirty checkout alone — it will not overwrite work sitting
+in the sandbox with the published commit — which is what makes editing a tool in
+place a reasonable way to develop one at all.
+
+## Dependencies
+
+Three files, at the root of the tree and nowhere else: `requirements.txt`,
+`pyproject.toml` and `setup.sh`. They are files rather than fields of a
+declaration because what reads them is pip, and pip already has a format for
+each. Only the `[project]` dependencies of the `pyproject.toml` are read, and
+`setup.sh` is for the things pip cannot say: an apt package, a model download, a
+directory to create.
+
+They are applied in that order — declared packages first, the script last —
+because a setup script that needs a package is ordinary and a package that needs
+the script is not.
+
+The install runs in the sandbox as part of the same step that checks the tree out,
+before anything starts the tool server, and it is stamped by the sha256 of those
+files' names and bytes: a turn that changed nothing runs no pip at all, and one
+added line means a fresh install. `pip install --user`, a 240-second budget shared
+by all three steps, and the whole transcript in `/tmp/splox-harness-deps.log` —
+which is the file to read when a tool comes back with an `ImportError` for
+something the tree clearly declares. A failed install does not fail the checkout:
+the tree is there either way.
+
+<Warning>
+`programs/setup.sh` and `tools/requirements.txt` are not dependency files. The
+match is exact and at the root, because a second spelling that half works is worse
+than one that does not exist.
+</Warning>
+
+## The three things a tools entry names
+
+An agent gets a tool by naming its source in the `tools` list of its declaration.
+Each entry is one string, and it is one of three things, told apart by shape:
+
+```python
+tools=[
+    "system:compute",                          # a platform source
+    "tools/files.py",                          # a file of this harness's own tools/ tree
+    "019e4f9a-a679-79b4-a21c-7ff9c60b9181",    # a tool server you own
+]
+```
+
+A tree reference is the path the file has in the tree: inside `tools/`, flat,
+ending in `.py`, no absolute path and no `..`. Naming a file the harness does not
+carry gives the agent a source with nothing behind it, so the name is worth
+reading twice. Naming one file gives the agent that file's tools and only those: a
+call to a tool from another file is refused rather than run, even though one
+server holds the whole tree.
+
+A source alone means every tool it exposes. An entry may narrow that to named
+tools by writing them after a `#`:
+
+```python
+tools=[
+    "system:compute#compute_read_file,compute_grep",   # these two, nothing else
+]
+```
+
+A narrowed entry is refused at the tool it does not name rather than run, and the
+model is never offered one: the list it sees is the narrowed list. Narrowing does
+not change what the entry addresses, so an agent widened later is the same tool
+with a longer reach.
+
+Nothing else rides on an entry — no approval policy, no compaction setting. What a
+call may do is decided by [`hooks/tools.py`](/build/hooks), which sees the call by
+name with its arguments before it runs.
+
+A tool used by two agents is written out in both declarations, and each agent's
+list is part of what that agent **is**. There is no shared declaration to keep in
+sync.
+
+<Note>
+To find a tool server id, or the slugs to narrow it to, ask the platform:
+`harness_mcp_servers` lists the servers this account has connected and
+`harness_mcp_tools` lists what each exposes. No file in the checkout has them, and
+a push naming one wrongly is refused.
+</Note>
+
+## A platform source is not one of your files
+
+`system:compute`, `system:search`, `system:media` and the rest are services the
+platform runs and owns. Their tools exist whether or not your harness does, their
+catalog comes from the platform, and they are dispatched, billed and credentialed
+by it. You cannot edit one, and you do not have to publish anything for one to
+work.
+
+`system:compute` is the odd member of the set: it is the runner every other tool
+executes through, which is why your own tools import it rather than the agent
+calling it for them.
+
+A file of `tools/` is the opposite in every respect. It is code in your
+repository, it has no row anywhere, its catalog is a question asked of a Python
+process in a sandbox that belongs to whoever is talking to the harness, and it can
+be broken — a file that does not import refuses the publish with the interpreter's
+own words rather than a sentence of the platform's, and only the first error,
+because one broken module reports itself once per file that touched it.
+
+That is the trade. A platform source is capability you are handed; a file in
+`tools/` is capability you write, in the smallest and best-described shape the job
+needs, and it is yours to keep working.

@@ -1,43 +1,37 @@
-# Mintlify Starter Kit
+# Splox documentation
 
-Use the starter kit to get your docs deployed and ready to customize.
+The source of [docs.splox.io](https://docs.splox.io). Mintlify, one `.mdx` per
+page, arranged by `docs.json`.
 
-Click the green **Use this template** button at the top of this repo to copy the Mintlify starter kit. The starter kit contains examples with
+## Running it
 
-- Guide pages
-- Navigation
-- Customizations
-- API reference pages
-- Use of popular components
-
-**[Follow the full quickstart guide](https://starter.mintlify.com/quickstart)**
-
-## Development
-
-Install the [Mintlify CLI](https://www.npmjs.com/package/mint) to preview your documentation changes locally. To install, use the following command:
-
-```
-npm i -g mint
+```bash
+npx mint dev          # preview on http://localhost:3000
+npx mint broken-links # every internal link and image
 ```
 
-Run the following command at the root of your documentation, where your `docs.json` is located:
+Mintlify's CLI needs an LTS Node; it refuses Node 25.
 
-```
-mint dev
-```
+## What is where
 
-View your local preview at `http://localhost:3000`.
+| Directory | Pages |
+| --- | --- |
+| `concepts/` | machine, harness, program, agent, run, model — the vocabulary the rest depends on |
+| `app/` | the product as a person uses it, screen by screen |
+| `build/` | changing what an agent is: programs, agents, hooks, tools, sub-agents, skills, evals, versions |
+| `tools/` | what an agent can reach: the shipped packages, MCP servers, and writing your own |
+| `api/`, `sdk/` | the v2 API and the three SDKs |
+| `account/` | plans, usage windows, billing, API keys |
+| `tutorials/` | six end-to-end walkthroughs |
+| `images/` | screenshots, grouped by the section that uses them |
 
-## Publishing changes
+`docs.json` also carries the redirects from the previous documentation, which
+described a product built out of workflows, nodes and edges. Every one of its 85
+paths lands somewhere in this tree; `/what-changed` is the page that maps the old
+vocabulary onto the new one.
 
-Install our GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app) to propagate changes from your repo to your deployment. Changes are deployed to production automatically after pushing to the default branch.
+## Writing
 
-## Need help?
-
-### Troubleshooting
-
-- If your dev environment isn't running: Run `mint update` to ensure you have the most recent version of the CLI.
-- If a page loads as a 404: Make sure you are running in a folder with a valid `docs.json`.
-
-### Resources
-- [Mintlify documentation](https://mintlify.com/docs)
+Verified or absent: a page says what somebody ran, read in the source, or saw on
+screen, and nothing else. No adjectives standing in for facts, no feature
+described from memory. If a claim cannot be checked, it does not ship.

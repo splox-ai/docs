@@ -1,0 +1,242 @@
+---
+title: "Errors"
+description: "The problem document every failure returns, the codes it carries, and what to do about each one"
+---
+
+Every non-2xx answer from the v2 API is an [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457)
+problem document with `Content-Type: application/problem+json`:
+
+```bash
+curl -s "$SPLOX_BASE_URL/v2/runs/run_01JAZ6Y5M3Q8F7N2R4T6V9W0XC" \
+  -H "Authorization: Bearer $SPLOX_API_KEY" \
+  -H "X-Request-Id: docs-trace-1"
+```
+
+```json
+{
+  "type": "https://api.splox.com/problems/not_found",
+  "title": "Not Found",
+  "status": 404,
+  "detail": "The resource does not exist or is not visible to the principal.",
+  "code": "not_found",
+  "trace_id": "docs-trace-1"
+}
+```
+
+<ResponseField name="code" type="string">
+  The stable, machine-readable name of what went wrong. **Branch on this**, not on `detail` and not on `type`.
+</ResponseField>
+<ResponseField name="type" type="string">
+  `https://api.splox.com/problems/<code>` — the same code as a URI.
+</ResponseField>
+<ResponseField name="title" type="string">The status's name.</ResponseField>
+<ResponseField name="status" type="integer">The HTTP status, repeated in the body.</ResponseField>
+<ResponseField name="detail" type="string">
+  A sentence for a person. Written to be shown; not to be parsed.
+</ResponseField>
+<ResponseField name="trace_id" type="string">
+  Whatever you sent as `X-Request-Id`, echoed back — send one and the server's logs and your logs name the same request.
+</ResponseField>
+<ResponseField name="errors" type="array">
+  On a validation failure, one entry per bad field. See below.
+</ResponseField>
+
+## Validation failures
+
+A `422` names every field it rejected, with a JSON Pointer at the exact place:
+
+```json
+{
+  "type": "https://api.splox.com/problems/validation_failed",
+  "title": "Unprocessable Entity",
+  "status": 422,
+  "detail": "A run happens on a machine: name one, or continue a chat that is already on one.",
+  "code": "validation_failed",
+  "errors": [
+    {"name": "/machine_id", "location": "body", "reason": "machine_id is required", "code": "required"}
+  ]
+}
+```
+
+`name` is a JSON Pointer for body fields and the plain name for a parameter;
+`location` is `body`, `path`, `query` or `header`; `reason` is for a person and
+`code` is for your code.
+
+A field the API does not know is a `400`, not a shrug:
+
+```json
+{"type":"https://api.splox.com/problems/unknown_field","title":"Bad Request","status":400,"detail":"Unknown field \"conversation_id\" in request body.","code":"unknown_field"}
+```
+
+## The codes
+
+**400 — the request is wrong before anything is looked up**
+
+| Code | Meaning |
+| --- | --- |
+| `invalid_json`, `invalid_body` | the body is not JSON, or not an object where one is required |
+| `unknown_field` | a field that does not exist on this request |
+| `invalid_parameter` | a query parameter out of range — e.g. `limit must be an integer between 1 and 100.` |
+| `validation_failed` | a parameter the endpoint validates itself, such as the event `limit` (1–500) |
+| `cursor_invalid` | the cursor is malformed |
+| `cursor_filter_mismatch` | the cursor was issued for a different endpoint or filter set |
+| `idempotency_key_required` | a write with no `Idempotency-Key` header |
+| `idempotency_key_invalid` | "Idempotency-Key must be 1-255 visible ASCII characters." |
+| `harness_files_invalid` | the files sent are not a harness; the detail names each offending path |
+
+**401 / 402 / 403 / 404 — who you are, what you may spend, what you may see**
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `unauthorized` | 401 | missing, malformed, expired or revoked token. `WWW-Authenticate: Bearer realm="splox"` |
+| `forbidden` | 403 | authenticated, not allowed — a suspended account answers here |
+| `insufficient_balance` | 403 | "The account balance is too low to start a run." |
+| `machine_limit_reached` | 402 | the plan runs fewer machines than you asked for. Delete one, or move up a tier |
+| `not_found` | 404 | it does not exist, or it is not yours. The two are indistinguishable on purpose |
+
+**406 / 409 / 410 — the request is fine, the state is not**
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `not_acceptable` | 406 | `listRunEvents supports application/json and text/event-stream.` |
+| `idempotency_key_conflict` | 409 | that key was already used with a different body |
+| `idempotency_key_in_flight` | 409 | the same key is being processed right now |
+| `interaction_not_pending` | 409 | already answered, expired or cancelled |
+| `evaluation_incomplete` | 409 | complete was called with attempts still missing; `errors` names the cases |
+| `evaluation_completed`, `evaluation_cancelled`, `evaluation_not_running` | 409 | the evaluation is past the state this call needs |
+| `attempt_conflict` | 409 | a different run was already recorded for that `(case, attempt_index)` |
+| `event_cursor_expired` | 410 | the cursor points before the retained event window. Restart without one |
+
+**422 — semantically wrong**
+
+| Code | Meaning |
+| --- | --- |
+| `validation_failed` | a field is missing, malformed or refers to something unusable |
+| `interaction_type_mismatch` | the response variant does not match the interaction's type |
+| `harness_not_runnable` | the harness cannot be executed as it stands |
+
+**429 / 5xx**
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `rate_limited` | 429 | request rate or concurrency limit exceeded; `Retry-After` says how long to wait |
+| `upstream_unavailable` | 502 | your own MCP server is unreachable or failing |
+| `internal_error` | 500 | our fault. `trace_id` is what to quote |
+
+## Rate limits
+
+A rate-limited request answers `429 rate_limited` with a `Retry-After` header —
+seconds, or an HTTP date. Wait that long; retrying sooner earns another 429.
+
+The SDKs surface the wait as a number: `e.retry_after` in Python,
+`err.retryAfter` in Node, `APIError.RetryAfter` in Go. All three retry GETs
+automatically with backoff, and honor `Retry-After` when it is there.
+
+## Running out of allowance
+
+There is a second kind of 429, and it is not about how fast you are calling. A
+plan holds two rolling windows — five hours and a week — and when one fills, the
+refusal carries the whole quota so you can show somebody exactly what happened:
+
+```json
+{
+  "windows": [
+    {"kind": "5h",   "status": "limited", "used_percent": 103.4, "window_seconds": 18000,  "resets_at": "2026-09-02T12:19:00Z", "resets_in_seconds": 17604},
+    {"kind": "week", "status": "allowed", "used_percent": 11.2,  "window_seconds": 604800}
+  ],
+  "extra": {"enabled": false, "spent_micro_usd_this_cycle": 0, "wallet_micro_usd": 0},
+  "mode": "blocked",
+  "error": "usage_window_exceeded",
+  "retry_after_seconds": 17604
+}
+```
+
+`status` is `allowed`, `limited` or `unknown` — `unknown` means the read failed
+and carries no numbers, because rendering it as 0% would claim room nobody
+verified. `mode` says what the next call would be funded by: `plan`, `extra` (the
+wallet pays past a full window) or `blocked`. `Retry-After` on the response
+carries the same wait as `retry_after_seconds`.
+
+{/* TODO(verify): body shape read from internal/billing/errors.go
+    (UsageWindowExceededPayload + QuotaPayload) and cmd/api/billing_gate.go. It
+    fires on the v1 run-start endpoints; the numbers above are illustrative of
+    the shape, not a captured response — a full window cannot be produced on
+    demand. */}
+
+A window that fills **while a run is already going** does not produce an HTTP
+error at all: the run stops and comes back failed, with the reason on it. This
+one is real, from a run on the account these pages were written against:
+
+```json
+{
+  "id": "run_01M1GG4Q0YFEHAFATYVBVFZ2VP",
+  "status": "failed",
+  "failure": {
+    "code": "usage_window_exceeded",
+    "message": "You have used your 5-hour limit. It frees up at 12:19 UTC on 2 Sep 2026.",
+    "retryable": false
+  }
+}
+```
+
+`usage_window_exceeded` and `out_of_funds` are deliberately different codes. One
+is fixed by waiting and the other by paying, and telling somebody with money in
+their account to go to a checkout is both wrong and expensive.
+
+## What is safe to retry
+
+| Situation | Retry? |
+| --- | --- |
+| network failure, 5xx, 429 on a GET | yes, with backoff |
+| a POST carrying an `Idempotency-Key` | yes — **reuse the same key**, and a replay returns the original answer with `Idempotency-Replayed: true` |
+| a POST with a fresh key | no; that is a second request, and it does a second thing |
+| 4xx other than 429 | no. Fix the request |
+
+`POST /v2/runs/{id}/cancel` carries no key and needs none: it is idempotent on the
+server, and a run that is already terminal comes back unchanged.
+
+## In the SDKs
+
+Problems arrive as typed errors carrying `status`, `code`, `detail`, `trace_id`
+and the parsed body:
+
+<CodeGroup>
+```python Python
+from splox.exceptions import SploxValidationError, SploxRateLimitError, SploxAPIError
+
+try:
+    run = client.runs.create(input, harness_id=harness_id)
+except SploxValidationError as e:
+    for item in e.errors:
+        print(item["name"], item["reason"])   # /machine_id machine_id is required
+except SploxRateLimitError as e:
+    print("retry after", e.retry_after)
+except SploxAPIError as e:
+    print(e.status_code, e.code, e.trace_id)
+```
+
+```ts Node
+import { ValidationError, RateLimitError, SploxAPIError } from "splox";
+
+try {
+  await client.runs.create({ harnessId, input });
+} catch (err) {
+  if (err instanceof ValidationError) err.errors.forEach((e) => console.log(e.name, e.reason));
+  else if (err instanceof RateLimitError) console.log("retry in", err.retryAfter);
+  else if (err instanceof SploxAPIError) console.log(err.statusCode, err.code, err.traceId);
+}
+```
+
+```go Go
+if errors.Is(err, splox.ErrValidation) {
+    var apiErr *splox.APIError
+    if errors.As(err, &apiErr) {
+        for _, p := range apiErr.Errors {
+            fmt.Println(p.Name, p.Reason)
+        }
+    }
+}
+// ErrBadRequest, ErrUnauthorized, ErrForbidden, ErrNotFound, ErrNotAcceptable,
+// ErrConflict, ErrCursorExpired, ErrValidation, ErrRateLimited, ErrServer
+```
+</CodeGroup>

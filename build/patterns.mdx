@@ -1,0 +1,390 @@
+---
+title: "Patterns"
+description: "Four shapes worth copying: a router, a bot, a nightly job, and a fan-out"
+---
+
+Four working programs. Each one is a directory under `programs/` in your harness,
+and each is here because the shape is what is hard, not the code.
+
+## A router: different agents for different messages
+
+`handle(msg)` is a function rather than a setting because who should answer is the
+one thing only your harness can know. Read `msg.text` for a command, `msg.user_id`
+for who is asking, `msg.chat_id` for where.
+
+```python
+# programs/splox/main.py
+"""The program a Splox chat is answered by, with three agents and a router."""
+from pathlib import Path
+
+from splox import agent
+
+HERE = Path(__file__).parent
+STAFF = {"0199c8da-f94f-7d4f-ab47-83ab7a382c5d"}
+
+
+def prompt(name: str):
+    return lambda: (HERE / "prompts" / f"{name}.md").read_text(encoding="utf-8")
+
+
+executor = agent(
+    "Executor", system_prompt=prompt("executor"), model="kimi-k3", provider="splox",
+    tools=["system:compute"], max_iterations=1000,
+    description="Hand off a self-contained piece of work and get back the answer.",
+)
+
+support = agent(
+    "Support", system_prompt=prompt("support"), model="kimi-k3", provider="splox",
+    tools=["system:search#search,fetch"], max_iterations=20,
+)
+
+engineer = agent(
+    "Engineer", system_prompt=prompt("engineer"), model="kimi-k3", provider="splox",
+    tools=["system:compute"], agents=[executor], max_iterations=1000,
+)
+
+
+def handle(msg):
+    """Who answers this message."""
+    if msg.text.startswith("/support"):
+        return {"agent": support, "message": msg.text.removeprefix("/support").strip()}
+    if msg.user_id in STAFF:
+        return engineer
+    return support
+```
+
+What that answers, message by message:
+
+```
+hello                     -> {'agent': 'Support'}
+/support my invoice is..  -> {'agent': 'Support', 'message': 'my invoice is wrong'}
+ship it                   -> {'agent': 'Engineer'}
+```
+
+Three things worth noticing. The `Support` agent has no shell — `system:search`
+narrowed to two tools is the whole of what it can do, so a customer question cannot
+turn into a command. `Engineer` can spawn the `Executor` and `Support` cannot,
+because `agents=` is per agent. And the `/support` branch hands back a rewritten
+`message`, which is what that agent is given; the chat still holds what the person
+actually typed.
+
+<Note>
+All three run on the same `programs/splox/hooks/`, because hooks belong to the
+program. If `Support` needs a guard `Engineer` does not, the guard reads `t.agent`.
+</Note>
+
+## A bot that answers from outside a chat
+
+There is no connections page for this. A Telegram bot, a webhook, a mailbox
+watcher — each is a program in your harness, started once, running as long as the
+machine does.
+
+```python
+# programs/telegram/main.py
+"""A Telegram bot answered by this harness's agents."""
+import json
+import os
+import time
+import urllib.parse
+import urllib.request
+from pathlib import Path
+
+from splox import agent
+
+API_HOST = "https://api.telegram.org"
+# The token is read when a request is made, not when this file is imported.
+# The platform asks main.py who an agent is, and it asks from processes that do
+# not carry your secrets — read one at import time and every such question dies
+# with `KeyError: 'TELEGRAM_BOT_TOKEN'` before the agent is ever named.
+# The offset survives a restart, so a message is answered once even if the
+# process dies between reading it and replying.
+STATE = Path("/home/daytona/.telegram-offset")
+# The Splox chat each Telegram chat is talking to, so a person keeps one
+# conversation instead of starting a new one with every message.
+SEEN: dict[str, str] = {}
+
+support = agent(
+    "Support",
+    system_prompt="You answer questions from Telegram. One short paragraph, no preamble.",
+    model="kimi-k3",
+    provider="splox",
+    tools=["system:compute"],
+    max_iterations=40,
+)
+
+
+def call(method: str, **params):
+    token = os.environ["TELEGRAM_BOT_TOKEN"]
+    url = f"{API_HOST}/bot{token}/{method}?" + urllib.parse.urlencode(params)
+    with urllib.request.urlopen(url, timeout=70) as response:
+        return json.load(response)
+
+
+def main():
+    offset = int(STATE.read_text()) if STATE.exists() else 0
+    while True:
+        try:
+            updates = call("getUpdates", offset=offset, timeout=50)["result"]
+        except Exception as exc:
+            print("getUpdates failed:", exc, flush=True)
+            time.sleep(5)
+            continue
+
+        for update in updates:
+            offset = update["update_id"] + 1
+            STATE.write_text(str(offset))
+            text = (update.get("message") or {}).get("text")
+            if not text:
+                continue
+
+            chat = str(update["message"]["chat"]["id"])
+            print(f"<- {chat}: {text}", flush=True)
+            run = support(text, chat_id=SEEN.get(chat), wait=True)
+            SEEN[chat] = run.chat_id
+            answer = run.output()
+            print(f"-> {chat}: {answer[:80]}", flush=True)
+            call("sendMessage", chat_id=chat, text=answer)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+Start it from a chat on this machine, once:
+
+```bash
+setsid nohup python3 ~/harness/programs/telegram/main.py > /tmp/telegram.log 2>&1 &
+```
+
+It keeps running after that turn ends, after that chat ends, and into tomorrow. It
+stops when the machine stops.
+
+<CardGroup cols={2}>
+  <Card title="Secrets are environment variables">
+    `TELEGRAM_BOT_TOKEN` is injected into every exec on this machine, and the
+    program reads `os.environ` — nothing writes a token into a file in git. Read
+    it inside the function that needs it: the platform imports `main.py` every
+    time it needs to know who an agent is, and it imports from processes that do
+    not carry your secrets. [The trap, in full](/tutorials/telegram-bot).
+  </Card>
+  <Card title="Restarting it is harmless">
+    The offset is on disk and the loop reads it on start, so starting the program
+    twice does not answer anything twice. Write every loop this way and "has it
+    stopped?" stops being a question anybody has to answer.
+  </Card>
+</CardGroup>
+
+Each of those `support(...)` calls is a real run: it appears in the chat list with
+its whole conversation, and it is billed like any other. So the program logs its
+inputs, the run records its own reasoning, and together they say what happened:
+
+```bash
+tail -50 /tmp/telegram.log
+```
+
+## A nightly job
+
+Same shape, different trigger. There is no scheduler to register with: the program
+is the scheduler, and the thing that makes it correct is the state file.
+
+```python
+# programs/nightly/main.py
+"""A digest of what changed, once a day."""
+import datetime as dt
+import json
+import time
+from pathlib import Path
+
+from splox import agent
+
+STATE = Path("/home/daytona/.nightly.json")
+AT_HOUR = 6
+
+digest = agent(
+    "Digest",
+    system_prompt=(
+        "You write one short digest a day. Read the repository at /home/daytona/workspace, "
+        "compare it with what you are told was there yesterday, and describe what changed "
+        "in plain sentences. Send it with email_send. Answer with the subject line you used."
+    ),
+    model="kimi-k3",
+    provider="splox",
+    tools=["system:compute", "system:email"],
+    max_iterations=60,
+)
+
+
+def due(state, now):
+    """Once a day, after AT_HOUR, whatever the loop's own timing has been."""
+    return now.hour >= AT_HOUR and state.get("last") != now.date().isoformat()
+
+
+def main():
+    while True:
+        state = json.loads(STATE.read_text()) if STATE.exists() else {}
+        now = dt.datetime.now(dt.timezone.utc)
+        if due(state, now):
+            print(f"running the digest for {now.date()}", flush=True)
+            subject = digest(
+                f"Write today's digest. Yesterday's said: {state.get('subject', 'nothing yet')}",
+                wait=True,
+            ).output()
+            STATE.write_text(json.dumps({"last": now.date().isoformat(), "subject": subject}))
+            print(f"sent: {subject}", flush=True)
+        time.sleep(300)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+`due()` asks about the calendar, not about the loop:
+
+```
+due on empty state:  True
+due again same day:  False
+due at 3am:          False
+```
+
+That is the difference between a job that runs once a day and a job that runs
+whenever the process happened to be restarted. A machine that was asleep at 6 runs
+the digest the moment it wakes; a machine restarted three times at noon runs it
+once.
+
+The digest's own answer goes into the state file and back into tomorrow's prompt,
+which is the cheapest kind of memory there is: one string, written where the next
+run will look for it.
+
+## A fan-out over many items
+
+Work that produces many results at once is a program, not a chat turn: it needs a
+loop, a ledger and a place to put what came back.
+
+```python
+# programs/audit/main.py
+"""Audit every page of a site with one agent per page, then one that reads them all."""
+import json
+import sys
+from pathlib import Path
+
+from splox import agent, program
+from tools.agents import Pool, parallel, schema
+
+REPORTS = Path("/home/daytona/audit")
+
+Finding = schema(
+    page=str,
+    verdict={"type": "string", "enum": ["ok", "problems"]},
+    problems=[str],
+    evidence=[str],
+)
+
+auditor = agent(
+    "Auditor",
+    system_prompt=(
+        "You audit one page and report what is wrong with it. Open it in a real browser, "
+        "read what is actually rendered, and report only what you saw."
+    ),
+    model="kimi-k3",
+    provider="splox",
+    tools=["system:compute"],
+    skills=["system:agent-browser"],
+    max_iterations=80,
+)
+
+
+def audit(url: str):
+    return auditor(
+        f"Audit {url}. Report every accessibility and layout defect you can prove, "
+        f"with the evidence you saw. Write nothing to disk.",
+        schema=Finding,
+    )
+
+
+def main(urls):
+    with Pool(8):
+        found = parallel(urls, audit)
+
+    for url, error in zip(found.items, found.errors):
+        if error is not None:
+            print(f"FAILED {url}: {error}", flush=True)
+
+    REPORTS.mkdir(exist_ok=True)
+    (REPORTS / "findings.json").write_text(json.dumps(found.ledger, indent=2))
+    print(f"{len(found.pairs)} of {len(found)} pages audited", flush=True)
+
+    problems = [f for f in found if f and f["verdict"] == "problems"]
+    if not problems:
+        return "no problems found"
+
+    return program().executor(
+        "Turn these findings into one report a person can act on, grouped by cause "
+        "rather than by page, worst first:\n\n" + json.dumps(problems, indent=2),
+        workspace="audit-report",
+        wait=True,
+    ).output()
+
+
+if __name__ == "__main__":
+    print(main(sys.argv[1:]))
+```
+
+Four decisions in there are the pattern:
+
+**The schema is the only gate.** Whatever an answer must satisfy goes in
+`schema=`. A violation is shown back to the same agent and retried inside its own
+run, so a constraint costs one more turn instead of a lost phase. Do not hand-write
+a validator over ids an agent invented.
+
+**A failure is a hole, not an exception.** `parallel` puts `None` in the slot and
+the exception in `.errors[i]`, and nothing after it shifts. The ledger says which
+items are missing, by name, which is the only honest thing to report when 47 of 50
+pages came back.
+
+**The readers write nothing.** Each auditor is told to write nothing to disk, and
+only the final `executor` gets a `workspace=`. A reviewer that can commit into the
+tree it is judging is not a reviewer. Read-only is not a parameter; it is what the
+message says.
+
+**Three at a time unless you say otherwise.** `Pool(8)` raises the live-agent cap
+for that block. Without it, eight `parallel` units still run three at a time.
+
+### When the fan-out needs phases
+
+An audit is one round. Work that plans, builds in parallel, integrates and then
+verifies until the tests pass is the same idea with a make-review-repair cycle
+around it, and that shape is worked out in full in your own checkout:
+
+```
+programs/compiler/README.md    the shape, and why each rule is there
+programs/compiler/main.py      the shape spelled out, with real prompts
+programs/compiler/orchestrator.py   the machinery, yours to read and edit
+```
+
+Read the README before writing anything of that shape. `ask()` is one typed task,
+`map()` is parallel work with one worktree each, and a checked `ask()` is the same
+call with `until=` and `repair=` around it:
+
+```python
+plan = wf.ask(architecture, output=Plan).value
+
+builds = wf.map(plan["units"], build=build, output=Implementation,
+                review=review, review_output=Review).complete()
+
+integration = wf.ask(integrate, output=Integration, writes=True,
+                     workspaces=builds.workspaces)
+
+verified = wf.ask(check, output=TestReport, workspace=integration.workspace,
+                  until="passed", repair=repair)
+assert verified.ok
+```
+
+`orchestrator.py` sits in the program rather than on the platform on purpose: how
+a job is cut into phases, what invalidates a checkpoint, when a repair loop is
+declared stuck are decisions a program should be able to disagree with. Copy the
+directory and rewrite the file when your work wants a different shape.
+
+<Warning>
+None of this is for a question, an explanation or one local edit. Call the agent
+once and be done.
+</Warning>

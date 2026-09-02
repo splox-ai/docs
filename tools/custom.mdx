@@ -1,0 +1,172 @@
+---
+title: "Writing your own tool"
+description: "One file in your harness, and the agent has a tool nobody had to deploy"
+---
+
+A tool of your own is a Python file in your harness's `tools/` directory. There
+is no registration, no manifest and no deploy step: the file is the tool.
+
+```python
+# tools/telegram.py
+"""Telegram, narrowed to the one thing this harness does with it."""
+
+import json
+import os
+import urllib.parse
+import urllib.request
+
+
+def notify(text: str, chat_id: str, silent: bool = False) -> str:
+    """Send one Telegram message as this harness's bot and return the message id: plain text only, no formatting, no attachments.
+
+    Args:
+        text: The message, up to 4096 characters.
+        chat_id: Numeric chat id, or @channelname for a public channel.
+        silent: Deliver without a notification sound.
+    """
+    token = os.environ["TELEGRAM_BOT_TOKEN"]
+    body = urllib.parse.urlencode(
+        {"chat_id": chat_id, "text": text, "disable_notification": silent}
+    ).encode()
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    with urllib.request.urlopen(urllib.request.Request(url, data=body), timeout=20) as r:
+        return str(json.load(r)["result"]["message_id"])
+```
+
+Give an agent `tools=["tools/telegram.py"]` and this is what it is offered:
+
+```json
+{
+  "name": "telegram__notify",
+  "description": "Send one Telegram message as this harness's bot and return the message id: plain text only, no formatting, no attachments.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "text":    {"type": "string",  "description": "The message, up to 4096 characters."},
+      "chat_id": {"type": "string",  "description": "Numeric chat id, or @channelname for a public channel."},
+      "silent":  {"type": "boolean", "description": "Deliver without a notification sound.", "default": false}
+    },
+    "required": ["text", "chat_id"]
+  }
+}
+```
+
+Name, first docstring line, and a schema derived from the type hints. Nothing
+else about the file reaches the model. [Tools](/build/tools) has the full rules —
+classes and `scope`, `@tool`, the hint-to-schema table, what refuses a publish.
+This page is the practical loop.
+
+## The docstring is the tool's interface
+
+Whatever else you write, spend the effort on the **first line**. It is the whole
+of what the model knows before deciding whether this is the tool for the job, so
+say what the tool refuses to do as well as what it does — "plain text only, no
+formatting, no attachments" is worth more than another paragraph of prose the
+model never sees.
+
+The same goes for failure. An exception is not a crash: it comes back as
+`<Type>: <message>` and the run continues, so the message is the cheapest place
+to teach.
+
+```python
+if "/" in subject:
+    raise ValueError("subject is a file name, not a path: pass 'invoices', not 'work/invoices'")
+```
+
+## Secrets
+
+Never put a key in the file. A harness is a git repository, and the repository is
+what gets published.
+
+Put it in **Connections → Secrets** instead, where it is encrypted and injected
+into the machine as an environment variable, and read it with `os.environ` as the
+example above does. The key **names** reach the agent through
+`~/tools/catalog.json`; the values only ever exist in the environment.
+[Connections](/tools/connections#environment-secrets) covers the screen.
+
+A tool that needs a per-user credential — one that belongs to the person talking
+to the harness rather than to you — is not this. That is
+[an MCP connection](/tools/connections), where the platform holds the secret
+outside the machine entirely.
+
+## Dependencies
+
+Three files, at the **root** of the tree and nowhere else: `requirements.txt`,
+`pyproject.toml` and `setup.sh`, applied in that order. They run in the sandbox as
+part of the same step that checks the tree out, and a turn that changed none of
+them runs no `pip` at all.
+
+When an import fails for something the tree clearly declares, the whole install
+transcript is at `/tmp/splox-harness-deps.log`.
+
+## Testing it
+
+Your tool is ordinary Python on a machine you have a shell on, so test it as
+ordinary Python first:
+
+```bash
+cd ~/harness
+python3 -c "
+import sys; sys.path.insert(0, 'tools')
+import telegram
+print(telegram.notify('deploy finished', chat_id='@my_channel'))
+"
+```
+
+Then check the model's view of it — the description and the schema are what
+actually decide whether it gets called:
+
+```bash
+python3 -c "
+import sys, json; sys.path.insert(0, 'tools')
+import telegram
+from splox.toolkit._schema import derive_tool
+print(json.dumps(derive_tool(telegram.notify), indent=2))
+"
+```
+
+If a description reads as ambiguous to you, it reads as ambiguous to the model.
+
+For the round trip — does the agent reach for it, and does the run come out right
+— write an eval case. [Evals](/build/evals) covers `harness_eval`.
+
+## Getting it in front of the agent
+
+Two separate things, and they land at different speeds.
+
+**Editing the body of a tool** takes effect on the very next call. The tool
+server compares each file's mtime on every list and every call, and re-imports
+what moved — no restart and no publish. **Changing a signature or a description**
+reaches the model on the next *run*, because the catalog is asked once per run.
+
+**Naming the file in an agent** is an edit to `programs/<name>/main.py`:
+
+```python
+assistant = agent(
+    "Assistant",
+    system_prompt=prompt("assistant"),
+    model="kimi-k3",
+    provider="splox",
+    tools=["system:compute", "tools/telegram.py"],
+)
+```
+
+The platform asks `main.py` who an agent is at the moment it needs to know, so
+that edit lands on the next turn too. `git push origin main` is what publishes a
+version of the harness — and it is where a broken import or a bad tool name is
+caught, with the interpreter's own words. See
+[Publishing a version](/build/versions).
+
+<Note>
+Naming one file gives the agent that file's tools and only those. A call to a
+tool from another file is refused rather than run, even though one server holds
+the whole tree.
+</Note>
+
+## When to write one at all
+
+Usually not for new capability — for a smaller surface. `system:compute` can do
+anything a shell can do; a `tools/deploy.py` with one function called `release`
+that runs the four commands in the right order, refuses the wrong branch and says
+so, is a different thing entirely. The platform's packages are what an agent
+*can* do. Your `tools/` directory is what this harness *does*.

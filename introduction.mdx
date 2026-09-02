@@ -1,140 +1,115 @@
 ---
-title: Introduction
-description: 'Build AI-powered workflows that actually work together'
+title: "Splox"
+description: "An agent that has its own computer, keeps its files, and does the work"
 ---
 
+You get an agent that has a computer. Not a chat window with plugins attached: a
+Linux machine that is yours, that keeps running between conversations, and that
+still holds everything the agent wrote to it the last time you talked.
 
-## What is Splox?
+So you ask for the work, not for a description of the work.
 
-Splox is a **multi-agent workflow builder** where you create AI systems by connecting agents, tools, and logic visually. Chat with your agents or trigger them programmatically — combine 10,000+ tools and skills to build domain-specific AI agents.
+<Frame caption="One turn: the agent decides what to do, runs it on its machine, and reports what happened">
+  <img src="/images/start/chat-tool-calls.png" alt="A Splox chat with the tool calls of a turn expanded" />
+</Frame>
 
-<CardGroup cols={2}>
-  <Card title="Chat with Agents" icon="messages" href="https://chat.splox.io">
-    Browse the agent marketplace and start chatting instantly
-  </Card>
-  <Card title="Build Workflows" icon="rocket" href="https://app.splox.io">
-    Create and customize multi-agent workflows visually
-  </Card>
-</CardGroup>
+That transcript is a real one. The agent wrote `/home/daytona/notes/first-run.md`
+on its own filesystem and listed the directory afterwards. Open a new chat
+tomorrow and the file is still there, because the machine is still there.
 
-## Two Ways to Use Splox
+## Who the agent is, is code
 
-<Tabs>
-  <Tab title="Chat with Agents">
-    **For everyone — no building required**
-    
-    Go to [chat.splox.io](https://chat.splox.io) or download the [desktop app](https://splox.io/download) to browse the agent marketplace and start chatting with pre-built agents via text or voice.
-    
-    - Browse published agents in the marketplace
-    - Chat via text or voice
-    - No configuration needed
-    - Available on web, Windows, macOS, and Linux
-  </Tab>
-  
-  <Tab title="Build Workflows">
-    **For builders — create custom agents**
-    
-    Go to [app.splox.io](https://app.splox.io) to build multi-agent workflows visually. Connect agents, tools, and logic nodes, then publish them for anyone to use.
-    
-    - Visual drag-and-drop workflow builder
-    - 10,000+ MCP tools and skills
-    - Multi-agent orchestration
-    - API access for programmatic triggers
-  </Tab>
-</Tabs>
+Every agent is declared in a Python file that lives in a git repository of its
+own — the **harness**. This is the agent from the screenshot above, with its
+prompt written inline instead of read from a file:
 
-## How it Works
+```python programs/splox/main.py
+from splox import agent
+
+assistant = agent(
+    "Assistant",
+    system_prompt="You have a Linux machine. Do the work, then say what you did.",
+    model="kimi-k3",
+    provider="splox",
+    tools=["system:compute"],
+    skills=["system:agent-browser", "system:memory"],
+    max_iterations=1000,
+)
+
+
+def handle(msg):
+    return assistant
+```
+
+Edit a line and the next message reads the new one. Nothing is parsed at publish
+time, frozen into a run, or migrated afterwards: the platform asks `main.py` who
+an agent is at the moment it needs to know. Push the file and every later chat
+opens on the new version.
+
+That is the shape of the whole product. The agent has a computer, the computer
+has a checkout of the harness at `~/harness`, and the agent can read and edit
+that checkout like any other code — including with your help, in the chat.
+
+## What it is not
+
+- **Not a chatbot.** It has a shell, a filesystem, a package manager, a real
+  browser, and it starts programs that keep running after the tab closes.
+- **Not a workflow canvas.** There are no nodes and no edges. Branching is an
+  `if` in a Python file you own. If you used the old Splox, [what
+  changed](/what-changed) is the map from that vocabulary to this one.
+- **Not a sandbox that resets.** The disk survives. A stopped machine keeps its
+  files and comes back where it left off.
+- **Not tools as JSON calls.** A tool is a Python function the agent imports and
+  calls in code, so one turn can chain five of them, filter the middle result and
+  print only the answer. See [Tools](/build/tools).
+
+## Who it is for
+
+People who want an outcome and are willing to describe it once: a report
+compiled from four sources, a repository audited, a scraper written and left
+running, a mailbox watched. And people who want to shape how the agent works —
+its prompt, its model, its tools, the points of its turn — by writing code rather
+than filling in a form.
+
+You do not have to be the second kind to use it. The account you sign up with
+already has a working agent and a machine to run it on.
+
+## Your first hour
 
 <Steps>
-  <Step title="Build Your Workflow">
-    On [app.splox.io](https://app.splox.io), connect agents, tools, and logic nodes visually. Each workflow is a multi-agent system.
+  <Step title="Send a message">
+    Sign in, type into the composer, and watch the tool calls appear as the agent
+    works. Nothing to set up: the machine and the harness are created with the
+    account. [Quickstart](/quickstart).
   </Step>
-  <Step title="Add Tools & Skills">
-    Choose from 10,000+ MCP tools and procedural skills to make your agents domain-specific.
+  <Step title="Give it something with a file in it">
+    Ask for something that leaves a result on disk — a scraped list, a converted
+    document, a script. Then open a new chat and ask it to read what it wrote.
+    The point of the machine is the second half of that sentence.
   </Step>
-  <Step title="Chat or Trigger">
-    Chat with your agent on [chat.splox.io](https://chat.splox.io) or the desktop app, or trigger programmatically via the API.
+  <Step title="Read the vocabulary">
+    Six words carry the rest of this documentation: machine, harness, program,
+    agent, run, chat. [Concepts](/concepts/overview) is one page that fits them
+    together.
+  </Step>
+  <Step title="Change who the agent is">
+    Ask the agent to open `~/harness`, edit the prompt or add a tool, and push.
+    The next turn runs what you wrote. [Changing what your agent
+    is](/build/overview).
   </Step>
 </Steps>
 
-## Example: Agent with Tools
-
-<iframe 
-  src="https://app.splox.io/workflow/NUri7n58DjIRxG86sbBFwCoabOxSHUVUbYzwDo59IMM" 
-  width="100%" 
-  height="500px" 
-  style={{borderRadius: "8px"}}
-  title="Agent with Tools Workflow"
-/>
-
-**How it works:**
-1. **Entry node** initiates the workflow
-2. **Agent** processes your request and can call any connected tools
-3. **Tool router** dynamically selects the right tool based on the agent's needs
-4. **Chat interface** lets you interact with the agent in real-time
-
-For multi-agent workflows, connect multiple agents where each agent handles a specialized task - one agent can call another agent as part of the workflow.
-
-## Why Choose Splox?
-
-<AccordionGroup>
-  <Accordion title="Multi-Agent Workflows" icon="brain">
-    Build systems where agents collaborate. One agent analyzes, another executes, a third validates - all connected visually.
-    
-    **Example:** Research agent → Writing agent → Editing agent pipeline.
-  </Accordion>
-
-  <Accordion title="10,000+ Tools & Skills" icon="wrench">
-    Access MCP (Model Context Protocol) tools and procedural skills. Combine them to create highly specialized, domain-specific agents.
-    
-    **Example:** Financial analysis agent with market data tools + calculation skills.
-  </Accordion>
-
-  <Accordion title="Chat Interface Built-In" icon="messages">
-    Interact with workflows through a full chat interface. Side panel or full view - test and use your agents conversationally.
-    
-    **Example:** Chat with your research agent, ask follow-ups, iterate on results.
-  </Accordion>
-
-  <Accordion title="Visual + Code" icon="code">
-    Build workflows visually, add custom logic when needed. No infrastructure to manage.
-    
-    **Example:** Connect nodes visually, write Python for complex transformations.
-  </Accordion>
-</AccordionGroup>
-
-## Node Types
-
-Build workflows with these building blocks:
-
-- **Entry Node** - Define workflow entry points and triggers
-- **Agent Node** - Autonomous AI agents with LLM + Tools loops
-- **Tool Node** - Execute custom functions or MCP tools
-- **Switch Node** - Conditional branching based on data or AI decisions
-- **Merge Node** - Combine data from multiple sources
-
-## Getting Started
-
 <CardGroup cols={2}>
   <Card title="Quickstart" icon="play" href="/quickstart">
-    Build your first workflow
+    Sign in and get a first result out of the machine.
   </Card>
-  <Card title="Core Concepts" icon="book" href="/concepts/workflows">
-    Understand the fundamentals
+  <Card title="Concepts" icon="diagram-project" href="/concepts/overview">
+    Machine, harness, program, agent, run, chat — and how they fit.
   </Card>
-  <Card title="Agent Marketplace" icon="grid" href="https://chat.splox.io">
-    Chat with pre-built agents
+  <Card title="Build" icon="code" href="/build/overview">
+    Edit the harness: programs, agents, hooks, tools, skills.
   </Card>
-  <Card title="Community" icon="users" href="https://community.splox.io/">
-    Get help and share ideas
+  <Card title="API" icon="terminal" href="/api/introduction">
+    Start runs and read their events from your own code.
   </Card>
 </CardGroup>
-
-## Next Steps
-
-Ready to build?
-
-1. **[Quickstart Guide](/quickstart)** - Create your first workflow
-2. **[Workflows](/concepts/workflows)** - Learn workflow fundamentals  
-3. **[Nodes](/concepts/nodes)** - Understand node types
-4. **[Tools](/concepts/tools)** - Connect your tools

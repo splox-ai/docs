@@ -1,0 +1,152 @@
+---
+title: "API keys"
+description: "Minting a key for the API, what it can reach, how long it lives, and revoking it"
+---
+
+An API key is a bearer token that stands for your whole account. You mint it
+through the API — there is no key screen in the app — and you send it as
+`Authorization: Bearer <token>` on every call.
+
+**Minting one requires a paid plan.** On a free account the request is refused
+with `403`:
+
+```json
+{"message": "Paid plan required to generate API tokens"}
+```
+
+Upgrade first; see [Plans](/account/plans).
+
+## Creating one
+
+The call is authenticated by your browser session, because it is the thing that
+gets you your first key:
+
+```bash
+curl -s -X POST "$SPLOX_BASE_URL/v1/api-tokens" \
+  -H "Cookie: session=$SESSION" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "docs-account-page", "duration_minutes": 60}'
+```
+
+```json
+{
+  "token": "MjcKMSx-6a20…",
+  "name": "docs-account-page",
+  "expires_at": "2026-09-02T09:13:28Z",
+  "expires_in": 3600,
+  "scope": "api",
+  "endpoint": "https://splox.io/api/v1/chat/completions",
+  "rate_limit": "10 requests per second",
+  "max_concurrent_requests": 10,
+  "usage_note": "Use this token in the Authorization header as: Bearer YOUR_TOKEN"
+}
+```
+
+<Warning>
+`token` is the only time the plaintext exists anywhere you can read it. The
+server keeps a hash. Copy it into an environment variable or a secret store now;
+if you lose it, mint another.
+</Warning>
+
+<ParamField body="name" type="string">
+  What the key is for. Defaults to `API Token - <timestamp>`.
+</ParamField>
+<ParamField body="duration_minutes" type="integer" default="60">
+  How long it lives. Zero or less becomes the default of 60; anything above
+  525600 (a year) is clamped to a year. There is no unlimited option.
+</ParamField>
+
+<Note>
+`endpoint`, `rate_limit`, `max_concurrent_requests` and `usage_note` are
+informational strings the handler fills in, not settings you chose. `endpoint`
+in particular is left over from an older API — the chat-completions path it
+names is not served, and answers 404. The base URL to use is the one on
+[The API](/api/introduction).
+</Note>
+
+## What it can reach
+
+Everything your account can, on both API versions:
+
+```bash
+curl -s "$SPLOX_BASE_URL/v2/harnesses" -H "Authorization: Bearer $SPLOX_API_KEY"
+curl -s "$SPLOX_BASE_URL/v1/machines"  -H "Authorization: Bearer $SPLOX_API_KEY"
+```
+
+```json
+{"data":[{"id":"h_5V125BR7R4AA189NRYAB3DQC6D","name":"My Agent"}],"page":{"has_more":false,"next_cursor":null}}
+```
+
+The `scope` field reads `api`, and that is the only scope there is — it is not a
+permission set you can narrow. **A key is the account, not a subset of it.** It
+starts runs that spend your allowance, reads every run your account owns, and
+can mint and revoke further keys. Treat it accordingly: a short life for
+anything short-lived, a separate key for each thing that holds one, and revoke
+rather than share.
+
+What it is **not**:
+
+- Not a provider key. Your OpenAI or Anthropic credentials live under
+  **Connections** and are a separate thing entirely — see [Model](/concepts/model).
+- Not a login to a machine. The agent's own tools run inside the machine and
+  need no key from you.
+- Not scoped to one harness, one machine or one run.
+
+[Authentication](/api/authentication) has the refusals — what a missing,
+malformed, expired or revoked key answers, and why a resource that is not yours
+looks identical to one that does not exist.
+
+## Listing
+
+```bash
+curl -s "$SPLOX_BASE_URL/v1/api-tokens" -H "Authorization: Bearer $SPLOX_API_KEY"
+```
+
+```json
+{
+  "tokens": [
+    {
+      "id": "01a0612e-2235-736e-ad98-edc100397633",
+      "name": "docs-account-page",
+      "expires_at": "2026-09-02T09:13:28Z",
+      "created_at": "2026-09-02T08:13:28Z",
+      "scope": "api",
+      "status": "active"
+    }
+  ]
+}
+```
+
+Expired keys are dropped from this list rather than shown as dead rows, so
+everything you see here is live. The `id` is what you revoke by; it is not the
+token and it is safe to log.
+
+## Revoking
+
+```bash
+curl -s -X POST "$SPLOX_BASE_URL/v1/api-tokens/revoke" \
+  -H "Authorization: Bearer $SPLOX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"token_id": "01a0612e-2235-736e-ad98-edc100397633"}'
+```
+
+```json
+{"message": "Token revoked successfully"}
+```
+
+It takes effect at once — the next request with that token gets a `401`, with no
+cache to wait out. A key you no longer recognize is a key to revoke; there is no
+cost to minting a fresh one.
+
+Letting a key expire has the same end state. If you know a key is for one job,
+give it a `duration_minutes` that covers the job and nothing more, and you never
+have to remember to come back.
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/api/authentication">
+    Sending the key, and every shape a refusal takes.
+  </Card>
+  <Card title="Plans" icon="layer-group" href="/account/plans">
+    Which plans can mint a key at all.
+  </Card>
+</CardGroup>

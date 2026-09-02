@@ -1,0 +1,194 @@
+---
+title: "Driving a browser"
+description: "The desktop and the agent-browser CLI: which job belongs in which, and what a captcha means for an agent"
+---
+
+Your agent has two browsers, and picking the wrong one is the most common way a
+web task fails.
+
+<CardGroup cols={2}>
+  <Card title="The desktop" icon="display">
+    A real X11 desktop with Chromium on it, driven by pixel through
+    [`compute_computer`](/tools/compute#the-desktop). **Signing in and signing
+    up.**
+  </Card>
+  <Card title="agent-browser" icon="terminal">
+    A CLI in the sandbox that drives a browser by accessibility snapshot.
+    **Everything else**, including work inside a session the desktop signed in.
+  </Card>
+</CardGroup>
+
+The split is not about convenience. A CDP-driven browser is exactly what a
+registration or login page screens for, and a rejected attempt usually costs the
+identity as well: the phone number is spent, the email address is burned, the
+fresh account arrives flagged. So the flows that create or authenticate an
+identity go through the desktop, and everything after that goes through the CLI —
+which shares the browser profile, so a session the desktop signed in is just the
+next command.
+
+## agent-browser
+
+The CLI carries its own manual and it always matches the installed version:
+
+```bash
+agent-browser skills get core --full   # the full guide
+agent-browser skills list              # slack, electron, derive-client, ...
+```
+
+Working a page is one command at a time, and the page survives between them:
+
+```bash
+agent-browser open https://example.com
+```
+
+```text
+✓ Example Domain
+  https://example.com/
+```
+
+```bash
+agent-browser snapshot
+```
+
+```text
+- heading "Example Domain" [level=1, ref=e1]
+- paragraph
+  - StaticText "This domain is for use in documentation examples without needing permission."
+- link "Learn more" [ref=e2]
+```
+
+That is the accessibility tree, not the HTML — a tenth of the tokens, and every
+interactive element carries a `ref` you act on: `agent-browser click @e2`,
+`fill "#q" "ripgrep"`, `press Enter`.
+
+<Warning>
+**Never pass launch options on the command line.** The sandbox already exports
+`AGENT_BROWSER_HEADED`, `AGENT_BROWSER_ARGS`, `AGENT_BROWSER_EXTENSIONS`,
+`AGENT_BROWSER_SESSION` and, when an egress relay is configured,
+`AGENT_BROWSER_PROXY`. Options are part of what the browser was launched with; a
+command carrying a different set relaunches it, and the page is gone.
+</Warning>
+
+`AGENT_BROWSER_SESSION` already names one browser per agent, so nothing you open
+can be navigated away by another agent. A browser you stop using is closed after
+ten minutes idle and its screen is handed on after fifteen; both come back on
+your next command, the page does not. A snapshot that answers `about:blank` means
+the browser restarted — open the page again and carry on.
+
+### Three things that will bite you
+
+**Refs go stale.** A `ref` belongs to the snapshot that issued it, and anything
+that re-renders the page — a cookie banner is enough — invalidates it. The CLI
+answers `✗ Unknown ref: e33`. Snapshot again and take the ref from the new one.
+
+**`click` on a checkbox lies.** It reports `✓ Done` and leaves the box
+`checked=false`. Use `agent-browser check @e34` and verify with a fresh snapshot.
+
+**`open` returns before the page renders.** Grep the snapshot for something you
+expect and retry for a few seconds before concluding an element is absent. When
+matching a label, match part of it — labels carry icon glyphs inside the quotes,
+so `button .*PHONE NUMBER` matches where the full quoted string never does.
+
+### Reading what a form actually answered
+
+Sites reply to an AJAX submit with a toast that is gone before your screenshot,
+so a blank-looking page is not a failed submit. Ask the endpoint yourself:
+
+```bash
+agent-browser eval "(async()=>{const f=document.forms[0];
+  const r=await fetch(f.action,{method:'POST',body:new FormData(f),credentials:'include'});
+  return (await r.text()).slice(0,300)})()"
+```
+
+That is how a sign-up form turned out to be submitting fine with a missing
+captcha token. Keep `eval` short: a long one against a busy page returns
+`CDP command timed out: Runtime.evaluate` and leaves the tab wedged.
+
+## Bot protection
+
+A protected page answers `Just a moment...`. Cloudflare's interstitial puts the
+challenge in a cross-origin iframe that the snapshot still pierces:
+
+```text
+- Iframe "Widget containing a Cloudflare security challenge" [ref=e5]
+    - checkbox "Verify you are human" [checked=false, ref=e9]
+```
+
+`click e9` reports success and does nothing — the challenge only accepts a real
+pointer. Click the iframe by coordinates:
+
+```bash
+agent-browser get box e5 --json     # -> {"data":{"x":42,"y":312,"width":300,"height":65}}
+agent-browser mouse move 72 344     # x + 30, vertical centre
+agent-browser mouse down && agent-browser mouse up
+```
+
+Wait five seconds, then judge by **page content**, never by cookies —
+`cf_clearance` is set on failed attempts too, and it is bound to the browser that
+earned it:
+
+```bash
+agent-browser snapshot | grep -q "security verification" && echo "still challenged"
+```
+
+What decides the outcome, measured over 21 runs against a live interstitial:
+
+| Condition | Passed |
+| --- | --- |
+| headed, residential exit, `--disable-blink-features=AutomationControlled` | 8 of 9 |
+| the same without that flag | 2 of 8 |
+| headless | never |
+
+The flag and headed mode are already in the environment. The residential exit is
+only there if `AGENT_BROWSER_PROXY` is set — check it before spending attempts,
+because a datacentre IP does not pass. Roughly one attempt in six still fails:
+retry **once**, and only with a fresh proxy session. If the second fails, the page
+is not worth more attempts. Say so, and offer the person the live desktop with
+`compute_computer(action="vnc_url")`.
+
+## Captchas
+
+A captcha solver extension ships with the agent-browser skill and the browser
+loads it on its own — nothing to install or configure. It handles reCAPTCHA,
+hCaptcha, Turnstile, FunCAPTCHA, GeeTest and AWS WAF, and it watches for a
+**rendered** widget.
+
+When it applies, the correct behaviour is to do nothing clever:
+
+```bash
+agent-browser open https://site/signup
+agent-browser wait 45000
+agent-browser snapshot
+```
+
+Inspecting the widget is what breaks it. It moves a real cursor over the
+challenge, so an image grid takes up to a minute. Whether it engaged is visible
+on screen — the checkbox turns green, or cells get picked one by one — and not in
+the DOM: the widget lives in a cross-origin iframe the snapshot cannot enter, and
+`#g-recaptcha-response` is often empty even on success.
+
+A widget that sits untouched for a minute is the solver's service refusing the
+request, not a slow page.
+
+## Signing in
+
+On the desktop, by pixel:
+
+```python
+from tools.compute import compute_computer
+
+compute_computer(action="open_url", url="https://site/login")
+compute_computer(action="screenshot")            # look at it
+compute_computer(action="click", x=640, y=384)   # the email field
+compute_computer(action="type", text="a-8c53…@agents.splox.io")
+compute_computer(action="key", key="Tab")
+```
+
+The address to type is the agent's own — see
+[Email and SMS](/tools/communication) for collecting the confirmation code that
+follows, and for the phone number when the form asks for one instead.
+
+The desktop carries the same residential proxy and the same captcha solver as the
+CLI. When a human needs to take over — a payment step, a challenge nothing
+solves — `compute_computer(action="vnc_url")` returns a signed link to the live
+screen that they can watch or drive.

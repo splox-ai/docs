@@ -1,0 +1,142 @@
+---
+title: "Harness"
+description: "The agent's own git repository: versions, refs, publishing, and how an edit reaches the next turn"
+---
+
+A harness is a git repository, and it is the whole of what your agent is: the
+programs that declare the agents, the hooks that shape their turns, the tools
+they call. Not a repository plus a row saying it exists — the repository *is* the
+harness, and everything the platform stores about one is a pointer at it.
+
+So the version history is `git log`, and publishing is `git push`.
+
+```bash
+cd ~/harness && git log --oneline -3
+```
+
+```
+9e5d095 Undo the program marker a reaper that no longer exists asked for
+4e91ca3 Give the executor the design skill it was being told to read
+c151b87 Every agent stopped after sixty passes, whether or not it had finished
+```
+
+## The tree
+
+```
+programs/<name>/main.py            declares the agents; who answers a message
+programs/<name>/hooks/<point>.py   the points of the loop this program takes over
+programs/<name>/prompts/*.md       what its agents are told, as data it reads
+tools/<name>.py                    tools, one file per group, flat
+evals/cases/<name>.yaml            scripted runs, with graders to score them
+requirements.txt                   what the tools need installed
+```
+
+`main.py` and `hooks/<point>.py` are the only fixed names. A publish needs at
+least one `programs/<name>/main.py` and refuses a tree with none: a harness with
+nothing to run is not a harness. Everything else is optional.
+
+## Where it comes from
+
+A harness never comes into existence empty. The only gesture that creates one is
+copying a starter, and the copy's first commit says where it came from:
+
+```
+created from starters/assistant at c151b87e73304d08c88495cad7d19e4c328e8742
+```
+
+That line is the only provenance kept, and it lives in git like everything else.
+The starter stays upstream, so its later improvements can be merged into your copy
+whenever you want them — and the starter is read-only to you, so nothing you do
+can change what anybody else's harness is made of.
+
+<Frame caption="The starter library. Every account starts with a copy of the default one.">
+  <img src="/images/start/starters.png" alt="The Starters tab of the Machines page" />
+</Frame>
+
+## Versions
+
+Every published version is a ref, `refs/versions/N`, N counting from 1.
+`refs/heads/main` is the current version. A version is created one way: you push
+`main` from the checkout.
+
+```bash
+cd ~/harness
+git add -A && git commit -m "Teach the assistant to check the log before answering"
+git push origin main
+```
+
+Read them back at any time:
+
+```bash
+curl -s -H "Cookie: session=$SESSION" \
+  https://splox.io/api/v1/harnesses/$HARNESS_ID
+```
+
+```json
+{
+  "harness": {
+    "id": "bb088abc-1f04-5282-84d7-1e52c6dbb0cd",
+    "name": "My Agent",
+    "starter": "assistant",
+    "updated_at": "2026-09-02T07:04:31Z"
+  },
+  "versions": [
+    {
+      "number": 1,
+      "commit": "371758ecf28e8240192e4731080a7436fb492a09",
+      "message": "created from starters/assistant at c151b87e73304d08c88495cad7d19e4c328e8742",
+      "created_at": "2026-09-02T07:04:30Z"
+    }
+  ]
+}
+```
+
+A tree is named by its commit. The version number is a label `refs/versions/N`
+puts on that commit for people to read; it is never a selector. A run records
+`harness_id` plus `harness_commit`, which is why any answer can be traced back to
+the exact tree that produced it.
+
+<Note>
+Renaming a harness writes the repository's description and nothing else. It
+creates no version and mutates none. Deleting archives the repository rather than
+removing it, so history survives.
+</Note>
+
+## A machine runs a harness at a ref
+
+`harness_ref` on a machine names what that machine runs — `main` by default, but
+it can be any ref, which is how you pin a machine to `refs/versions/3` and leave
+it there. One machine runs one harness; a harness may have several machines, each
+with its own disk and its own checkout.
+
+## How an edit reaches the next turn
+
+Two different things, and the difference is the one people trip on.
+
+**Inside the machine, the checkout is what runs.** The prompt, the model, the
+tools and the iteration cap are not stored anywhere: they are a question the
+platform asks `main.py` at the moment it needs the answer. A chat message is a
+run, so a line edited in `~/harness` between two messages is read by the second
+one — nothing published in between, nothing restarted. The same is true of tool
+files, which are re-imported when their mtime moves.
+
+**Publishing is for everyone else.** `git push origin main` makes a version. The
+next chat opens on it, and so does any other machine tracking `main`. A run
+already going keeps the version it started with, so nothing you push interrupts
+anything that is running.
+
+<Warning>
+The projection leaves a dirty checkout alone — it will not overwrite work sitting
+in the sandbox with the published commit. That is what makes editing in place
+reasonable, and also what makes an unpushed edit invisible to every other machine
+you own.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Versions" icon="code-branch" href="/build/versions">
+    Cloning, the refs in full, publishing, rolling back, merging the starter.
+  </Card>
+  <Card title="Programs" icon="folder" href="/concepts/program">
+    What lives inside the repository, and what each directory is for.
+  </Card>
+</CardGroup>

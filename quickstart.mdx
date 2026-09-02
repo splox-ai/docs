@@ -1,222 +1,134 @@
 ---
-title: 'Quickstart'
-description: 'Build your first AI workflow in 5 minutes'
+title: "Quickstart"
+description: "Sign in, send the first message, and find the files the agent left on its machine"
 ---
 
-## Welcome to Splox
-
-Splox has two products: **Agent Chat** for using pre-built agents, and the **Workflow Builder** for creating your own. This quickstart covers both.
-
-<CardGroup cols={2}>
-  <Card title="Agent Chat" icon="messages" href="https://chat.splox.io">
-    **chat.splox.io**
-    
-    Browse agents and start chatting — no setup required. Also available as a [desktop app](https://splox.io/download) for Windows, macOS, and Linux.
-  </Card>
-  <Card title="Workflow Builder" icon="browser" href="https://app.splox.io">
-    **app.splox.io**
-    
-    Build and customize multi-agent workflows visually
-  </Card>
-</CardGroup>
-
----
-
-## Step 1: Start with the Template
-
-<Card 
-  title="AI Agent Starter" 
-  icon="wand-magic-sparkles"
-  href="https://app.splox.io/templates/019b36e4-f41b-7d9f-9b4d-fb87d550f21f">
-  **Your first multi-agent workflow**
-  
-  A simple agent connected to tools - ready to customize and extend.
-  
-  **Includes:**
-  - Voice and text interaction
-  - Tool integration examples
-  - Pre-configured AI model
-  
-  **Time:** 2 minutes to first chat
-</Card>
+Signing up gives you a machine and an agent on it. Nothing to install, nothing
+to configure — the first useful thing you can do is type a sentence.
 
 <Steps>
-  <Step title="Open the Template">
-    Click the card above to open the starter template in Splox
-  </Step>
-  <Step title="Explore the Workflow">
-    See the visual graph: Start → Agent → Tools. Each node is a step.
-  </Step>
-  <Step title="No configuration needed">
-    The template works out of the box. Customize later as you learn.
-  </Step>
+
+<Step title="Sign in">
+
+Go to the app and sign in with Google, or with a work email. Signing up creates
+two things for you: a **harness** (a git repository holding the code that decides
+who your agent is, named *My Agent* until you rename it) and a **machine** for it
+to run on.
+
+</Step>
+
+<Step title="You land in an empty chat">
+
+<Frame caption="The composer. The machine picker is top left; the model chip is bottom right.">
+  <img src="/images/start/welcome.png" alt="An empty Splox chat with the composer at the bottom" />
+</Frame>
+
+Three things on this screen matter now:
+
+- **My Agent** at the top left is the machine this chat runs on. Open it and it
+  reads `My Agent @ main` — the harness it runs, at the ref it runs.
+- **Harness decides** on the composer means the model is the one your harness
+  declared. You can override it per chat; see [Models](/concepts/model).
+- **Machines**, **Tools**, **Skills** and **Connections** in the sidebar are what
+  the agent has to work with.
+
+</Step>
+
+<Step title="Send the first message">
+
+Ask for something that ends in a file, so you can go looking for it afterwards:
+
+```text
+Create ~/notes/first-run.md with a one-line note about what this machine is,
+then list the files in ~/notes.
+```
+
+Press Enter. The chat is named from your message and the run starts.
+
+</Step>
+
+<Step title="Watch it work">
+
+While the run is going you see a collapsed chip like `Ran /home/daytona/notes
+(+1 more)`. Click it and the turn opens up: the model's reasoning, then each tool
+call it made, in order.
+
+<Frame caption="The same turn expanded: two tool calls, and the answer under them">
+  <img src="/images/start/chat-tool-calls.png" alt="A Splox turn expanded, showing reasoning and two tool calls" />
+</Frame>
+
+Under the answer is the footer for that turn — the model that ran it, the time,
+how long it took and how fast it generated:
+
+```text
+kimi-k3 · Sep 2, 7:24 AM · 23.9s · 33.9 tok/s
+```
+
+One turn of a chat is one **run**. Everything the run did is kept: its messages,
+its tool calls, its usage. See [Runs](/concepts/run).
+
+</Step>
+
+<Step title="Find the file, in another chat">
+
+Start a new chat and ask:
+
+```text
+Read /home/daytona/notes/first-run.md and tell me what it says.
+```
+
+It reads it. The disk is the machine's, not the conversation's — the first chat
+wrote the file and the second one finds it. That is the difference between this
+and a sandbox that resets.
+
+<Note>
+Use absolute paths when you name a file to the agent. The starter's file tools do
+not expand `~`, so `~/notes` comes back as `FileNotFoundError` while
+`/home/daytona/notes` works. The agent's home is `/home/daytona`.
+</Note>
+
+</Step>
+
+<Step title="Look at the machine">
+
+Open **Machines** in the sidebar and pick **Your machines**.
+
+<Frame caption="The machine card: what it runs, what it has, and how much of the disk is used">
+  <img src="/images/start/machines.png" alt="The Machines page showing one running machine" />
+</Frame>
+
+The card says what the machine runs (`Runs My Agent @ main`), what it has
+(`2 vCPU · 4 GB RAM`), how much disk it has used and when it was last active.
+**Stop** shuts it down; the files stay. See [Machines](/concepts/machine).
+
+</Step>
+
 </Steps>
 
----
+## What to try next
 
-## Step 2: AI Provider (Optional)
+**Give it work that takes a while.** Ask for something with several steps — read
+four pages and compare them, convert a directory of documents, write and run a
+script. The agent keeps going through the tool loop until it has an answer.
 
-The starter template uses Splox's default AI provider - no setup needed. You can switch to your own API keys later.
+**Ask it to leave something running.** A watcher, a bot, a nightly job. A process
+started in one turn is still running in the next chat, because it belongs to the
+machine and not to the conversation. The place for that code is a
+[program](/concepts/program) in the harness.
 
-<Accordion title="Want to use your own API keys? (BYOK)" icon="key">
-  **Bring your own OpenAI or Anthropic key** for direct billing.
-  
-  1. Get an API key from [OpenAI](https://platform.openai.com/api-keys) or [Anthropic](https://console.anthropic.com/)
-  2. Go to Settings in Splox
-  3. Enable BYOK and enter your API key
-  4. Select it in your workflow's agent node
-  
-  **For now:** Skip this and use the default provider to get started faster.
-</Accordion>
+**Change who the agent is.** Ask it to open `~/harness`, edit
+`programs/splox/prompts/assistant.md` or add a tool under `tools/`, and push. The
+next turn runs what you wrote. [Changing what your agent is](/build/overview)
+is the section for that.
 
----
-
-## Step 3: Understand the Workflow
-
-The starter template shows you the basics:
-
-<Steps>
-  <Step title="Entry Node">
-    Entry point of your workflow. Defines what triggers it.
-  </Step>
-
-  <Step title="Agent Node">
-    The AI that processes requests. Can use multiple tools and reason through complex tasks.
-  </Step>
-
-  <Step title="Tool Nodes">
-    Actions the agent can take - API calls, data processing, integrations with 10,000+ tools.
-  </Step>
-
-  <Step title="Edges (Arrows)">
-    Connect nodes to define data flow. Tool edges let agents dynamically choose which tools to use.
-  </Step>
-</Steps>
-
-<Tip>
-**Click any node** to see its configuration. You can edit prompts, change models, and add more tools.
-</Tip>
-
----
-
-## Step 4: Chat with Your Workflow
-
-Once your workflow is ready, chat with it directly from the builder:
-
-<img src="https://splox-app.s3.amazonaws.com/019ba342-53d7-7f4a-8050-978de73c1236.png" alt="Chat Mode Interface" style={{borderRadius: "8px"}} />
-
-1. Click the **Chat icon** (speech bubble) in the toolbar on [app.splox.io](https://app.splox.io)
-2. Select your **entry node** from the dropdown
-3. Type or speak your message
-4. See the agent respond in real-time — watch nodes execute in the workflow as it runs
-
-**Supports:** Text and voice input
-
-<Accordion title="Other ways to run your workflow" icon="bolt">
-  **API** — Trigger programmatically:
-  
-  ```bash
-  curl -X POST https://app.splox.io/api/v1/workflow-requests/run \
-    -H "Authorization: Bearer YOUR_TOKEN" \
-    -H "Content-Type: application/json" \
-    -d '{"workflow_version_id": "...", "chat_id": "...", "entry_node_ids": ["..."], "query": "Process this data"}'
-  ```
-  
-  See the full [API docs](/api-reference/introduction) for details.
-</Accordion>
-
----
-
-## Step 5: Monitor & Debug
-
-Keep an eye on your workflow executions:
-
-<img src="https://splox-app.s3.amazonaws.com/019ba343-aef6-7f4a-936d-6d7a5669c925.png" alt="Debug Panel" style={{borderRadius: "8px"}} />
-
-**Debug Panel** - Shows real-time execution status:
-- View all nodes in your workflow
-- See which nodes are running, completed, or blocked
-- Monitor execution time and status
-- Click any node to inspect its input/output
+**Drive it from your own code.** Runs, events and outputs are an API, with
+Python, Node and Go SDKs. [API](/api/introduction).
 
 <CardGroup cols={2}>
-  <Card title="Execution History" icon="clock">
-    View all past runs, see which nodes succeeded/failed, and inspect outputs.
-    
-    **Location:** Workflow → Executions tab
+  <Card title="Concepts" icon="diagram-project" href="/concepts/overview">
+    The six words the rest of the documentation uses.
   </Card>
-
-  <Card title="Real-Time Monitoring" icon="terminal">
-    Watch your workflow run in real-time. The Debug Panel shows node-by-node progress with status indicators (Running, Completed, Blocked).
-    
-    **Location:** Debug Panel (sidebar during execution)
-  </Card>
-
-  <Card title="Error Handling" icon="triangle-exclamation">
-    If a node fails, the workflow stops. Click the failed node to see the error message.
-    
-    **Fix:** Update configuration and re-run
-  </Card>
-
-  <Card title="Node Outputs" icon="file-export">
-    Every node stores its output. Reference it in later nodes using `{{ node_id.output }}` syntax.
-    
-    **Example:** `{{ llm_1.content }}`
+  <Card title="The machine" icon="server" href="/concepts/machine">
+    What persists, what start and stop do, what a plan gives you.
   </Card>
 </CardGroup>
-
----
-
-## Next Steps
-
-Now that you've chatted with your first agent, here's what to explore:
-
-<CardGroup cols={2}>
-  <Card title="Add More Tools" icon="wrench" href="/concepts/tools">
-    Connect from 10,000+ MCP tools and skills to make your agent domain-specific
-  </Card>
-
-  <Card title="Build Multi-Agent Workflows" icon="sitemap" href="/concepts/workflows">
-    Connect multiple agents where each handles a specialized task
-  </Card>
-
-  <Card title="Learn Node Types" icon="cube" href="/nodes/variable-mappings">
-    Master Agent nodes, Tool nodes, Switch logic, and more
-  </Card>
-
-  <Card title="Agent Marketplace" icon="grid" href="https://chat.splox.io">
-    Browse and chat with published agents
-  </Card>
-</CardGroup>
-
----
-
-## Need Help?
-
-<CardGroup cols={2}>
-  <Card title="Telegram Community" icon="telegram" href="https://t.me/splox_ai">
-    Chat with the team and other users
-  </Card>
-
-  <Card title="Desktop App" icon="desktop" href="https://splox.io/download">
-    Get the native app for voice chat with agents
-  </Card>
-</CardGroup>
-
-<Tip>
-**Stuck on something?** Most questions are answered in our [Core Concepts](/concepts/workflows) guide. If you're still stuck, reach out on [Telegram](https://t.me/splox_ai)!
-</Tip>
-
----
-
-## Quickstart Checklist
-
-Make sure you've completed these steps:
-
-- [ ] Opened the [starter template](https://app.splox.io/templates/019b36e4-f41b-7d9f-9b4d-fb87d550f21f) on app.splox.io
-- [ ] Chatted with an agent on [chat.splox.io](https://chat.splox.io) (voice or text)
-- [ ] Explored the workflow graph (Start → Agent → Tools)
-- [ ] (Optional) Downloaded the [desktop app](https://splox.io/download) for voice chat
-- [ ] (Optional) Added your own API keys via BYOK
-
-**All done?** You're ready to customize and build your own workflows!

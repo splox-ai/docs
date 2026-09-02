@@ -1,0 +1,207 @@
+---
+title: "Compute"
+description: "Running commands, keeping a shell, editing files, driving a desktop, and sharing what you made"
+---
+
+`system:compute` is the package the agent lives in. Eleven tools over one idea:
+every one of them takes a `target` that says which machine it runs on, and the
+default target is the agent's own.
+
+```python
+from tools.compute import compute_exec
+
+compute_exec(command="uname -sr; df -h /home/daytona | tail -1")
+```
+
+```json
+{
+  "success": true,
+  "exit_code": 0,
+  "stdout": "Linux 6.8.0-138-generic\noverlay          10G  3.9G  6.2G  39% /\n",
+  "stderr": "",
+  "duration_ms": 26,
+  "cause": "ok"
+}
+```
+
+The three targets:
+
+| `target` | Where the call runs |
+| --- | --- |
+| omitted, `""` or `"sandbox"` | the chat's own [machine](/concepts/machine) — persistent, shared with sub-agents |
+| `"ssh:<connection_id>"` | a server reached over SSH |
+| `"local:<device_id>"` | the user's own computer, through the desktop agent |
+
+`compute_target` acquires and lists them:
+
+```python
+from tools.compute import compute_target
+
+compute_target(op="list")
+# trimmed:
+# {"count": 2, "targets": [
+#   {"target": "sandbox", "kind": "sandbox", "label": "chat sandbox (shared, persistent)"},
+#   {"target": "ssh:615c83be-…", "kind": "ssh", "label": "root@build-01",
+#    "extra": {"host": "build-01", "port": 22, "username": "root", "status": "connected"}}]}
+
+compute_target(op="open", kind="ssh", host="build-01", username="root")
+```
+
+Everything below runs on any of the three unless it says otherwise.
+
+## Running a command
+
+`compute_exec` has no fast lane and no slow lane. You run the command; if it
+outlives the wait, it is **not killed** — the reply is
+
+```json
+{"status": "running", "operation_id": "…"}
+```
+
+and the finished result is delivered to the agent later as a wake-up. So a build,
+a full test suite and an hour-long script are all just commands, and polling for
+one is wasted work: the answer arrives on its own.
+
+<Warning>
+`timeout_seconds` is a kill deadline for `ssh` and `local` targets only — those
+have no way to deliver a late result. On the sandbox nothing is killed for being
+slow.
+</Warning>
+
+## Keeping a shell
+
+`compute_exec` forgets everything between calls. `compute_shell` is a real PTY
+that does not: `cd`, exported variables and background jobs survive, and a
+program started in the session receives later writes on its stdin.
+
+```python
+from tools.compute import compute_shell
+
+s = compute_shell(op="open", command="bash", workdir="/tmp")
+# {"session_id": "sh-1006", "status": "alive", "output": ""}
+
+compute_shell(op="write", session_id="sh-1006", chars="cd ~/newdocs && ls | head -3\n")
+# {"session_id": "sh-1006", "status": "alive",
+#  "output": "…/home/daytona/newdocs\r\napi\r\nBRIEF.md\r\nbuild\r\n…"}
+
+compute_shell(op="kill", session_id="sh-1006")
+# {"session_id": "sh-1006", "status": "closed", "target": ""}
+```
+
+The ops are `open`, `write`, `read`, `peek`, `kill` and `list`. `read` polls for
+new output without writing, `peek` returns the transcript without consuming it.
+
+Two things follow from it being a terminal rather than a pipe. The output carries
+the terminal's escape codes and prompt, so strip them or grep them rather than
+comparing strings. And control characters are signals: `chars="\x03"` interrupts
+the running program instead of typing three characters at it.
+
+Use it for a REPL, an `ssh` session, an interactive installer, anything where the
+next command depends on the state the last one left. Background a long-running
+process with a trailing `&` so the session stays usable, then reach for
+`compute_preview`.
+
+## Files
+
+Four tools, and the choice between them is not stylistic.
+
+<ParamField path="compute_read_file(path, start_line, max_kb, num_lines, target)">
+  Read a file, optionally a range of it. `max_kb` caps at 32.
+</ParamField>
+
+<ParamField path="compute_write_file(path, content, target)">
+  Create or overwrite one file, parent directories included. One file per call.
+</ParamField>
+
+<ParamField path="compute_edit(path, old_string, new_string, replace_all, target)">
+  Exact string replacement in place — the default for changing an existing file.
+</ParamField>
+
+<ParamField path="compute_grep(pattern, path, glob, type, output_mode, …)">
+  ripgrep. `output_mode="files_with_matches"` is the cheapest and the default.
+</ParamField>
+
+`compute_edit` is worth understanding before the first failure. `old_string` must
+match the file including whitespace, and it must identify exactly one place:
+
+```text
+Found 3 matches                        → add surrounding lines, or replace_all=true
+old_string not found in content        → the file is untouched; read it again
+```
+
+There is a matching cascade that forgives minor drift — trimmed lines, block
+anchors, normalized indentation — but exact text copied out of a read is the
+reliable path. The result includes a unified diff of what changed, and edits to
+the same file are serialized, so parallel edits to *different* files are safe.
+
+## Seeing things
+
+`compute_view` hands the agent an image — a screenshot, a chart, a photograph —
+as an image rather than as bytes:
+
+```python
+compute_view(path="/home/daytona/shot.png")
+```
+
+Called from code you get the caption, `"shot.png (image/png, 643716 bytes)"`, and
+the picture itself reaches the model. png, jpeg, gif and webp, up to about 5 MB.
+For text use `compute_read_file`.
+
+## The desktop
+
+`compute_computer` drives a real X11 desktop with Chromium on it: `open_url`,
+`screenshot`, `click`, `type`, `key`, `hotkey`, `scroll`, `drag`. Sandbox only.
+
+```python
+from tools.compute import compute_computer
+
+compute_computer(action="open_url", url="https://example.com")
+compute_computer(action="screenshot")
+compute_computer(action="vnc_url", expires_in_seconds=1800)   # a link the user can watch
+```
+
+It is the right browser for signing in and signing up, and the wrong one for
+everything else. [Driving a browser](/tools/browser) says why.
+
+## Handing something over
+
+Two tools, and the difference is whether you are sharing a **file** or a
+**server**.
+
+```python
+from tools.compute import compute_download, compute_preview
+
+compute_download(path="/tmp/report.md")
+# {"url": "https://41999-p6a7dbwjbeciiz9k.splox.app/report.md",
+#  "filename": "report.md", "expires_in_seconds": 3600}
+
+compute_preview(port=8080, path="/index.html")
+# {"url": "https://8080-ketgea7lfbu5kvqz.splox.app/index.html",
+#  "port": 8080, "expires_in_seconds": 3600}
+```
+
+`compute_download` pulls one file off the target and returns a signed URL, up to
+100 MiB. `compute_preview` exposes a port the sandbox is already listening on —
+a dev server, an API, or `python3 -m http.server 8080 --directory ~/site &` when
+what you want is to show somebody a page. A `splox.app` link renders inline in
+the chat, so the reader sees the page without leaving the conversation.
+
+<Note>
+`compute_preview` is sandbox-only; `ssh` and `local` targets are refused. Both
+URLs are signed and expire — an hour by default, `expires_in_seconds` up to
+86400 — so they are for showing a person, not for building an integration on.
+</Note>
+
+## Which tool for which job
+
+| You want to | Use |
+| --- | --- |
+| run one command and read its output | `compute_exec` |
+| keep a directory, a variable or a REPL between commands | `compute_shell` |
+| change three lines of a file | `compute_edit` |
+| write a file that does not exist yet | `compute_write_file` |
+| find where something is defined | `compute_grep` with `files_with_matches` |
+| look at a screenshot or a chart | `compute_view` |
+| click through a page that needs a login | `compute_computer` |
+| give the user the PDF you just made | `compute_download` |
+| show the user the site you just built | `compute_preview` |

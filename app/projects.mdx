@@ -1,0 +1,57 @@
+---
+title: "Projects"
+description: "Grouping chats, and the standing instructions a project adds to them"
+---
+
+A project is a folder for chats, with one extra thing attached: instructions that
+every agent working in those chats is given.
+
+<Frame caption="Creating a project: a name, and instructions that ride along with every chat in it">
+  <img src="/images/app/project-new.png" alt="The New project dialog with a name field and an instructions field" />
+</Frame>
+
+Create one from the **+** beside PROJECTS in the sidebar. The dialog says what it
+is for: *group related chats together — a chat lives in one project at a time*,
+and the instructions field is *given to every agent working in this project's
+chats*, up to 8000 characters.
+
+## Putting a chat in one
+
+Open the **···** menu on a chat in the sidebar. Your projects are listed there;
+pick one and the chat moves under it. **New project…** in the same menu makes a
+project and moves the chat into it in one step.
+
+A chat sits in **RECENT** until it belongs to a project, and under the project
+afterward — never both. Moving it back out is the same menu.
+
+The project row itself has a menu with **Pin**, **Edit** and **Delete**. Edit is
+where you change the instructions later.
+
+## What it changes
+
+The instructions. That is the whole of it, and it is worth using: a project whose
+instructions say *totals go to `/home/daytona/notes` as markdown tables, one file
+per report, and every answer names the file it wrote* saves you from repeating
+that sentence in every chat.
+
+## What it does not change
+
+- **Not the machine.** A chat keeps the machine it was started on. Two chats in
+  one project can be on two different computers, and a chat you move into a
+  project does not move to a different disk.
+- **Not the agent.** The harness still decides who answers, with the same tools
+  and the same skills. Project instructions are added to what that agent is
+  given; they do not replace its prompt.
+- **Not access.** A project is a grouping in your own sidebar. Sharing a chat is
+  still per chat — see [A conversation](/app/chat).
+
+Deleting a project does not delete its chats; they go back to Recent.
+
+<CardGroup cols={2}>
+  <Card title="A conversation" icon="comments" href="/app/chat">
+    Everything else you can do with a chat.
+  </Card>
+  <Card title="Context" icon="layer-group" href="/build/hooks">
+    Where an agent's context comes from, and how a harness shapes it.
+  </Card>
+</CardGroup>

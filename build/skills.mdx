@@ -1,0 +1,171 @@
+---
+title: "Skills"
+description: "A folder with a SKILL.md the agent reads when the task calls for it"
+---
+
+A skill is a folder with a `SKILL.md` at its root. Everything an agent needs to do
+one kind of work well goes in that folder: instructions in the file, anything long
+or executable in files beside it.
+
+```
+pdf-forms/
+  SKILL.md            instructions, read once the skill fires
+  reference.md        the long table nobody needs until they need it
+  scripts/check.py    executable; only its output enters context
+```
+
+The reason to write one is cost. Only the name and the description sit in the
+agent's context at all times; the body arrives when the skill is picked; a bundled
+file costs tokens only if it is read, and a bundled script costs only its output.
+A skill is how a harness carries a hundred pages of procedure without paying for
+them on every turn.
+
+## Giving an agent a skill
+
+```python
+assistant = agent(
+    "Assistant",
+    system_prompt=prompt("assistant"),
+    model="kimi-k3",
+    provider="splox",
+    tools=["system:compute"],
+    skills=["system:memory", "system:agent-browser", "trading-desk"],
+)
+```
+
+`system:<name>` is one of the platform's skills. A bare name is one of your own.
+The two are separate namespaces, and the prefix is what keeps a published harness
+meaning one thing everywhere: somebody who writes their own `memory` skill takes
+that name from the platform's, whose copy is then called `platform-memory` in
+their library — so a bare `"memory"` is **theirs**, and `"system:memory"` is the
+platform's on every account.
+
+Every skill is listed by name; there is no wildcard, so what an agent gets is what
+the line says.
+
+<Note>
+An agent is told about the skills it lists and no others, and one that lists none
+is told about none. The files of the whole library are in the sandbox either way —
+skills are knowledge, not permissions, and a sandbox is shared by everything
+running in it. `skills=` decides what an agent **knows** it has, which is what its
+attention and its context are spent on.
+</Note>
+
+## What the agent actually sees
+
+The library is on the machine at `~/skills/`, one folder per skill, with an
+`INDEX.md` listing them. What reaches the prompt is narrower: the platform
+resolves the agent's own list against that library and puts it on the hook
+snapshot as `t.skills`, each entry a `name` and a `description`. Rendering it is
+`hooks/context.py`'s job:
+
+```python
+if t.skills:
+    lines = "\n".join(
+        f"- {s['name']}: {s['description']}" if s.get("description") else f"- {s['name']}"
+        for s in t.skills
+    )
+    parts.append(
+        "## Skills\n"
+        "These are yours, projected at skills/ (one folder per skill; scripts inside are executable).\n"
+        "To use one: read skills/<name>/SKILL.md and follow it.\n\n" + lines
+    )
+```
+
+So the wording is yours. Change that block and you change how skills are offered;
+delete it and the agent is never told it has any, whatever `skills=` says.
+
+## Frontmatter
+
+```yaml
+---
+name: pdf-forms
+description: Fill and flatten PDF AcroForms. Use when a task involves filling in a PDF form, reading its field names, or flattening a filled form for signature.
+---
+```
+
+`name` and `description` are required; everything else is optional.
+
+| Field | Rule |
+| --- | --- |
+| `name` | Must equal the folder name. Lowercase letters, digits and single hyphens, 64 characters or fewer. |
+| `description` | 1–1024 characters, one line, no angle brackets. |
+| `license` | Optional. A license name, or a file bundled beside `SKILL.md`. |
+| `compatibility` | Optional, 500 characters or fewer. What the skill needs to exist: system packages, network, a specific runtime. |
+| `metadata` | Optional map of string to string. |
+| `allowed-tools` | Optional, experimental. Support varies between agents; do not rely on it. |
+
+## The description is the whole selection mechanism
+
+An agent chooses a skill by matching the request against the description, and
+nothing else — the body is not visible until after the choice is made. So a
+description must carry **both halves**: what the skill does, and when to reach for
+it.
+
+```yaml
+description: Fill and flatten PDF AcroForms. Use when a task involves filling in a
+  PDF form, reading its field names, or flattening a filled form.
+```
+
+not
+
+```yaml
+description: PDF utilities.
+```
+
+Name the triggers in the words a user would actually type — file formats, tool
+names, error strings, the verb for the job. A description that only describes the
+implementation never fires.
+
+Here is a real one, from the library that ships with a machine:
+
+```yaml
+description: Write a skill that actually fires. Use when creating, editing or debugging a
+  SKILL.md — the frontmatter rules, how a description gets a skill selected, what belongs
+  in the body versus a bundled file, and the validator to run before saving.
+```
+
+Two sentences: what it does, then the list of moments it is for.
+
+## The body
+
+Write it for someone competent who has not done this specific job before: the
+sequence, the decisions, the traps. Keep it under about 500 lines.
+
+- **Procedure over prose.** Numbered steps beat paragraphs.
+- **Show the exact command**, with the flags that matter, not a description of it.
+- **Say what goes wrong.** The failure you already debugged is the most valuable
+  paragraph in the file.
+- **State what not to do** when a plausible wrong path exists.
+- **One level of indirection.** Reference `references/api.md` from `SKILL.md`; do
+  not build a chain of files that reference each other.
+
+Move something out of `SKILL.md` and into a bundled file when it is long, when it
+is only needed in one branch of the work, or when it is executable. Prefer a
+script over instructions whenever the work is deterministic: ten lines of Python
+that always produce the right answer beat a paragraph asking the model to be
+careful.
+
+## Validate before you save
+
+```bash
+python3 ~/skills/skill-authoring/scripts/validate.py path/to/my-skill
+```
+
+It checks the rules above — frontmatter present and closed, name matching the
+folder, lengths, one-line description, no angle brackets — and prints what is
+wrong. A skill that fails validation may be silently skipped, so run it.
+
+## Checklist
+
+1. Folder name = `name` = something a person would say out loud.
+2. Description says what it does **and** when to use it, in the user's words.
+3. Body is steps, commands and traps, not an essay.
+4. Long or executable material is a bundled file, not a paragraph.
+5. Validator passes.
+6. The agent that should have it names it in `skills=`.
+
+{/* TODO(verify): how a skill of your own gets into the runner's library — an
+upload, a directory on the machine, an API call. The sources say `skills=` takes a
+bare name for "one of the runner's own" and that the library's files are in the
+sandbox at ~/skills, but none of them says what puts one there. */}

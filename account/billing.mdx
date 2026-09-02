@@ -1,0 +1,186 @@
+---
+title: "Billing"
+description: "Subscribing, changing a plan, invoices, canceling — and what a smaller plan does to the machines you already have"
+---
+
+Subscriptions are Stripe's. Splox creates the checkout or the portal session and
+sends you to it; the card, the invoices and the cancel button live there. What
+Splox keeps is the plan you are on and the period it runs for.
+
+Read the current one:
+
+```bash
+curl -s "$SPLOX_BASE_URL/v1/subscriptions/me" \
+  -H "Authorization: Bearer $SPLOX_API_KEY"
+```
+
+```json
+{
+  "plan": {"slug": "pro", "name": "Pro"},
+  "subscription": {
+    "interval": "month",
+    "source": "stripe",
+    "status": "active",
+    "current_period_start": "2026-09-02T08:07:32.272134Z",
+    "current_period_end": "2026-10-02T08:07:32.272134Z",
+    "cancel_at_period_end": false
+  },
+  "quota": { "…": "see /account/usage" }
+}
+```
+
+An account with no subscription row has `"subscription": null` and resolves to
+Free. **Usage & billing** turns the same two fields into one line: *Renews Oct 2,
+2026*, or *Cancels Oct 2, 2026* when `cancel_at_period_end` is true.
+
+## Subscribing
+
+```bash
+curl -s -X POST "$SPLOX_BASE_URL/v1/subscriptions/upgrade" \
+  -H "Authorization: Bearer $SPLOX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"plan_slug": "pro", "interval": "monthly"}'
+```
+
+```json
+{"checkout_url": "https://checkout.stripe.com/c/pay/…", "session_id": "cs_…"}
+```
+
+Send the person to `checkout_url`. Stripe collects the billing address, works
+out the tax for their region, and returns them to `/account?session_id=…`, where
+the app re-reads the plan and the balance so the new tier shows immediately.
+
+<ParamField body="plan_slug" type="string" required>
+  `pro`, `max` or `max_20x`. `free` is not purchasable and is refused.
+</ParamField>
+<ParamField body="interval" type="string" required>
+  `monthly` or `yearly`. Nothing else.
+</ParamField>
+
+Both refusals are plain 400s:
+
+```json
+{"message": "Plan_slug \"free\" is not purchasable via Stripe checkout"}
+{"message": "Interval must be 'monthly' or 'yearly'"}
+```
+
+This endpoint is rate limited to 10 calls a minute per user, because each one
+creates a session at Stripe.
+
+## Changing a plan
+
+The same endpoint, called by somebody who already pays, does **not** create a
+second subscription — that would charge them twice until one was canceled. It
+answers 409 with a portal link instead:
+
+```json
+{
+  "error": "subscription_exists",
+  "message": "use portal to change plan",
+  "portal_url": "https://billing.stripe.com/p/session?…"
+}
+```
+
+The `portal_url` is deep-linked into Stripe's plan picker when you asked for a
+different plan or interval, and lands on the generic portal page when you asked
+for the one you are already on. The message says which: `use portal to change
+plan`, or `already on this plan, use portal to change billing interval`.
+
+You can also ask for the portal directly — this is what **Manage** on
+**Usage & billing** does:
+
+```bash
+curl -s -X POST "$SPLOX_BASE_URL/v1/subscriptions/portal" \
+  -H "Authorization: Bearer $SPLOX_API_KEY" \
+  -H "Content-Type: application/json" -d '{}'
+```
+
+```json
+{"portal_url": "https://billing.stripe.com/p/session?…"}
+```
+
+An account that has never paid for anything gets a 400 rather than an empty
+portal page:
+
+```json
+{
+  "error": "no_billing_history",
+  "message": "You don't have any billing history yet. Subscribe to a plan first."
+}
+```
+
+<Note>
+A subscription bought in the iOS app goes through the App Store, not Stripe. The
+app detects that and sends **Manage** to Apple's subscription management page
+instead; a Stripe portal cannot cancel an Apple subscription.
+</Note>
+
+## Invoices
+
+In the portal. Stripe holds the invoices, the receipts and the card, and the
+portal is the only place they are shown — Splox stores none of them.
+
+The **Transactions** screen is a different ledger: wallet top-ups and the charges
+against them, not subscription invoices. See
+[Extra usage](/account/extra-usage).
+
+## Canceling
+
+Cancel in the portal. Stripe sets `cancel_at_period_end` and tells Splox; you
+keep the plan you paid for until `current_period_end`, and the screen changes
+from *Renews* to *Cancels* on that date. At the end of the period the account
+resolves to Free.
+
+A plan change reaches your account when Stripe's webhook arrives, not when the
+browser comes back from checkout — normally a second or two.
+
+<Warning>
+There is no grace period on a failed renewal. A subscription Stripe reports as
+`past_due` is recorded as canceled immediately, and the account drops to Free
+until a payment succeeds. Nothing is deleted when that happens; what changes is
+the pace, the machines that stay running, and access to the paid-only features.
+</Warning>
+
+## What a smaller plan does to your machines
+
+Nothing is deleted, and no files are touched. Deleting somebody's computer
+because a card expired is not a thing this platform does.
+
+What changes is which machines are allowed to keep running, and the rule is
+**most recently used first**. On a plan that runs three machines and now runs
+one, the machine you worked on yesterday keeps its slot and the other two are
+stopped. A stopped machine keeps its whole filesystem and starts again where it
+left off.
+
+Dropping to Free is the same rule with a different answer: the free plan keeps
+**no** machine running, so all of them go to sleep and you press **Start** on the
+one you want. That is what free offers — a machine you start when you want it,
+rather than a computer held warm around the clock.
+
+The machines over the limit stay in your list and stay one button from starting,
+so the limit is checked again when you press it:
+
+```json
+{
+  "error": "machine_limit_reached",
+  "detail": "your plan runs one machine at a time: delete one, or move up a tier",
+  "machine_limit": 1,
+  "plan_slug": "pro"
+}
+```
+
+Delete one, or move back up, and the machine you want starts again with
+everything on it.
+
+Going the other way is the same call from the other side: an upgrade gives the
+machines that fit the new plan the intervals you are now paying for, so the one
+you upgraded for stops sleeping without being recreated.
+
+<CardGroup cols={2}>
+  <Card title="Plans" icon="layer-group" href="/account/plans">
+    What each tier gives, and the prices from the server.
+  </Card>
+  <Card title="Machine" icon="server" href="/concepts/machine">
+    What a machine is, what survives a stop, and what does not.
+  </Card>
+</CardGroup>

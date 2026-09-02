@@ -1,0 +1,171 @@
+---
+title: "Email and SMS"
+description: "The agent's own address and a rented phone number: receiving a code, sending mail, and when to use each"
+---
+
+Your agent has an email address of its own. It is not a mailbox you set up — it
+is derived from the agent's identity on a catch-all domain, so it already exists
+and it is the same address on every run.
+
+```python
+from tools.email import email_address
+
+email_address()
+# {"address": "a-8c53763c…f10ee9@agents.splox.io"}
+```
+
+Use it whenever something asks for an email address: signing up for a service,
+receiving a confirmation code, giving a person somewhere to reply.
+
+## Receiving
+
+```python
+from tools.email import email_inbox
+
+email_inbox(limit=3)
+```
+
+```json
+{
+  "address": "a-8c53763c…f10ee9@agents.splox.io",
+  "count": 1,
+  "messages": [
+    {
+      "id": "60d61f61-32a1-4400-b400-cc798a11645b",
+      "message_id": "4aef0e22-f8b8-4f2d-a3fa-10f45044cc30",
+      "from": "a-8c53763c…f10ee9@agents.splox.io",
+      "to": ["a-8c53763c…f10ee9@agents.splox.io"],
+      "subject": "Docs check",
+      "text": "Round trip.\n",
+      "received_at": "2026-09-02T08:24:24Z"
+    }
+  ]
+}
+```
+
+That one is the loop tested against itself: mail sent to the agent's own address
+and read back. It is the cheapest way to check the address works before you type
+it into somebody's signup form.
+
+Messages come newest first. Mail arrives asynchronously, so a message triggered a
+moment ago may not be there yet — call again. `since="2026-09-02T08:00:00Z"`
+looks only at mail newer than a point you know about, which is how you avoid
+reading last week's code by mistake.
+
+The working shape for a signup is: submit the form, then read the inbox until the
+message with the right sender shows up. The round trip above took about eight
+seconds, but a provider's mail queue is a provider's mail queue.
+
+## Sending
+
+```python
+from tools.email import email_send
+
+email_send(
+    to=["ada@example.com"],
+    subject="The report you asked for",
+    text="Attached in the link below…",
+)
+```
+
+```json
+{
+  "from": "a-8c53763c…f10ee9@agents.splox.io",
+  "to": ["ada@example.com"],
+  "subject": "The report you asked for",
+  "message_id": "c9b6a220-5ca0-4826-a5bf-f19abe30eda8"
+}
+```
+
+Up to 20 recipients, a `text` body, an `html` body, or both. Replies come back to
+`email_inbox`, so a thread the agent starts is a thread it can follow up on days
+later.
+
+<Warning>
+This delivers real mail to real people. There is no sandbox mode and no
+undo — check the recipients before the call. If you want a harness where the
+agent cannot mail strangers, deny it in
+[`hooks/tools.py`](/build/hooks) rather than hoping.
+</Warning>
+
+## SMS
+
+When a form wants a phone number instead of an address, rent one. Numbers are
+per service — a number bought for Telegram receives Telegram's messages and
+nothing else — so look yours up first:
+
+```python
+from tools.sms import sms_services
+
+sms_services(service="telegram", country="44")
+```
+
+```json
+{
+  "offers": [
+    {
+      "service": "telegram",
+      "name": "Telegram",
+      "country": 44,
+      "country_name": "Britain",
+      "numbers_available": 9999,
+      "price": 2.14
+    }
+  ]
+}
+```
+
+Then the four steps, in order:
+
+<Steps>
+  <Step title="Rent the number">
+    ```python
+    from tools.sms import sms_number
+    op = sms_number(service="telegram", country="44")
+    ```
+    Returns the number to type into the form and an `operation_id` the rest of
+    the flow uses. The number is yours for about fifteen minutes.
+  </Step>
+  <Step title="Submit the form">
+    With the number you were given. The clock is already running, which is why
+    you order the number when the form is ready and not before.
+  </Step>
+  <Step title="Collect the code">
+    ```python
+    from tools.sms import sms_code
+    sms_code(operation_id=op["operation_id"])
+    ```
+    This **blocks** until the message lands — up to `wait_seconds`, default 180,
+    max 600. Call it once; do not poll it in a loop. It returns the extracted
+    code and the full message text, in case the code is not what the pattern
+    picked. If the code was wrong or belonged to an earlier attempt,
+    `next=True` pulls the following message.
+  </Step>
+  <Step title="Close the operation">
+    ```python
+    from tools.sms import sms_release
+    sms_release(operation_id=op["operation_id"])
+    ```
+    Or `ban=True` when the number itself was the problem — the site refused it,
+    or it belongs to somebody else's session — which returns it to the provider
+    as unusable rather than as spent.
+  </Step>
+</Steps>
+
+<Warning>
+Numbers cost real money and expire in about fifteen minutes. Order one only when
+the form is ready to submit. Banks and payment providers cannot be received on
+this platform at all — no country will have them.
+</Warning>
+
+## Which one
+
+Email when you get the choice: it is free, it is instant, the address does not
+expire, and the thread stays readable afterwards. A phone number is for the forms
+that will not take an address — and for those, `sms_services` is the first call,
+because availability moves constantly and a service with no numbers left in one
+country usually has them in another.
+
+Both of these are how an agent gets through a signup on its own. The rest of that
+job — the form, the consent screen, the captcha — is
+[the browser](/tools/browser).

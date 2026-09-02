@@ -1,0 +1,120 @@
+---
+title: "Tool servers"
+description: "The MCP servers an account can give an agent, and the tools each one exposes"
+---
+
+A tool is a Python function the agent imports and calls in code, and the tools it
+may call come from tool servers. These two endpoints list the servers your
+account can use and the tools inside each one — the names you write into an
+agent's `tools`.
+
+## The servers
+
+```bash
+curl -s "$SPLOX_BASE_URL/v2/tool-servers" \
+  -H "Authorization: Bearer $SPLOX_API_KEY"
+```
+
+```json
+{
+  "data": [
+    {"id": "system:splox",   "name": "Splox",   "kind": "system", "description": "Splox platform tools: agent, harness, task management, skills library (skills_manage)"},
+    {"id": "system:compute", "name": "Compute", "kind": "system", "description": "Compute: one unified, target-parameterized surface over three execution backends..."},
+    {"id": "system:media",   "name": "Media",   "kind": "system", "description": "Read and analyze images, audio, video, and documents..."},
+    {"id": "system:search",  "name": "Search",  "kind": "system", "description": "Web search the live internet and pull page contents back as text..."},
+    {"id": "system:email",   "name": "Email",   "kind": "system", "description": "Your own email address: read the mail sent to you and send mail from it..."},
+    {"id": "system:sms",     "name": "SMS",     "kind": "system", "description": "A real phone number you can receive SMS on..."},
+    {"id": "system:memory",  "name": "Memory",  "kind": "system", "description": "Your memory at two distances: the sessions this person had before you, and the window you are carrying right now..."},
+    {"id": "system:harness", "name": "Harness", "kind": "system", "description": "What a harness cannot read off its own checkout..."}
+  ]
+}
+```
+
+System servers come first, with stable `system:*` ids, and your own connected MCP
+servers follow with UUID ids and `kind: "user"`. The descriptions are long
+because they are written for the agent that has to decide when to reach for the
+server — they are trimmed here.
+
+## The tools of one server
+
+```bash
+curl -s "$SPLOX_BASE_URL/v2/tool-servers/system:compute/tools" \
+  -H "Authorization: Bearer $SPLOX_API_KEY"
+```
+
+```json
+{
+  "data": [
+    {"name": "compute_exec",       "description": "Run a shell command on the selected execution target..."},
+    {"name": "compute_read_file",  "description": "Read a file from the selected execution target..."},
+    {"name": "compute_write_file", "description": "Write a file (create or overwrite) on the selected execution target..."},
+    {"name": "compute_edit",       "description": "Perform an exact string replacement in one file..."},
+    {"name": "compute_grep",       "description": "Fast text search across files..."},
+    {"name": "compute_shell",      "description": "Persistent interactive shell on the selected execution target..."},
+    {"name": "compute_computer",   "description": "Drive the SANDBOX desktop..."},
+    {"name": "compute_target",     "description": "Acquire and manage execution targets..."},
+    {"name": "compute_download",   "description": "Pulls a file OUT of the selected execution target..."},
+    {"name": "compute_view",       "description": "View an image file from the selected execution target..."},
+    {"name": "compute_preview",    "description": "Expose a port from the sandbox target as a signed, time-limited public preview URL..."}
+  ]
+}
+```
+
+Eleven tools on `system:compute`; six on `system:splox`, including `splox_ui`,
+the one that raises an [interaction](/api/interactions); two on `system:search`,
+`search` and `fetch`.
+
+## What the names are for
+
+A server id is what an agent's `tools` entry names, and a `#` narrows it to
+particular tools:
+
+```python
+researcher = agent(
+    "Researcher",
+    system_prompt="You are a research assistant.",
+    model="claude-sonnet-4-6",
+    provider="anthropic",
+    tools=["system:compute", "system:search#search,fetch"],
+)
+```
+
+Without the `#`, the agent gets every tool the server has. With it, it gets
+exactly the ones you list — and the names must be ones this endpoint returns, or
+the publish is refused.
+
+## System and user servers
+
+They differ in where the answer comes from. A system server is listed in-process,
+so it is always available. A user server is queried over the wire, which means it
+can be down:
+
+| Answer | When |
+| --- | --- |
+| `404 not_found` | the server does not exist, or belongs to somebody else |
+| `502 upstream_unavailable` | your MCP server is unreachable or failing |
+
+{/* TODO(verify): 502 upstream_unavailable is from the v2 contract and the
+    server's error catalogue. The docs account has no user MCP servers connected,
+    so only the 200 and 404 paths were exercised live. */}
+
+## In the SDKs
+
+<CodeGroup>
+```python Python
+servers = client.tool_servers.list()
+compute = next(s for s in servers if s.id == "system:compute")
+print([t.name for t in client.tool_servers.tools(compute.id)])
+```
+
+```ts Node
+const servers = await client.toolServers.list();
+const compute = servers.find((s) => s.id === "system:compute")!;
+const names = (await client.toolServers.tools(compute.id)).map((t) => t.name);
+```
+
+```go Go
+servers, err := client.ToolServers.List(ctx)
+tools, err := client.ToolServers.Tools(ctx, "system:compute")
+```
+</CodeGroup>

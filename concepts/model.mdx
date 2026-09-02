@@ -1,0 +1,144 @@
+---
+title: "Models"
+description: "What \"Harness decides\" means, how a model gets chosen for a turn, and how to run on your own key"
+---
+
+Every turn runs on one model, from one credential. Both are named by the agent
+that is running:
+
+```python
+assistant = agent(
+    "Assistant",
+    system_prompt="…",
+    model="kimi-k3",
+    provider="splox",
+)
+```
+
+`model` is required. Alongside it an agent names exactly one of two things, and
+neither is optional:
+
+| Field | Means |
+| --- | --- |
+| `provider` | The platform's own credential for that provider. One of `anthropic`, `openai`, `gemini`, `openrouter`, `splox`. |
+| `text_llm_endpoint_id` | One credential of your own, by the id of its endpoint. |
+
+Naming both is refused rather than resolved: an agent that names a provider while
+running on somebody else's credential lies to whoever reads it, and there is no
+reading of it that bills the right account. Naming neither is refused too, in a
+sentence saying which of the two to write. Both are checked when the run starts,
+not at the moment `agent()` runs.
+
+## "Harness decides" in the composer
+
+The chip at the bottom right of the composer is the model for the messages you
+send in this chat.
+
+<Frame caption="The composer menu: Model, Effort, and Advanced">
+  <img src="/images/start/composer-menu.png" alt="The Splox composer menu with Model set to Harness decides" />
+</Frame>
+
+**Harness decides** is the default, and it means exactly what it says: no
+selection is stored for this chat, so the model is the one the running agent
+declared. Under the hood the chat's composer state carries `"selection": null`.
+
+Open **Model** and you get the catalogue this account may use, with *Harness
+decides* checked at the top:
+
+<Frame caption="The model list. Picking one overrides the harness for this chat.">
+  <img src="/images/start/model-picker.png" alt="The Splox model picker" />
+</Frame>
+
+Picking one writes a selection against the chat — the endpoint and the model —
+and picking *Harness decides* again clears it. Nothing about the harness changes
+either way; the selection lives with the conversation.
+
+## Effort
+
+**Effort** is the reasoning ladder, and it only has rungs once a model is chosen:
+with *Harness decides* the menu offers `Default` alone, because the ladder is a
+property of the model and no model has been named yet.
+
+<Frame caption="With a model chosen, the effort ladder is that model's own">
+  <img src="/images/start/effort-picker.png" alt="The Splox effort menu showing Default, Off, Low, Medium, High, Max" />
+</Frame>
+
+The rungs are `off`, `low`, `medium`, `high`, `max`, and each model advertises
+which of them it has and which is its default. A model whose catalogue row has no
+such rung refuses the turn rather than quietly running at another one. In a
+harness the same idea is the agent's `reasoning=` field; both starter agents write
+`reasoning="max"`.
+
+## Choosing a model per turn
+
+The declaration is the answer to "which model", asked once when the run starts.
+`hooks/model.py` is the same question asked again on every turn:
+
+```python programs/splox/hooks/model.py
+def choose(t):
+    return t.USE_DEFAULT
+```
+
+Answer a bare string to change the model alone, or an object to move the turn to
+another provider — which is the only way a model name from a different vendor
+means anything:
+
+```python
+def choose(t):
+    if t.turn <= 3:
+        return {"model": "theo-spark-1.1", "provider": "splox"}
+    return t.USE_DEFAULT
+```
+
+The opening of a conversation is where the plan is made and where a wrong plan
+costs the most, so it is the turn worth spending a slower model on. `model.choose`
+runs after `context.build`, so it overrides a model a context named, and it is
+only consulted when the hook actually returns a name. See [Hooks](/build/hooks).
+
+## Endpoints, and your own keys
+
+An **endpoint** is a credential plus the base URL it talks to. Every account sees
+the platform's own four:
+
+| Endpoint | Provider slug | Auth |
+| --- | --- | --- |
+| Platform (OpenAI) | `openai` | platform |
+| Platform (Anthropic) | `anthropic` | platform |
+| Platform (Gemini) | `gemini` | platform |
+| Platform (Splox) | `splox` | platform |
+
+Writing `provider="anthropic"` on an agent is how you ask for the platform's
+Anthropic credential; you never handle its key.
+
+To run on your own, add it under **Connections** in the sidebar — *"Connect a
+provider API key, ChatGPT account, or custom OpenAI-compatible endpoint"* — and
+then name the endpoint on the agent by its id:
+
+```python
+assistant = agent(
+    "Assistant",
+    system_prompt="…",
+    model="claude-sonnet-4-6",
+    text_llm_endpoint_id="019f455e-a84c-7d4c-87b0-c951d38bc224",
+)
+```
+
+The OpenAI adapter takes any OpenAI-compatible base URL, which is what makes a
+local model or a third-party gateway reachable the same way. List the endpoints an
+account may use, and the models behind one, with
+[`/v2/llm-endpoints`](/api/llm-endpoints).
+
+<Note>
+The voice leg has its own two fields — `voice_llm_model` and
+`voice_llm_endpoint_id` — used when an agent is invoked with a destination number.
+Most authors leave them out and reuse one endpoint for both legs.
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="Agents" icon="robot" href="/build/agents">
+    Every generation field: reasoning, output cap, temperature, caching, modalities.
+  </Card>
+  <Card title="LLM endpoints API" icon="plug" href="/api/llm-endpoints">
+    Discovering the endpoints and models available to a key.
+  </Card>
+</CardGroup>

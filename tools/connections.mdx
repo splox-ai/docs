@@ -1,0 +1,151 @@
+---
+title: "Connections"
+description: "Connecting a server that needs an account, where the credential is kept, and how to take it back"
+---
+
+Most MCP servers worth connecting want to know who you are. Splox holds that
+credential for you: your harness never sees it, and neither does the agent. This
+page is what happens between clicking **Connect** and having a working tool.
+
+## Two kinds of authentication
+
+A catalog entry declares which one it uses in `auth_type`.
+
+<Tabs>
+  <Tab title="OAuth">
+    You are sent to the provider, you approve the scopes there, and you come back
+    to Splox with a token it stores. The screen says it plainly: *"You will be
+    redirected to Linear to authorize access. We never see your password."*
+
+    The scopes are fixed by the catalog entry, not by you. Reddit's, for example:
+
+    ```json
+    "auth_config": {
+      "oauth_scopes": "identity read submit vote mysubreddits subscribe history edit"
+    }
+    ```
+
+    Read that line before connecting. `submit` and `vote` are the ones that mean
+    an agent can post as you.
+  </Tab>
+  <Tab title="Manual">
+    You paste keys into named fields. The names come from the entry, so they
+    match what the provider calls them — X asks for five:
+
+    ```text
+    X-api-key *              X-api-secret *
+    X-access-token *         X-access-token-secret *
+    X-bearer-token *
+    ```
+
+    Entries that need a trip to a developer portal carry the instructions with
+    them, behind **How to get your credentials**.
+  </Tab>
+</Tabs>
+
+<Frame caption="A manual entry asks for the provider's own credential names">
+  <img src="/images/tools/connect-manual.png" alt="Connecting X (Twitter) with API keys" />
+</Frame>
+
+For a server of your own, "manual" means HTTP headers: you add
+`Authorization: Bearer …` or `X-Api-Key: …` yourself in the
+[Add MCP server](/tools/catalog#adding-a-server-that-is-not-in-the-catalog) form.
+
+## Where the secret lives
+
+With the platform, in one row per connection. The list endpoint the app calls
+tells you *whether* there is a credential and *when it expires*, and never what
+it is:
+
+```json
+{
+  "servers": [
+    {
+      "id": "01a06134-991c-7fb2-a7ff-518d188c1608",
+      "name": "DeepWiki",
+      "url": "https://mcp.deepwiki.com/mcp",
+      "transport_type": "http",
+      "auth_type": "manual",
+      "has_credential": false,
+      "credential_expires_at": null,
+      "is_system": false
+    }
+  ],
+  "total_count": 1
+}
+```
+
+That is the whole security story, and it is short on purpose:
+
+- The credential is attached to the **connection**, not to a harness or an agent.
+  Publishing a version, cloning a harness or handing it to somebody else moves no
+  secret.
+- A run calls the tool; the platform attaches the credential on the way out. The
+  model is never shown it, so it cannot be leaked in a transcript or a
+  [run's events](/api/runs).
+- Two accounts on the same provider are two connections with two names.
+
+## Changing a credential
+
+Click the connected server. The form comes back pre-filled with the name and
+empty credential fields — *"Update your credentials below. Leave fields blank to
+keep existing values."* Fill only what rotated and press **Update connection**.
+
+## Revoking
+
+The trash icon on the card removes the connection.
+
+```bash
+curl -s -X DELETE "https://<your-host>/api/v1/user-mcp-servers/01a06134-991c-7fb2-a7ff-518d188c1608" \
+  -H "Cookie: session=$SESSION"
+```
+
+```json
+{"message": "MCP server deleted successfully"}
+```
+
+It leaves your list immediately, and an agent whose `tools` entry names that uuid
+is left with a source that has nothing behind it — so remove the entry from
+`programs/<name>/main.py` too. Access you granted at the provider's own site is
+revoked there, in the provider's settings; deleting the connection here does not
+sign you out over there.
+
+## Environment secrets
+
+A different thing on a nearby screen. **Connections → Secrets** holds key/value
+pairs that are injected as environment variables into your agent's sandbox — for
+the agent and its sub-agents, in every chat.
+
+<Frame caption="Connections → Secrets: key/value, encrypted, never shown again">
+  <img src="/images/tools/secrets.png" alt="The Secrets tab of the Splox Connections screen" />
+</Frame>
+
+Use these for the credentials that are not an MCP server's: a bot token, an API
+key your own [`tools/` file](/tools/custom) needs, anything a script on the
+machine reads. The value is write-once — after saving, the screen shows the key
+and not the value.
+
+The agent is told the **names** and reads the values from the environment:
+
+```python
+import os
+token = os.environ["TELEGRAM_BOT_TOKEN"]
+```
+
+The key names travel to the agent in `~/tools/catalog.json` under `env_secrets`,
+which is how a prompt can say "you have a Telegram token" without ever printing
+one.
+
+<Warning>
+An environment variable is readable by anything running in that sandbox,
+including a shell command the model writes. That is the trade for making it
+usable from code. A secret that must never be in a sandbox belongs in an MCP
+connection instead, where the platform attaches it outside the machine.
+</Warning>
+
+## Model providers
+
+The **Providers** tab on the same screen is not about tools at all — it is where
+you attach your own OpenAI, Anthropic, Gemini or ChatGPT account so agents can
+run on it instead of on the platform's. See [Models](/concepts/model) and
+[LLM endpoints](/api/llm-endpoints).

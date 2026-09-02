@@ -1,0 +1,314 @@
+---
+title: "A Telegram bot"
+description: "A program in your harness that answers messages from outside a chat, running as long as the machine does"
+---
+
+Half an hour. At the end there is a Telegram bot that answers with your agent —
+the same agent, the same machine, the same files — and it keeps answering after
+you close the app.
+
+There is no integrations page for this. A bot is a
+[program](/concepts/program): a directory in your harness with a `main.py` that
+loops, and you start it once from a chat.
+
+## Before you start
+
+**Make the bot.** Message [@BotFather](https://t.me/botfather) on Telegram, send
+`/newbot`, answer two questions, and it hands you a token that looks like
+`8734686189:AAE…`. That is a minute of work and it is the only thing you need
+from Telegram.
+
+**Put the token where the machine can read it.** Open **Connections → Secrets**
+and add it as `TELEGRAM_BOT_TOKEN`:
+
+<Frame caption="Environment secrets are injected into the machine's shells; the value is never shown again">
+  <img src="/images/tutorials/telegram-secret.png" alt="The Connections Secrets tab with TELEGRAM_BOT_TOKEN saved" />
+</Frame>
+
+Secrets are encrypted key/value pairs injected as environment variables into your
+agent's sandbox, for every chat. The program reads `os.environ`; nothing writes a
+token into a file in git. See [Connections](/app/connections).
+
+## The program
+
+```python
+# programs/telegram/main.py
+"""A Telegram bot answered by this harness's own agent."""
+
+import json
+import os
+import time
+import urllib.parse
+import urllib.request
+from pathlib import Path
+
+from splox import agent
+
+# The offset and the chat map survive a restart: a message is answered once, and
+# a person keeps one conversation instead of starting a new one every time.
+STATE = Path("/home/daytona/.telegram.json")
+
+support = agent(
+    "Support",
+    system_prompt=(
+        "You answer questions from Telegram, on the machine you are running on. "
+        "One short paragraph, no preamble, no headings."
+    ),
+    model="kimi-k3",
+    provider="splox",
+    tools=["system:compute"],
+    max_iterations=40,
+)
+
+
+def call(method, **params):
+    """One Bot API call.
+
+    The token is read here rather than at import time on purpose: the platform
+    imports this file whenever it needs to know who "Support" is, and that
+    import does not carry the machine's environment secrets.
+    """
+    token = os.environ["TELEGRAM_BOT_TOKEN"]
+    url = f"https://api.telegram.org/bot{token}/{method}?" + urllib.parse.urlencode(params)
+    with urllib.request.urlopen(url, timeout=70) as answer:
+        return json.load(answer)
+
+
+def answer(chat, text, chats):
+    """What the bot replies to one message, and the Splox chat it said it in."""
+    run = support(text, chat_id=chats.get(chat), wait=True)
+    return run.output(), run.chat_id
+
+
+def main():
+    state = json.loads(STATE.read_text()) if STATE.exists() else {"offset": 0, "chats": {}}
+    print(f"polling as @{call('getMe')['result']['username']}", flush=True)
+    while True:
+        try:
+            updates = call("getUpdates", offset=state["offset"], timeout=50)["result"]
+        except Exception as failure:
+            print(f"getUpdates failed: {failure}", flush=True)
+            time.sleep(5)
+            continue
+
+        for update in updates:
+            state["offset"] = update["update_id"] + 1
+            STATE.write_text(json.dumps(state))
+            message = update.get("message") or {}
+            text = message.get("text")
+            if not text:
+                continue
+
+            chat = str(message["chat"]["id"])
+            print(f"<- {chat}: {text}", flush=True)
+            reply, said_in = answer(chat, text, state["chats"])
+            state["chats"][chat] = said_in
+            STATE.write_text(json.dumps(state))
+            print(f"-> {chat}: {reply[:120]}", flush=True)
+            call("sendMessage", chat_id=chat, text=reply)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+Four decisions in there are worth copying into any bot you write.
+
+**The offset is on disk, and it is written before the work.** Telegram redelivers
+an update until you acknowledge it with a higher offset; writing the offset first
+means a crash mid-answer costs one reply rather than an endless loop of them.
+
+**One Telegram chat maps to one Splox chat.** `answer()` passes `chat_id=` so the
+person keeps a conversation instead of meeting a stranger with every message, and
+the map is saved beside the offset so a restart does not forget who is who.
+
+**The answering is a function.** `answer(chat, text, chats)` is the whole of what
+the bot says, and it takes no Telegram objects, so you can call it directly to
+test the agent half without waiting for anybody to type.
+
+**The token is read inside `call()`.** This one costs a run to learn the hard
+way; see below.
+
+## Publish it and start it
+
+Paste the file into a chat and ask the agent to write it to
+`~/harness/programs/telegram/main.py`, commit, and push. Before starting anything,
+check the machine has what the program needs:
+
+```bash
+python3 -c "import os; print('TELEGRAM_BOT_TOKEN' in os.environ)"
+python3 -c "import os,json,urllib.request; print(json.load(urllib.request.urlopen('https://api.telegram.org/bot'+os.environ['TELEGRAM_BOT_TOKEN']+'/getMe'))['result']['username'])"
+```
+
+```
+True
+weewffwefwefe_bot
+```
+
+The first line says the secret arrived; the second says the machine can reach
+`api.telegram.org` and the token is good. Then start it, once:
+
+```bash
+setsid nohup python3 ~/harness/programs/telegram/main.py > /tmp/telegram.log 2>&1 &
+sleep 15
+tail -3 /tmp/telegram.log
+```
+
+```
+polling as @weewffwefwefe_bot
+```
+
+<Warning>
+When you check that it is running, ask for pids rather than command lines:
+`pgrep -f 'telegram/[m]ain'`. The wrapper process behind every command your agent
+runs carries the whole environment in its `argv`, secrets included, so `pgrep -af`
+and `ps -ef` put your tokens straight into the chat transcript.
+</Warning>
+
+That first line is a long poll against Telegram, fifty seconds at a time, running
+as long as the machine does. It survives the end of the turn, the end of the chat
+and the end of your day; it stops when the machine stops, and then somebody has
+to start it again.
+
+## Test the answer before anybody sends one
+
+`answer()` is an ordinary function, so call it:
+
+```bash
+python3 - <<'PY'
+import sys
+sys.path.insert(0, "/home/daytona/harness/programs/telegram")
+from main import answer
+
+reply, said_in = answer("6288741930", "What is in /home/daytona/expenses.csv?", {})
+print(reply)
+print("said in", said_in)
+PY
+```
+
+```
+A small expenses ledger with columns `date,amount,category,note`, containing four
+entries dated 2026-09-02: a $120.00 JetBrains software license, a $19.00 taxi to
+the airport, a $24.50 team lunch (food), and a -$40.00 software refund — netting
+to $123.50 in expenses that day.
+said in 01a061ba-9398-71a2-bf53-9c4f870163f1
+```
+
+That is the whole bot minus Telegram: your agent, on your machine, reading your
+files. The `said in` id is a chat you can open in the app, because a bot's answer
+is a run like any other:
+
+<Frame caption="The reply, as a run: the Support agent read the ledger and answered in one paragraph">
+  <img src="/images/tutorials/telegram-answer.png" alt="A Splox chat showing the Support agent reading expenses.csv and summarizing it" />
+</Frame>
+
+## What happens when a message arrives
+
+The loop prints one line before it answers and one after, then hands the reply to
+Telegram:
+
+```
+<- 6288741930: What is in /home/daytona/expenses.csv?
+-> 6288741930: A small expenses ledger with columns date,amount,category,note …
+```
+
+Until the first message there is nothing to remember, so the state file does not
+exist yet:
+
+```bash
+tail -3 /tmp/telegram.log
+cat /home/daytona/.telegram.json
+```
+
+```
+polling as @weewffwefwefe_bot
+cat: /home/daytona/.telegram.json: No such file or directory
+```
+
+After the first update it holds the offset and the chat map, which is what makes
+a restart harmless.
+
+## The trap: what your `main.py` does at import time
+
+The first version of this program built the API URL at the top of the file:
+
+```python
+API = "https://api.telegram.org/bot" + os.environ["TELEGRAM_BOT_TOKEN"]
+```
+
+The loop ran fine — it was started from a shell that has the secret. The first
+time it called the agent, the run failed:
+
+```json
+{"code": "error", "message": "programs/telegram could not say who \"Support\" is: KeyError: 'TELEGRAM_BOT_TOKEN'"}
+```
+
+The platform does not keep a copy of your agent's declaration. Every time it
+needs to know who `Support` is, it **imports `main.py` and asks**. The process
+that does the asking is the harness's own tool server, started when the machine
+checked the tree out:
+
+```bash
+ps -eo pid,lstart,args | grep splox-toolserve
+```
+
+```
+142 Wed Sep  2 09:29:38 2026 python3 /tmp/splox-toolserve-e74cf94d5cb39c8c.py --dir /home/daytona/harness/tools --port 41998
+```
+
+Its environment has no `TELEGRAM_BOT_TOKEN` — it was started before the secret
+existed, and nothing puts a new variable into a process that is already running.
+A tool server started after the secret was added may well have it; either way, a
+`main.py` that only imports under the right environment fails the first time the
+platform asks who your agent is. Moving the read inside `call()` fixed it in one
+commit:
+
+```
+[main 326d287] telegram: read bot token inside call(), not at import time
+ 1 file changed, 20 insertions(+), 9 deletions(-)
+remote: published version 5
+```
+
+<Warning>
+Keep the top of a program's `main.py` to imports, constants and `agent(...)`
+declarations. Anything that can fail — reading `os.environ`, opening a file,
+calling a service — belongs inside a function, because the platform imports that
+file every time it needs to know who one of your agents is.
+</Warning>
+
+## Changing it later
+
+A running program holds the code it was started with. Edit the file, push, and
+the process keeps answering with the old version until you restart it. Kill it
+and start it in **two separate commands**:
+
+```bash
+pkill -f 'telegram/[m]ain.py'; sleep 2; pgrep -f 'telegram/[m]ain' >/dev/null && echo "still running" || echo "no bot running"
+```
+
+```bash
+setsid nohup python3 ~/harness/programs/telegram/main.py > /tmp/telegram.log 2>&1 &
+```
+
+<Note>
+Both halves in one command kills the shell running it: the agent's own wrapper
+process carries the whole script in its command line, so `pkill -f` matching the
+program's path matches the wrapper too, and the call dies with exit 143 before it
+gets to the restart. The bracketed `[m]` keeps the pattern from matching the
+`pgrep` line itself.
+</Note>
+
+Restarting is harmless, which is the whole point of the state file: the offset
+says which updates are already answered and the chat map says which conversation
+each person is in.
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="Patterns" icon="shapes" href="/build/patterns">
+    A router, a nightly job and a fan-out over many items, in the same shape as this one.
+  </Card>
+  <Card title="Programs" icon="folder" href="/build/programs">
+    What the platform reads out of a program, what it never opens, and how a program calls its agents.
+  </Card>
+</CardGroup>

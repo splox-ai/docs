@@ -1,0 +1,98 @@
+---
+title: "The workspace"
+description: "The sidebar, the machine switcher, the composer, and where your chats live"
+---
+
+Everything you do in Splox happens on one screen: a sidebar of places on the
+left, a conversation in the middle, and a composer at the bottom. This page names
+the parts so the rest of this section can point at them.
+
+<Frame caption="A new chat. The machine switcher is top left, the composer at the bottom, the sidebar down the side.">
+  <img src="/images/app/workspace.png" alt="The Splox workspace with an empty chat open" />
+</Frame>
+
+## The sidebar
+
+**New Chat** opens an empty conversation. **Machines**, **Tools**, **Skills** and
+**Connections** are the four screens where you set up what the agent has to work
+with:
+
+| Where | What it is |
+| --- | --- |
+| [Machines](/app/machines) | The computers your agents run on, the harnesses they run, and the starters you can copy. |
+| [Tools](/app/tools) | The system tool packages and the MCP servers you have connected. |
+| [Skills](/app/skills) | The skills catalog, the ones the platform ships, and your own. |
+| [Connections](/app/connections) | Model providers you bring yourself, and environment secrets. |
+
+Under those, **PROJECTS** lists your projects and **RECENT** lists your chats,
+newest first. A chat sits in Recent until you move it into a project, and then it
+sits under that project instead. See [Projects](/app/projects).
+
+The magnifier at the top of the sidebar searches chats — by name and by message
+content, so a phrase you remember from a conversation finds it.
+
+At the bottom is your account: name, plan, and a menu with **Upgrade Plan**,
+**Usage**, **Settings** and **Log out**. The download icon beside it goes to the
+[desktop app](/app/desktop).
+
+## The machine switcher
+
+The control at the top left of a chat names the **machine** this conversation
+runs on, and under it the harness that machine runs and the ref it runs at.
+
+<Frame caption="The machine picker: the machine's name, then the harness at its ref">
+  <img src="/images/app/machine-switcher.png" alt="The machine picker open in a chat" />
+</Frame>
+
+This is not an agent picker. Switching machines switches computers: a different
+disk, a different checkout of a possibly different harness. A chat stays on the
+machine it was started on, so switch before you send the first message rather
+than in the middle of a conversation. [Machine](/concepts/machine) explains what
+that means for your files.
+
+The picker also says whether the machine is running, and ends with a **Your
+machines** shortcut to the [Machines](/app/machines) screen.
+
+## The composer
+
+<Frame caption="The composer: attachments on the left, model and effort in the middle, send on the right">
+  <img src="/images/app/composer-config.png" alt="The composer with the run configuration popover open" />
+</Frame>
+
+Three controls:
+
+- **+** attaches a file. It is uploaded and the agent is given a URL it can
+  fetch onto the machine.
+- **Harness decides · Default** is the run configuration: which model answers,
+  and how much thinking effort it spends. Left alone, both come from the code in
+  your harness.
+- The arrow sends. While a run is going it becomes a square, which stops it.
+
+All three are covered in [A conversation](/app/chat).
+
+## The inspector
+
+The button at the top right of a chat opens a panel showing the machine this chat
+is on, how much of the context window the conversation has used, a way into the
+sandbox over SSH or VS Code, and any sub-agents running right now.
+
+<Frame caption="The inspector: context used, the sandbox, and the sub-agent list">
+  <img src="/images/app/chat-inspector.png" alt="The chat inspector panel open beside a finished run" />
+</Frame>
+
+## Where to go next
+
+<CardGroup cols={2}>
+  <Card title="A conversation" icon="comments" href="/app/chat">
+    Sending, attachments, reading tool calls, stopping, forking, sharing.
+  </Card>
+  <Card title="Machines" icon="server" href="/app/machines">
+    Start, stop, add a second one, delete one.
+  </Card>
+  <Card title="Tools" icon="wrench" href="/app/tools">
+    What is listed, what `system:` means, how an agent gets one.
+  </Card>
+  <Card title="Skills" icon="book" href="/app/skills">
+    The catalog, the shipping skills, forking one.
+  </Card>
+</CardGroup>
