@@ -39,7 +39,7 @@ Inside one run the question is asked once, at its start, and that is deliberate:
 loop whose prompt and tools changed under its own turns would be two runs. What a
 turn *can* take back are the points of the loop — `context.build` rebuilds what
 the model is given on every turn, `model.choose` names the model on every turn.
-See [Hooks](/build/hooks).
+See [Hooks](/reference/hooks).
 
 ## The fields
 
@@ -64,7 +64,7 @@ so `agent()` itself accepts the line and the run is where it fails. See
 Generation settings — `reasoning`, `max_output_tokens`, `temperature`,
 `cache_control`, `modalities` and the rest — are written flat on the same call. A
 name the platform does not know is refused where it is written, rather than
-traveling to the server as a key nobody reads. [Agents](/build/agents) has all of
+traveling to the server as a key nobody reads. [Agents](/reference/agents) has all of
 them.
 
 ## The prompt is a file the program reads
@@ -122,10 +122,10 @@ the first declaration matching it answers. Renaming an agent leaves every run th
 named the old one asking for an agent the program no longer declares.
 
 <CardGroup cols={2}>
-  <Card title="Agents, in full" icon="robot" href="/build/agents">
+  <Card title="Agents, in full" icon="robot" href="/reference/agents">
     Every field, the generation keys, `context_memory`, and what each edit changes.
   </Card>
-  <Card title="Sub-agents" icon="sitemap" href="/build/subagents">
+  <Card title="Sub-agents" icon="sitemap" href="/reference/subagents">
     Handing work out: workspaces, schemas, parallel calls, what comes back.
   </Card>
 </CardGroup>

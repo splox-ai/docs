@@ -1,0 +1,147 @@
+---
+title: "Files"
+description: "Where your agent puts things, how to get a file out, what survives a stop, and what a second chat can see"
+---
+
+The machine has a disk, and it is not wiped between conversations. A file your
+agent wrote this morning is there this afternoon, in a different chat, after the
+machine has been stopped and started again. Work accumulates.
+
+That is the whole idea, and it changes what is worth asking for. "Read this CSV
+and total it by region" leaves a table in the conversation. "Read this CSV, total
+it by region, and write the table to a file" leaves something you can come back
+to next week.
+
+## Where things are
+
+The agent's home is `/home/daytona`. This is that directory on the machine these
+pages were written against, with the dotfiles left out:
+
+```
+harness/         who the agent is — the checkout, see /inside/overview
+workspace/       a git checkout the agent works in
+skills/          the skill library, projected by the platform
+tools/           the platform's tools, as Python the agent imports
+memory/          notes the agent keeps between conversations
+notes/           \
+reports/          |  directories and files the agent made because it was
+briefings/        |  asked for something and had to put the answer somewhere
+expenses.csv      |
+mailbutler.log   /
+```
+
+The top five come with the machine. Everything under them is the agent's own
+filing, invented as it went: `reports/loan.csv` because somebody asked for a
+repayment schedule, `briefings/2026-09-02.md` because a morning job writes one a
+day, `expenses.csv` because a ledger had to live somewhere.
+
+You can steer that. *"Put anything to do with the Q3 audit under
+`/home/daytona/audit`"* is a sentence the agent will honor and — if you also ask
+it to remember — write into its notes so the next chat honors it too.
+
+<Note>
+Name paths in full when you name them. `/home/daytona/notes` works;
+`~/notes` sometimes does not, because the agent's own file tools do not expand
+the tilde. The agent knows where home is — you do not have to say it — but when
+you spell a path out, spell it out.
+</Note>
+
+Two things that are not there and never will be: anything outside the home
+directory, and anything from before the machine existed. The root filesystem is
+read-only, so `/work`, `/data` and `/app` are not places:
+
+```
+touch: cannot touch '/data-test': Permission denied
+mkdir: cannot create directory ‘/work’: Permission denied
+```
+
+If your agent reports that it could not write a file, that is the usual reason,
+and the fix is one sentence: *put it under /home/daytona.*
+
+## Getting a file out
+
+**Ask for it.** "Give me a download link for that CSV" produces a URL that works
+from anywhere — no sign-in, no session:
+
+```json
+{"url": "https://41999-….splox.app/report.csv", "filename": "report.csv", "expires_in_seconds": 3600}
+```
+
+An hour, by default. It is a link to your machine, so treat it the way you would
+treat the file.
+
+**Open the machine in VS Code** and use the editor's own download, when you want
+to look before you take it. See [VS Code and SSH](/inside/vscode-and-ssh).
+
+**Copy it over SSH**, when there are many files or you want them in a script:
+
+```bash
+scp -P 2222 <token>@sandbox.splox.io:/home/daytona/expenses.csv .
+```
+
+## Putting a file in
+
+Attach it to a message with the **+** in the composer. What the agent receives is
+a link to the file rather than the bytes, so it downloads it onto the machine to
+work on it — and after that turn the file is on the disk, at a path the agent can
+tell you, and every later chat can read it. An attachment is not a one-turn
+upload; it is a file you now have. If it matters where it lands, say so in the
+same message.
+
+## What survives, and what does not
+
+| Survives a stop | Does not |
+| --- | --- |
+| Everything under `/home/daytona` | Anything that was running |
+| The `~/harness` checkout, including edits nobody published | A program's place in its loop |
+| Packages the agent installed | Open connections, held credentials |
+| A program's state file, if it wrote one | Anything held only in memory |
+
+Stopping a machine is not deleting it. **Deleting** it is: the disk goes with the
+machine, and everything above goes with the disk. Chats survive that, but they
+have nothing left to run on.
+
+The practical consequence is for the programs you ask your agent to run — a bot,
+a nightly job, a watcher. They keep going through the next chat and into
+tomorrow, and they stop when the machine stops. Ask for a program that writes
+what it is doing to a file and reads it back on start, and restarting it costs
+nothing. [A program that stopped when the machine did](/troubleshooting) covers
+the rest.
+
+## What a second chat can see
+
+Everything, as long as it is the same machine.
+
+A chat is attached to a machine, and every chat on that machine reads and writes
+the same disk. So you can start a new conversation and say *"what was in the CSV
+I gave you yesterday?"* and it will go and find it. Sub-agents your agent hands
+work to are on the same disk too, which is why their output is a file at a path
+rather than something that has to be sent back.
+
+Two ways to end up looking at the wrong disk:
+
+- **A different machine.** The picker at the top left of a chat says which one it
+  is running on. Switching machines switches computers — a different disk and a
+  different checkout. A chat stays on the machine it was started on.
+- **A different account.** Nothing is shared between accounts, including a chat
+  you shared a link to: the reader sees the conversation, not the machine.
+
+## How much room there is
+
+Thirty gigabytes, and the **Machines** screen tells you how much of it is gone:
+
+```
+17 MB of 30 GB used · measured 9 minutes ago
+```
+
+Measured, not live — hence the timestamp. If you want the number right now, ask
+your agent; it is on the machine and `du -sh ~/*` costs it nothing.
+
+<CardGroup cols={2}>
+  <Card title="What is on the machine" icon="server" href="/inside/overview">
+    The other half of the disk: the harness, and what is in it.
+  </Card>
+  <Card title="VS Code and SSH" icon="terminal" href="/inside/vscode-and-ssh">
+    Going and looking at any of this yourself.
+  </Card>
+</CardGroup>

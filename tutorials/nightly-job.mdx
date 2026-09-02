@@ -1,200 +1,161 @@
 ---
 title: "A job that runs every day"
-description: "A program in your harness that wakes on a schedule, hands work to an agent, and leaves the result on disk"
+description: "Ask for something to happen every morning without you: what the agent builds, what it will not let a model do, and how you check it is running"
 ---
 
-Half an hour. At the end there is a directory on your machine that gains a file
-every morning, written by an agent, with nobody watching.
+There is no scheduler screen and no cron tab. A job that runs on its own is a
+[program](/concepts/program) in your harness — a loop that wakes, decides whether
+today's work is due, does it, and sleeps again — and like everything else here,
+you get it by asking for it.
 
-There is no scheduler to register with and no cron tab to edit. A scheduled job
-on Splox is a [program](/concepts/program): a directory in your harness with a
-`main.py` that loops, sleeps, and calls an agent when the calendar says so.
+What you end up with is a directory on your machine that gains a file every
+morning, with nobody watching.
 
-## The program
+## What you say
 
-```python
-# programs/nightly/main.py
-"""A briefing about what was spent, once a day, left on the machine's disk."""
-
-import datetime as dt
-import json
-import time
-from pathlib import Path
-
-from splox import agent
-
-STATE = Path("/home/daytona/.nightly.json")
-AT_HOUR = 7  # UTC: the machine's clock is UTC
-
-briefer = agent(
-    "Briefer",
-    system_prompt=(
-        "You write one short briefing a day and leave it on disk. Read what you are "
-        "told to read, write the file you are told to write, and answer with the path "
-        "you wrote and nothing else."
-    ),
-    model="kimi-k3",
-    provider="splox",
-    tools=["system:compute"],
-    max_iterations=40,
-)
-
-
-def due(state, now):
-    """Once a day, after AT_HOUR, whatever the loop's own timing has been."""
-    return now.hour >= AT_HOUR and state.get("last") != now.date().isoformat()
-
-
-def main():
-    while True:
-        state = json.loads(STATE.read_text()) if STATE.exists() else {}
-        now = dt.datetime.now(dt.timezone.utc)
-        if due(state, now):
-            day = now.date().isoformat()
-            print(f"{now:%H:%M} briefing for {day}", flush=True)
-            wrote = briefer(
-                f"Read /home/daytona/expenses.csv and write /home/daytona/briefings/{day}.md: "
-                "what was spent, by category, in two short paragraphs. If the ledger is not "
-                "there, write that nothing was recorded.",
-                wait=True,
-            ).output()
-            STATE.write_text(json.dumps({"last": day, "wrote": wrote}))
-            print(f"{now:%H:%M} {wrote}", flush=True)
-        time.sleep(300)
-
-
-if __name__ == "__main__":
-    main()
+```text
+Every morning I would like a short briefing about what I have spent, left on the
+machine as a file I can read later — there is an old nightly program in the
+harness from an earlier experiment, take that out and set this up instead.
+Publish it, start it, and show me that it is running.
 ```
 
-Three things are worth pausing on.
+Three things in that sentence are doing the work, and they are the three worth
+naming in any job like this: **when** (every morning), **what it leaves behind**
+(a file on the machine), and **that it runs without you** — which is what makes
+it a program rather than something you ask for each day.
 
-**`agent(...)` is a declaration and calling it starts a run.** `briefer(prompt,
-wait=True)` blocks until there is an answer and `.output()` is the answer. That
-run is a run like any other: it is billed, it is kept, and you can read its whole
-conversation afterwards.
+The fourth clause is bookkeeping, and it matters more than it looks: *take the
+old one out*. A harness accumulates. Say what should stop, not only what should
+start.
 
-**The state file is the schedule.** `due()` asks about the calendar — *has today's
-briefing been written?* — not about how long the loop has been asleep. A machine
-that was off at 07:00 runs the job the moment it wakes. A machine restarted three
-times at noon runs it once.
+## What came back, and the surprise in it
 
-**The job's result is a file.** The agent writes it; the program only records
-that it happened. Nothing is buffered in memory waiting to be lost.
+The agent read the old `programs/nightly` before replacing it — and read the file
+that program had actually produced that morning. The briefing said the day came
+to **163.50 across three expenses**. The ledger it was written from has four
+rows:
 
-## Prove the schedule before you trust it
-
-`due()` is an ordinary function, so run the clock past it. On the machine:
-
-```bash
-python3 - <<'PY'
-import datetime as dt, sys
-sys.path.insert(0, "/home/daytona/harness/programs/nightly")
-from main import due
-
-def at(day, hour):
-    return dt.datetime(2026, 9, day, hour, 0, tzinfo=dt.timezone.utc)
-
-state = {}
-for now in (at(2, 3), at(2, 7), at(2, 9), at(3, 7)):
-    verdict = due(state, now)
-    print(now.strftime("%b %d %H:%M"), "->", verdict)
-    if verdict:
-        state = {"last": now.date().isoformat()}
-PY
+```text
+date,amount,category,note
+2026-09-02,120.00,software,JetBrains license
+2026-09-02,19.00,travel,Taxi to the airport
+2026-09-02,24.50,food,Lunch with the team
+2026-09-02,-40.00,software,Refund
 ```
 
-```
-Sep 02 03:00 -> False
-Sep 02 07:00 -> True
-Sep 02 09:00 -> False
-Sep 03 07:00 -> True
-```
+The refund was not in the total, and it was not mentioned. The old program had
+an agent read the CSV and write the prose, so the day's arithmetic was something
+a model did in its head, once, unwitnessed, into a file nobody would check
+against the source.
 
-Not due before the hour, due at it, quiet for the rest of the day, due again
-tomorrow. That is a test you can run in two seconds, and it is the difference
-between a job that runs once a day and a job that runs whenever the process
-happened to restart.
+The replacement computes every number in plain Python and has the tests to say
+so. **No agent at all.** Nothing in the request asked for that; the agent worked
+out that this job did not need a model and said why.
 
-## Publish it and start it
+<Accordion title="What that decision looks like in the program">
 
-The program is code in the harness, so it is committed and pushed like anything
-else, and then started **by hand, once**, from a chat on the machine:
+The maths lives in `brief.py`, beside `main.py` in the program's own directory,
+and it has a test file next to it:
 
-```bash
-setsid nohup python3 ~/harness/programs/nightly/main.py > /tmp/nightly.log 2>&1 &
-```
-
-Nothing about that command is special, and that is the point: the harness is
-already checked out in the sandbox, so the program is simply there, on disk, at
-the version this run is executing.
-
-```bash
-pgrep -af nightly/main.py
+```text
+programs/spend-briefing/main.py       the loop: is today's briefing due yet?
+programs/spend-briefing/brief.py      read_ledger, totals, briefing_text, write_briefing
+programs/spend-briefing/test_brief.py 8 tests, run with python3 -m pytest
+programs/spend-briefing/README.md     what it does and why it replaced nightly
 ```
 
-```
-1032 python3 /home/daytona/harness/programs/nightly/main.py
-```
+Its own docstring puts it plainly:
 
-It keeps running after that turn ends, after that chat ends, and into tomorrow.
-It stops when the machine stops — and after a stop, somebody has to start it
-again.
+> Everything numeric happens here, in plain code, where a wrong sum is a bug the
+> tests catch — not a sentence a model once wrote.
 
-## The first briefing
+A program directory may hold anything. `main.py` is the only file the platform
+opens; files beside it are imported by plain name. See
+[Programs](/reference/programs).
 
-Started at 10:11 UTC with no state file and the hour already past, the loop found
-the job due and ran it immediately:
-
-```bash
-tail -3 /tmp/nightly.log
-```
-
-```
-10:11 briefing for 2026-09-02
-10:11 /home/daytona/briefings/2026-09-02.md
-```
-
-Between those two lines is a whole agent run, and you can open it:
-
-<Frame caption="The job's own run: it read the ledger, wrote 305 bytes, and answered with the path">
-  <img src="/images/tutorials/nightly-briefing.png" alt="A Splox chat showing the Briefer agent reading expenses.csv and writing a briefing file" />
-</Frame>
-
-Eleven seconds, two tool calls, 18,078 tokens, $0.0155. What it left behind:
-
-```markdown
-On 2026-09-02 a total of 163.50 was recorded across three expenses. The largest
-outlay was 120.00 in software for a JetBrains license, followed by 24.50 in food
-for lunch with the team.
-
-Travel accounted for the remaining 19.00, covering a taxi to the airport. No
-other categories were recorded that day.
-```
+</Accordion>
 
 <Note>
-The job's run does not appear in the chat list in the sidebar — chats started by
-code rather than by a person are not listed there — but it is a real run with a
-real transcript, and `GET /v2/runs` returns it like any other. See
-[Runs](/api/runs).
+This is the judgement worth borrowing: **a model is for the part that needs
+judgement**. Summarising a week of email needs one. Adding up four numbers does
+not, and a model that does it anyway will be right most mornings — which is worse
+than being wrong every morning, because you stop checking.
 </Note>
 
-## Making it yours
+## Publishing and starting it
 
-The ledger is only an example. What changes for a different job is the prompt and
-the hour:
+Publishing is a push, and the tree it pushes into holds programs, tools, evals
+and root documents — nothing else. This push was refused once for a root
+`.gitignore`, so the ignore rules moved inside the program's own directory, where
+programs may be any shape they like.
 
-- **A digest of a repository** — point the prompt at a checkout on the machine and
-  ask for what changed since the commit named in the state file.
-- **A morning summary of an inbox** — give the agent
-  [`system:email`](/tools/communication) and ask it to send the summary as well as
-  write it.
-- **Twice a day** — keep `{"last": "2026-09-02T07"}` in the state file instead of a
-  date, and compare on the hour bucket rather than the day.
+<Frame caption="The refusal, the fix, and the version the push created">
+  <img src="/images/tutorials/nightly-briefing.png" alt="A Splox chat where the agent publishes version 9 and starts the program" />
+</Frame>
 
-Two rules carry over unchanged: write the state file **after** the work, so a
-crash retries the job instead of skipping it; and make starting the program twice
-harmless, which the state file already does.
+Publishing and running are two different things. A published program is a
+version of your harness; a *running* program is a process on your machine,
+started once and staying up between chats:
+
+```bash
+setsid nohup python3 ~/harness/programs/spend-briefing/main.py > /tmp/spend-briefing.log 2>&1 &
+```
+
+The agent starts it for you when you ask it to. It then started it a second time
+to show that doing so is harmless — the second instance sees the first and exits.
+
+## Showing that it works
+
+The proof is not that a process is listed. It is that the file changes when the
+world does. The agent appended a row to the ledger, waited for a tick, and read
+the briefing back:
+
+```text
+2026-09-02 15:41:52Z wrote /home/daytona/briefings/2026-09-02.md
+2026-09-02 15:43:52Z refreshed /home/daytona/briefings/2026-09-02.md
+
+Spent **173.50** across 4 entries; refunds of 40.00 bring the day to **133.50** net.
+```
+
+Then it took the row back out, waited for another tick, and the file returned to
+the truth:
+
+```markdown
+# Spend briefing — 2026-09-02
+
+Spent **163.50** across 3 entries; refunds of 40.00 bring the day to **123.50** net.
+
+By category, refunds already taken off:
+- software: **80.00**
+- food: **24.50**
+- travel: **19.00**
+
+Largest single expense: **120.00** — JetBrains license (software).
+```
+
+Both numbers the old program conflated are now in the sentence, and which one is
+net is stated rather than implied. The day's file also stays current as the
+ledger grows, instead of being written once at seven and going stale — another
+thing nobody asked for, and the right call.
+
+<Warning>
+"Every morning" is the machine's clock, which is UTC. The demonstration above is
+ticks a minute apart, not a wait until tomorrow — if your morning is a particular
+morning somewhere, say so in the message, because nothing else in the system
+knows your timezone.
+</Warning>
+
+## Checking on it later
+
+Ask. Your agent is on the same machine as the job, so "is the briefing program
+still running, and what did it write today?" is a question it answers by
+looking — the process list, `/tmp/spend-briefing.log`, and the file itself. To
+stop it, say so.
+
+There is no jobs screen in the app. This is not an omission being apologised
+for: the loop, the schedule and the log are files in your harness, so the thing
+that knows about them is the agent that wrote them.
 
 ## Next
 
@@ -202,7 +163,7 @@ harmless, which the state file already does.
   <Card title="A bot that answers from outside" icon="paper-plane" href="/tutorials/telegram-bot">
     The same shape with a different trigger: a message from Telegram instead of the clock.
   </Card>
-  <Card title="Programs" icon="folder" href="/build/programs">
+  <Card title="Programs" icon="folder" href="/reference/programs">
     What a program is, what `handle(msg)` decides, and how a program calls the agents it declares.
   </Card>
 </CardGroup>

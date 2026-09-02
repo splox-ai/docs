@@ -37,6 +37,27 @@
             ]
           },
           {
+            "group": "Ask your agent",
+            "pages": [
+              "ask/overview",
+              "ask/new-tool",
+              "ask/reach-you",
+              "ask/on-a-schedule",
+              "ask/behave-differently",
+              "ask/connect-a-service"
+            ]
+          },
+          {
+            "group": "Look inside",
+            "pages": [
+              "inside/overview",
+              "inside/versions",
+              "inside/vscode-and-ssh",
+              "inside/files",
+              "inside/when-it-goes-wrong"
+            ]
+          },
+          {
             "group": "Concepts",
             "icon": "lightbulb",
             "pages": [
@@ -91,29 +112,18 @@
         ]
       },
       {
-        "tab": "Build",
+        "tab": "Tutorials",
         "groups": [
           {
-            "group": "Building agents",
-            "icon": "code",
+            "group": "Do it once, end to end",
+            "icon": "list-check",
             "pages": [
-              "build/overview",
-              "build/programs",
-              "build/agents",
-              "build/hooks",
-              "build/tools",
-              "build/subagents",
-              "build/skills",
-              "build/memory",
-              "build/patterns"
-            ]
-          },
-          {
-            "group": "Checking and publishing",
-            "icon": "circle-check",
-            "pages": [
-              "build/evals",
-              "build/versions"
+              "tutorials/overview",
+              "tutorials/first-result",
+              "tutorials/custom-tool",
+              "tutorials/telegram-bot",
+              "tutorials/nightly-job",
+              "tutorials/api-run"
             ]
           }
         ]
@@ -145,18 +155,26 @@
         ]
       },
       {
-        "tab": "Tutorials",
+        "tab": "Reference",
         "groups": [
           {
-            "group": "Do it once, end to end",
-            "icon": "list-check",
+            "group": "The harness, exactly",
             "pages": [
-              "tutorials/overview",
-              "tutorials/first-result",
-              "tutorials/custom-tool",
-              "tutorials/telegram-bot",
-              "tutorials/nightly-job",
-              "tutorials/api-run"
+              "reference/overview",
+              "reference/programs",
+              "reference/agents",
+              "reference/hooks",
+              "reference/tools",
+              "reference/subagents",
+              "reference/skills",
+              "reference/memory",
+              "reference/patterns"
+            ]
+          },
+          {
+            "group": "Checking a version",
+            "pages": [
+              "reference/evals"
             ]
           }
         ]
@@ -282,35 +300,35 @@
     },
     {
       "source": "/concepts/nodes/data-nodes",
-      "destination": "/build/programs"
+      "destination": "/reference/programs"
     },
     {
       "source": "/concepts/nodes/execution-nodes",
-      "destination": "/build/programs"
+      "destination": "/reference/programs"
     },
     {
       "source": "/concepts/nodes/flow-control-nodes",
-      "destination": "/build/subagents"
+      "destination": "/reference/subagents"
     },
     {
       "source": "/concepts/nodes/lifecycle",
-      "destination": "/build/hooks"
+      "destination": "/reference/hooks"
     },
     {
       "source": "/concepts/nodes/memory-nodes",
-      "destination": "/build/memory"
+      "destination": "/reference/memory"
     },
     {
       "source": "/concepts/nodes/variable-mappings",
-      "destination": "/build/subagents"
+      "destination": "/reference/subagents"
     },
     {
       "source": "/nodes/entry-node",
-      "destination": "/build/programs"
+      "destination": "/reference/programs"
     },
     {
       "source": "/nodes/start-node",
-      "destination": "/build/programs"
+      "destination": "/reference/programs"
     },
     {
       "source": "/nodes/agent-node",
@@ -318,39 +336,39 @@
     },
     {
       "source": "/nodes/tool-node",
-      "destination": "/build/tools"
+      "destination": "/reference/tools"
     },
     {
       "source": "/nodes/switch-node",
-      "destination": "/build/programs"
+      "destination": "/reference/programs"
     },
     {
       "source": "/nodes/merge-node",
-      "destination": "/build/subagents"
+      "destination": "/reference/subagents"
     },
     {
       "source": "/nodes/lifecycle",
-      "destination": "/build/hooks"
+      "destination": "/reference/hooks"
     },
     {
       "source": "/nodes/variable-mappings",
-      "destination": "/build/subagents"
+      "destination": "/reference/subagents"
     },
     {
       "source": "/edges/parallel-edges",
-      "destination": "/build/subagents"
+      "destination": "/reference/subagents"
     },
     {
       "source": "/edges/tool-edges",
-      "destination": "/build/tools"
+      "destination": "/reference/tools"
     },
     {
       "source": "/edges/conditional-edges",
-      "destination": "/build/programs"
+      "destination": "/reference/programs"
     },
     {
       "source": "/edges/error-edges",
-      "destination": "/build/hooks"
+      "destination": "/reference/hooks"
     },
     {
       "source": "/api-reference/introduction",
@@ -450,19 +468,19 @@
     },
     {
       "source": "/api-reference/list-memory-instances",
-      "destination": "/build/memory"
+      "destination": "/reference/memory"
     },
     {
       "source": "/api-reference/get-memory-messages",
-      "destination": "/build/memory"
+      "destination": "/reference/memory"
     },
     {
       "source": "/api-reference/memory-actions",
-      "destination": "/build/memory"
+      "destination": "/reference/memory"
     },
     {
       "source": "/api-reference/trigger-webhook",
-      "destination": "/build/patterns"
+      "destination": "/reference/patterns"
     },
     {
       "source": "/api-reference/get-balance",
@@ -490,7 +508,7 @@
     },
     {
       "source": "/tutorials/using-skills",
-      "destination": "/build/skills"
+      "destination": "/reference/skills"
     },
     {
       "source": "/tutorials/deploy-app-to-production",
@@ -498,23 +516,23 @@
     },
     {
       "source": "/tutorials/ai-research-assistant",
-      "destination": "/build/patterns"
+      "destination": "/reference/patterns"
     },
     {
       "source": "/tutorials/automate-customer-support",
-      "destination": "/build/patterns"
+      "destination": "/reference/patterns"
     },
     {
       "source": "/tutorials/multi-agent-team",
-      "destination": "/build/subagents"
+      "destination": "/reference/subagents"
     },
     {
       "source": "/tutorials/parallel-agents",
-      "destination": "/build/subagents"
+      "destination": "/reference/subagents"
     },
     {
       "source": "/tutorials/ai-crypto-trader",
-      "destination": "/build/patterns"
+      "destination": "/reference/patterns"
     },
     {
       "source": "/pricing",
@@ -546,15 +564,15 @@
     },
     {
       "source": "/ai-tools/claude-code",
-      "destination": "/build/versions"
+      "destination": "/inside/versions"
     },
     {
       "source": "/ai-tools/cursor",
-      "destination": "/build/versions"
+      "destination": "/inside/versions"
     },
     {
       "source": "/ai-tools/windsurf",
-      "destination": "/build/versions"
+      "destination": "/inside/versions"
     },
     {
       "source": "/essentials/code",
@@ -583,6 +601,50 @@
     {
       "source": "/snippets/snippet-intro",
       "destination": "/introduction"
+    },
+    {
+      "source": "/build/overview",
+      "destination": "/reference/overview"
+    },
+    {
+      "source": "/build/versions",
+      "destination": "/inside/versions"
+    },
+    {
+      "source": "/build/programs",
+      "destination": "/reference/programs"
+    },
+    {
+      "source": "/build/agents",
+      "destination": "/reference/agents"
+    },
+    {
+      "source": "/build/hooks",
+      "destination": "/reference/hooks"
+    },
+    {
+      "source": "/build/tools",
+      "destination": "/reference/tools"
+    },
+    {
+      "source": "/build/subagents",
+      "destination": "/reference/subagents"
+    },
+    {
+      "source": "/build/skills",
+      "destination": "/reference/skills"
+    },
+    {
+      "source": "/build/memory",
+      "destination": "/reference/memory"
+    },
+    {
+      "source": "/build/patterns",
+      "destination": "/reference/patterns"
+    },
+    {
+      "source": "/build/evals",
+      "destination": "/reference/evals"
     }
   ]
 }

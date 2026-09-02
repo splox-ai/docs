@@ -113,13 +113,16 @@ script. The agent keeps going through the tool loop until it has an answer.
 
 **Ask it to leave something running.** A watcher, a bot, a nightly job. A process
 started in one turn is still running in the next chat, because it belongs to the
-machine and not to the conversation. The place for that code is a
-[program](/concepts/program) in the harness.
+machine and not to the conversation. You do not write it; you ask for it, and
+the agent writes it into its harness as a [program](/concepts/program).
+[Reach you outside a chat](/ask/reach-you) and [On a schedule](/ask/on-a-schedule)
+show what that looks like.
 
-**Change who the agent is.** Ask it to open `~/harness`, edit
-`programs/splox/prompts/assistant.md` or add a tool under `tools/`, and push. The
-next turn runs what you wrote. [Changing what your agent is](/build/overview)
-is the section for that.
+**Ask it to change.** "Give yourself a tool for X." "Be shorter." "Use a cheaper
+model for routine things." The agent edits its own harness and publishes a
+version; the next turn is different, and you can ask which version it is on and
+what changed. [Ask](/ask/overview) is the section for that, and
+[Versions](/inside/versions) is how you go back if you do not like it.
 
 **Drive it from your own code.** Runs, events and outputs are an API, with
 Python, Node and Go SDKs. [API](/api/introduction).

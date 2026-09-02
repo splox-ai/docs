@@ -3,6 +3,14 @@ title: "Sub-agents"
 description: "Handing work to another agent: what comes back in words, and what comes back as files"
 ---
 
+<Info>
+**Reference for your agent.** The precise shape of things — signatures, fields,
+rules — written so an agent can read it and act. You do not need to: ask your
+agent for what you want in words, and if it needs this page, hand it the URL or
+use *Copy page*. What to ask for, and how to check it, is in [Ask](/ask/overview);
+how to see what changed is in [Look inside](/inside/overview).
+</Info>
+
 A sub-agent is an agent your program hands a job to. It gets its own run, its own
 conversation and its own context window, and its answer comes back where you asked
 for it — in the caller's code, or as files on disk.
@@ -264,5 +272,5 @@ there is an `ImportError`. Agents come from their program.
 
 The last one is worth saying plainly: work that fans out over several agents and
 comes back as files belongs in `programs/`, as a script with a `main()`, not in
-the middle of a chat turn. See [Programs](/build/programs) and
-[Patterns](/build/patterns).
+the middle of a chat turn. See [Programs](/reference/programs) and
+[Patterns](/reference/patterns).

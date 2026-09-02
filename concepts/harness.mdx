@@ -56,16 +56,16 @@ can change what anybody else's harness is made of.
 ## Versions
 
 Every published version is a ref, `refs/versions/N`, N counting from 1.
-`refs/heads/main` is the current version. A version is created one way: you push
-`main` from the checkout.
+`refs/heads/main` is the current version. A version is created one way: `main`
+is pushed from the checkout, by the agent, when you ask it to change something
+and publish. Under the hood that is an ordinary commit and an ordinary
+`git push origin main`; the platform's git proxy checks the tree and answers with
+the number. You can edit the checkout yourself over
+[SSH or VS Code](/inside/vscode-and-ssh), but the push is authenticated by the
+run's own token, so publishing what you edited is still something you ask for.
 
-```bash
-cd ~/harness
-git add -A && git commit -m "Teach the assistant to check the log before answering"
-git push origin main
-```
-
-Read them back at any time:
+The list of versions, with who made each and why, is a question your agent can
+answer — see [Versions](/inside/versions). It is also an API:
 
 ```bash
 curl -s -H "Cookie: session=$SESSION" \
@@ -133,7 +133,7 @@ you own.
 </Warning>
 
 <CardGroup cols={2}>
-  <Card title="Versions" icon="code-branch" href="/build/versions">
+  <Card title="Versions" icon="code-branch" href="/inside/versions">
     Cloning, the refs in full, publishing, rolling back, merging the starter.
   </Card>
   <Card title="Programs" icon="folder" href="/concepts/program">

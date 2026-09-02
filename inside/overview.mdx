@@ -1,0 +1,172 @@
+---
+title: "What is on the machine"
+description: "The checkout at ~/harness, what lives in it, and which file your agent changes when you ask it for something"
+---
+
+Your agent is a program on a Linux machine, and that program is a git repository
+the agent edits itself. It sits at `~/harness`. When you ask for a change in how
+your agent behaves — *be shorter*, *always answer in Russian*, *keep a ledger of
+what I spend*, *message me on Telegram when the report is ready* — the agent
+edits a file in there, and the next thing you say is answered by the edited file.
+
+You never have to open it. This page is for the moment you want to look: what is
+in that repository, which file your request touched, and why the change takes
+effect without anything being deployed.
+
+## Two things live on the machine
+
+| Where | What it is |
+| --- | --- |
+| `~/harness` | **Who your agent is.** The code and the prompts. Every publish is a [version](/inside/versions) you can go back to. |
+| everything else under `/home/daytona` | **What your agent has done.** Files it wrote, notes it keeps, programs it started. See [Files](/inside/files). |
+
+Nothing else is checked out beside `~/harness`: one machine runs one harness, so
+there is no second copy and no path to disambiguate.
+
+## What is in ~/harness
+
+This is the tree on the machine these pages were written against, an ordinary
+account that started from the default starter and has been asked for things
+through the day:
+
+```
+README.md  PROGRAMS.md  AGENTS.md  HOOKS.md  TOOLS.md  EVALS.md
+programs/splox/main.py
+programs/splox/prompts/assistant.md
+programs/splox/prompts/executor.md
+programs/splox/prompts/summarize.md
+programs/splox/hooks/context.py
+programs/splox/hooks/guard.py
+programs/splox/hooks/model.py
+programs/splox/hooks/tools.py
+programs/splox/hooks/memory.py
+programs/splox/hooks/errors.py
+programs/splox/hooks/stop.py
+programs/compiler/…                  an example program the starter ships
+programs/nightly/main.py
+programs/telegram/main.py
+tools/files.py
+tools/expenses.py
+tools/notes.py
+requirements.txt
+```
+
+In the same order, in plain terms:
+
+- **The `.md` files at the root** are the harness's own documentation. They came
+  with the starter and the agent reads them when it is about to change something.
+  The platform never opens them.
+- **`programs/splox/main.py`** is who answers you: which agent takes a message,
+  which model it runs on, which tools it may call, how long it is allowed to keep
+  working.
+- **`programs/splox/prompts/*.md`** is what that agent is told. English, not
+  code — see below.
+- **`programs/splox/hooks/*.py`** are the rules of a single turn: what goes into
+  the prompt, which model is picked, what happens before and after a tool call,
+  when a turn has to stop.
+- **`programs/compiler/`** came with the starter and runs nothing on its own. It
+  is a worked example, there to be read: *"an example, and it is meant to be read
+  before it is copied."*
+- **`programs/nightly/`** and **`programs/telegram/`** are programs of their own —
+  a job that fires every morning and a bot that answers on Telegram. They were
+  added by asking for them.
+- **`tools/*.py`** are things the agent can call by name: a ledger, a note-keeper,
+  a file helper.
+
+Everything on that list is optional except one `programs/<name>/main.py`. A
+harness with nothing to run is not a harness, and publishing one is refused.
+
+## The prompt is English
+
+The single most useful file to read is the prompt, because it is not code. This
+is `programs/splox/prompts/assistant.md` on that machine, in full:
+
+> You are a general-purpose assistant with a Linux sandbox of your own. Answer
+> what was asked, do the work rather than describing it, and say plainly when
+> something did not work.
+>
+> Prefer doing over asking: pick a sensible default and go, and come back for a
+> decision only when getting it wrong would cost something that cannot be undone.
+> Read a file before you edit it and check a command's output before you build on
+> it.
+>
+> Your harness is the checkout at /home/daytona/harness, and it is where the
+> answers about yourself live: the programs you run on, the agents they declare,
+> the hooks that build this prompt. Asked to be connected to something — a bot, a
+> webhook, a schedule, a service that should reach you — read the files there and
+> write a program, rather than answering from memory about how the platform works.
+
+When your agent behaves in a way you did not expect, that file is usually the
+explanation, and it is the file most requests end up changing.
+
+## Which file your request touches
+
+| What you ask for | What changes | When it takes effect |
+| --- | --- | --- |
+| "Be shorter." "Answer in Russian." "Always show your working." | `programs/splox/prompts/assistant.md` | Your next message |
+| "Use a different model for this agent." | one line in `programs/splox/main.py` | Your next message |
+| "Keep a ledger of what I spend." | a new `tools/expenses.py`, named in `main.py` | The next call to it |
+| "Send me a summary every morning at seven." | a new `programs/nightly/` program, started once | When the agent starts it |
+| "Never run a command that deletes things without asking me." | `programs/splox/hooks/guard.py` or `hooks/tools.py` | The next turn |
+| "Remember that I always want the numbers in euros." | a note under `~/memory`, not the harness at all | The next turn |
+
+The last row is the one people get wrong in both directions. A standing
+preference is a note; a rule about how every turn works is a harness change. Ask
+for the outcome and let the agent choose — but if it wrote a note where you
+wanted a rule, saying *"make that part of who you are, not a note"* is enough.
+
+## Asked, not stored
+
+The reason none of this needs deploying: the platform does not keep a copy of
+your agent. When a message arrives it asks `main.py` who should answer, then asks
+the same file who that agent is — the prompt, the model, the tools — and reads
+the answer off the disk at that moment.
+
+So an edit lands on the next message. There is no build, no restart, no reload
+button, and nothing to wait for. It also means the reverse: an edit made on this
+machine is only on this machine until it is published. A new chat and any second
+machine you own read the last published [version](/inside/versions).
+
+<Accordion title="What the agent wrote: the declaration in main.py">
+This is the block `main.py` answers with when the platform asks who *Assistant*
+is. It is here as evidence, not as something to copy — the agent writes it.
+
+```python
+assistant = agent(
+    "Assistant",
+    system_prompt=prompt("assistant"),
+    model="kimi-k3",
+    provider="splox",
+    tools=["system:compute", "tools/files.py", "tools/expenses.py", "tools/notes.py"],
+    skills=["system:agent-browser", "system:memory", "system:skill-authoring", "system:splox"],
+    agents=[executor],
+    max_iterations=1000,
+    context_memory={"context_tokens": 200000, "trim_target_percent": 30},
+    reasoning="max",
+    max_output_tokens=48000,
+)
+
+
+def handle(msg):
+    return assistant
+```
+
+`prompt("assistant")` passes a *reader* rather than the text, which is what makes
+an edit to the prompt file land on the next turn instead of the next restart. The
+full reference for every field is in [Agents](/reference/agents).
+</Accordion>
+
+## Looking without writing
+
+Two doors open onto this machine for a person: an editor in the browser and a
+terminal. Both are for reading what the agent wrote, checking a file, watching a
+log — see [VS Code and SSH](/inside/vscode-and-ssh).
+
+<CardGroup cols={2}>
+  <Card title="Versions" icon="clock-rotate-left" href="/inside/versions">
+    Which version this machine runs, what changed in it, and how to go back.
+  </Card>
+  <Card title="Files" icon="folder-open" href="/inside/files">
+    Where the work accumulates, and how to get a file out.
+  </Card>
+</CardGroup>

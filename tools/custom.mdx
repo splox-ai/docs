@@ -52,7 +52,7 @@ Give an agent `tools=["tools/telegram.py"]` and this is what it is offered:
 ```
 
 Name, first docstring line, and a schema derived from the type hints. Nothing
-else about the file reaches the model. [Tools](/build/tools) has the full rules —
+else about the file reaches the model. [Tools](/reference/tools) has the full rules —
 classes and `scope`, `@tool`, the hint-to-schema table, what refuses a publish.
 This page is the practical loop.
 
@@ -128,7 +128,7 @@ print(json.dumps(derive_tool(telegram.notify), indent=2))
 If a description reads as ambiguous to you, it reads as ambiguous to the model.
 
 For the round trip — does the agent reach for it, and does the run come out right
-— write an eval case. [Evals](/build/evals) covers `harness_eval`.
+— write an eval case. [Evals](/reference/evals) covers `harness_eval`.
 
 ## Getting it in front of the agent
 
@@ -155,7 +155,7 @@ The platform asks `main.py` who an agent is at the moment it needs to know, so
 that edit lands on the next turn too. `git push origin main` is what publishes a
 version of the harness — and it is where a broken import or a bad tool name is
 caught, with the interpreter's own words. See
-[Publishing a version](/build/versions).
+[Publishing a version](/inside/versions).
 
 <Note>
 Naming one file gives the agent that file's tools and only those. A call to a

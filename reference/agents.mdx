@@ -3,6 +3,14 @@ title: "Agents"
 description: "agent(): the prompt, the model, the tools, and what changes when you edit each"
 ---
 
+<Info>
+**Reference for your agent.** The precise shape of things — signatures, fields,
+rules — written so an agent can read it and act. You do not need to: ask your
+agent for what you want in words, and if it needs this page, hand it the URL or
+use *Copy page*. What to ask for, and how to check it, is in [Ask](/ask/overview);
+how to see what changed is in [Look inside](/inside/overview).
+</Info>
+
 An agent is a call to `agent()` in a program's `main.py`, and the name it is
 given is the whole of its identity.
 
@@ -68,7 +76,7 @@ second one, with nothing published in between.
 Inside one run the question is asked once, at its start. What a *turn* can take
 back are the points of the loop — `context.build` rebuilds what the model is
 given on every turn, `model.choose` names the model on every turn. Those are in
-[Hooks](/build/hooks).
+[Hooks](/reference/hooks).
 
 ## The prompt is a file the program reads
 
@@ -99,9 +107,9 @@ would serve as well.
 | `system_prompt` | text, or a callable | empty | The system prompt a turn of this agent starts from. A callable is called every time the spec is asked for. |
 | `model` | string | refused at run | The model every turn of this agent runs on. |
 | `provider` | string | — | A provider slug (`anthropic`, `openai`, `gemini`, `openrouter`, `splox`), lowercase, meaning the platform's own credential for that provider. |
-| `tools` | list of strings | no tools | One tool source per entry. See [Tools](/build/tools). |
-| `skills` | list of strings | told about no skills | The skills this agent is told it has. `system:<name>` for one of the platform's, a bare name for one of your own. See [Skills](/build/skills). |
-| `agents` | list of agents | no sub-agents | The agents this one may spawn, as the declarations themselves. See [Sub-agents](/build/subagents). |
+| `tools` | list of strings | no tools | One tool source per entry. See [Tools](/reference/tools). |
+| `skills` | list of strings | told about no skills | The skills this agent is told it has. `system:<name>` for one of the platform's, a bare name for one of your own. See [Skills](/reference/skills). |
+| `agents` | list of agents | no sub-agents | The agents this one may spawn, as the declarations themselves. See [Sub-agents](/reference/subagents). |
 | `max_iterations` | integer | 10 | How many rounds the tool loop may take. A loop that reaches the cap while the model is still calling tools ends with status `max_iterations`. |
 
 ### Whose credential it runs on
@@ -129,7 +137,7 @@ Anything else is passed through under the name the platform spells it with.
 | `voice_llm_endpoint_id` | string (uuid) | the text endpoint | The credential the voice leg runs on. Most authors leave it out and reuse one endpoint for both legs. |
 | `tool_choice` | string | not sent to the provider | Passed through as the provider's own `tool_choice`, and only when the turn actually has tools. |
 | `description` | string | `Call the <name> agent` | What a calling model is told this agent is for. |
-| `context_memory` | mapping | platform defaults | Compaction, the image budget and the summarizer's prompt. See [Memory](/build/memory). |
+| `context_memory` | mapping | platform defaults | Compaction, the image budget and the summarizer's prompt. See [Memory](/reference/memory). |
 | `additional_realtime_config` | mapping | — | Provider parameters for the voice leg, carried verbatim to the realtime adapter. |
 
 ### How it generates
@@ -241,4 +249,4 @@ the callee — the Executor's description above spends its whole length on the t
 things a caller gets wrong: that the sub-agent does not see the conversation, and
 that what comes back should be the result rather than a description of it.
 
-[Sub-agents](/build/subagents) is the rest of that story.
+[Sub-agents](/reference/subagents) is the rest of that story.

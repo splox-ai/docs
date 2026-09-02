@@ -21,7 +21,7 @@ PY""")
 
 Two tools, one round trip. Written as separate JSON tool calls that is four
 messages through the model, each carrying the previous result back through the
-context window. [Why the platform prefers code](/build/tools) is worth reading
+context window. [Why the platform prefers code](/reference/tools) is worth reading
 once; the rest of this section assumes it.
 
 ## The three ways a tool arrives
@@ -106,7 +106,7 @@ to import.
 
 A `#` narrows an entry to particular tools:
 `"system:compute#compute_read_file,compute_grep"` is those two and nothing else.
-The full rules are in [Tools](/build/tools#the-three-things-a-tools-entry-names).
+The full rules are in [Tools](/reference/tools#the-three-things-a-tools-entry-names).
 
 **The account** decides which platform packages exist for every agent on it. The
 Tools screen lists them under **System tools**, each marked *Available in every
@@ -131,7 +131,7 @@ def before(t, call):
 ```
 
 A refusal is not a dead run: it comes back to the model as the reason, so it can
-choose something else. See [Hooks](/build/hooks).
+choose something else. See [Hooks](/reference/hooks).
 
 ## The packages
 
@@ -142,8 +142,8 @@ choose something else. See [Hooks](/build/hooks).
 | [`media`](/tools/media) | Read PDFs and documents, transcribe audio, describe video, generate images and 3D |
 | [`email`](/tools/communication) | The agent's own address: receive mail and send it |
 | [`sms`](/tools/communication#sms) | A rented phone number for a signup code |
-| [`harness`](/build/evals) | Run this harness's evals, trace its hooks, list its MCP servers |
-| `memory` | What this person said in earlier sessions, and in this one — see [Memory](/build/memory) |
+| [`harness`](/reference/evals) | Run this harness's evals, trace its hooks, list its MCP servers |
+| `memory` | What this person said in earlier sessions, and in this one — see [Memory](/reference/memory) |
 
 `system:compute` is the odd member of the set: it is the runner every other tool
 executes through, which is why your own tools import it rather than the agent

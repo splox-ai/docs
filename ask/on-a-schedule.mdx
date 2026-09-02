@@ -1,0 +1,206 @@
+---
+title: "Do it every morning"
+description: "Asking for something on a schedule — what the agent builds, why the state file matters, and what happens when the machine was asleep"
+---
+
+There is no scheduler to register with, no cron screen, and no "run every" field.
+When you ask for something on a timer, the agent writes a program that is the
+timer, and starts it on your machine.
+
+```text
+Every morning at 7, read the expenses and leave me a short briefing about
+what was spent.
+```
+
+That ask produced version 3 of the harness this documentation was written from —
+`Add nightly briefing program` — and a file on the machine the next morning:
+
+```text
+On 2026-09-02 a total of 163.50 was recorded across three expenses. The largest
+outlay was 120.00 in software for a JetBrains license, followed by 24.50 in food
+for lunch with the team.
+
+Travel accounted for the remaining 19.00, covering a taxi to the airport. No
+other categories were recorded that day.
+```
+
+## What the agent builds
+
+A loop that wakes often and asks a question about the calendar. The question is
+the whole design:
+
+```python
+def due(state, now):
+    """Once a day, after AT_HOUR, whatever the loop's own timing has been."""
+    return now.hour >= AT_HOUR and state.get("last") != now.date().isoformat()
+```
+
+`state["last"]` is the last date it actually ran, written to a file on the
+machine. So the loop is not counting hours since it started — it is asking
+whether *today's* has been done. Three consequences, and they are the difference
+between a job that runs once a day and a job that runs whenever the process
+happened to be restarted:
+
+- A machine that was off at 07:00 runs the briefing the moment it comes back.
+- A machine restarted three times before noon runs it once.
+- The loop's own sleep interval does not have to be exact. The one above sleeps
+  five minutes at a time.
+
+<Accordion title="programs/nightly/main.py, as the agent wrote it">
+```python
+"""A briefing about what was spent, once a day, left on the machine's disk."""
+
+import datetime as dt
+import json
+import time
+from pathlib import Path
+
+from splox import agent
+
+STATE = Path("/home/daytona/.nightly.json")
+AT_HOUR = 7  # UTC: the machine's clock is UTC
+
+briefer = agent(
+    "Briefer",
+    system_prompt=(
+        "You write one short briefing a day and leave it on disk. Read what you are "
+        "told to read, write the file you are told to write, and answer with the path "
+        "you wrote and nothing else."
+    ),
+    model="kimi-k3",
+    provider="splox",
+    tools=["system:compute"],
+    max_iterations=40,
+)
+
+
+def due(state, now):
+    """Once a day, after AT_HOUR, whatever the loop's own timing has been."""
+    return now.hour >= AT_HOUR and state.get("last") != now.date().isoformat()
+
+
+def main():
+    while True:
+        state = json.loads(STATE.read_text()) if STATE.exists() else {}
+        now = dt.datetime.now(dt.timezone.utc)
+        if due(state, now):
+            day = now.date().isoformat()
+            print(f"{now:%H:%M} briefing for {day}", flush=True)
+            wrote = briefer(
+                f"Read /home/daytona/expenses.csv and write /home/daytona/briefings/{day}.md: "
+                "what was spent, by category, in two short paragraphs. If the ledger is not "
+                "there, write that nothing was recorded.",
+                wait=True,
+            ).output()
+            STATE.write_text(json.dumps({"last": day, "wrote": wrote}))
+            print(f"{now:%H:%M} {wrote}", flush=True)
+        time.sleep(300)
+
+
+if __name__ == "__main__":
+    main()
+```
+</Accordion>
+
+## What to say
+
+**The time, and which clock.** The machine's clock is UTC — `date` and `date -u`
+give the same answer on it — so "every morning at 7" becomes 07:00 UTC unless you
+say otherwise. If you are in Berlin and mean 7 your time, say so; the agent can
+do the arithmetic, but only if it knows there is arithmetic to do.
+
+**Where the result should go.** This is the part people leave out. "Write it to a
+file", "mail it to me at …", "put it in the notes" are all different programs.
+The example above writes a file, which is the cheapest option and the one you
+have to go and look at. Ask for mail if you want to be told.
+
+**What it should read.** A schedule is only as good as its input. "Read
+`/home/daytona/expenses.csv`" is a job; "summarise what happened" is not, unless
+the agent already knows where "what happened" lives.
+
+**That it should survive a restart.** Say "make restarting it harmless" and you
+get the state file above. Without it, a restarted loop can run the job twice in
+one day.
+
+## What "started" means, and how it ends
+
+The agent starts the program the ordinary way, in its sandbox:
+
+```bash
+setsid nohup python3 ~/harness/programs/nightly/main.py > /tmp/nightly.log 2>&1 &
+```
+
+It then keeps running after that turn, after that chat, and into tomorrow. It
+stops when the machine stops — somebody presses **Stop**, or a free plan's
+machine goes idle for 30 minutes — and it does not come back on its own when the
+machine does.
+
+That last sentence is worth taking literally. On the account above, the machine
+was stopped for a few hours and started again. Afterwards:
+
+```text
+~/briefings/2026-09-02.md      still there
+/tmp/nightly.log               still there
+the nightly process            gone
+```
+
+Files survive a stop; processes do not. Nothing restarts a program for you, so
+after a machine has been stopped, "start the nightly job again" is a sentence
+somebody has to say. It is one turn, and it is a reasonable thing to ask the
+agent to check at the top of a conversation.
+
+<Note>
+On a paid plan the machine has no idle timeout — it runs until somebody stops
+it — so in practice this comes up after a deliberate stop or a restart rather
+than on its own. [Plans](/account/plans) has the per-plan detail.
+</Note>
+
+## Checking it
+
+**The state file says when it last ran.** On the machine:
+
+```json
+{"last": "2026-09-02", "wrote": "/home/daytona/briefings/2026-09-02.md"}
+```
+
+**The log says what it did**, one line per firing:
+
+```text
+10:11 briefing for 2026-09-02
+10:11 /home/daytona/briefings/2026-09-02.md
+```
+
+**The output is the real check.** A schedule that writes a file is checked by the
+file being there and being right. Ask the agent to read it back to you.
+
+**Each firing is a run.** When the loop hands work to an agent, that is a real
+run: it appears in your chat list with its whole conversation, and it is billed
+like any other. So a job that fires daily has a daily entry you can open and
+read — and a job that has quietly stopped has an obvious gap.
+
+Any of these is a sentence in the chat: "when did the briefing last run?" is
+answered by the agent reading its own state file.
+
+## Changing it and stopping it
+
+| What you want | What to say |
+| --- | --- |
+| A different time | "Make the briefing 9 instead of 7." One constant, and a restart of the loop. |
+| Different content | "Include last week's total." The prompt inside the program; the next firing uses it. |
+| Mail instead of a file | "Mail it to me instead of writing a file." |
+| Pause it | "Stop the nightly job." The process is killed; the code stays. |
+| Remove it | "Stop it and take the program out." A version records the removal. |
+
+A change to the program's code needs the loop restarted to take effect — it is a
+running Python process, not a file the platform re-reads. The agent knows that;
+if you change something and nothing happens the next morning, "did you restart
+it?" is the question.
+
+<CardGroup cols={2}>
+  <Card title="Have it reach you" icon="send" href="/ask/reach-you">
+    The same shape, triggered by a message arriving instead of by the clock.
+  </Card>
+  <Card title="A nightly job, end to end" icon="clock" href="/tutorials/nightly-job">
+    The whole conversation, from the ask to the first morning it fired.
+  </Card>
+</CardGroup>

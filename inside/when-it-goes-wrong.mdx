@@ -1,0 +1,133 @@
+---
+title: "When a change makes it worse"
+description: "The agent changed something and now the agent is worse: how it looks, how to say it, how to go back, and when to start over"
+---
+
+You asked for something, your agent edited itself, and now it is worse than it
+was an hour ago. This is the normal failure of a system where the agent writes
+its own code, and it has a normal fix: say what changed for the worse, and go
+back.
+
+The one thing not to do is keep asking for fixes on top of a bad change. Three
+corrections later you have a version nobody understands, and the version you
+liked is still sitting there, one sentence away.
+
+## What it looks like
+
+**Everything comes out in the wrong shape.** Answers that are suddenly one line,
+or five times too long, or in a language you did not ask for. That is a prompt
+change that overshot — `programs/splox/prompts/assistant.md`, edited on your
+behalf, doing exactly what it now says.
+
+**It stopped doing something it used to do.** It no longer reaches for a tool it
+used yesterday, or it refuses a kind of command it used to run. Either the tool
+came off its list or a rule was added about what it may do.
+
+**Every turn fails at the very start**, with a message naming a file:
+
+```
+programs/splox could not say who "Assistant" is: KeyError: 'TELEGRAM_BOT_TOKEN'
+```
+
+```
+programs/splox could not say who answers this message: SyntaxError: …
+```
+
+That is the platform asking `main.py` who should answer and not getting an
+answer. Nothing else in the harness ran; the file that is quoted is the one to
+fix. This shape is worth recognizing because it looks catastrophic and is
+usually a one-line mistake.
+
+## Say what changed, not what to do
+
+The useful sentence names the behavior and when it started:
+
+> Since you added the expense ledger, you answer everything in one line, even
+> when I ask you to explain something. Go back to how you were before that
+> change.
+
+> You have stopped reading files before editing them. That started this morning.
+> What changed, and can we undo it?
+
+Your agent can read its own history — every publish, its message, its date — so
+"since you added the ledger" is enough to locate the change. It does not need
+you to know which file.
+
+If you are not sure a change is even the cause, ask first:
+*"What have you changed about yourself today?"* Reading the history costs
+nothing, and it is often the whole diagnosis.
+[Versions](/inside/versions) is that page.
+
+## Going back
+
+Say it plainly:
+
+> Go back to the version before the ledger.
+
+What happens: your agent publishes a new version whose contents are the older
+one. Nothing is deleted, the numbering only ever goes up, and the version you
+rolled back from is still there if it turns out you wanted part of it.
+
+Two things it does **not** undo, and they surprise people:
+
+- **Files.** Anything the agent wrote to the machine stays written. A rollback is
+  about who the agent is, not about what it did. If a change also produced a bad
+  file, say so as well.
+- **Programs it started.** A bot or a nightly job that is already running keeps
+  running the code it was started with. Ask it to restart the program after the
+  rollback.
+
+<Warning>
+Wait for the turn in front of you to finish before asking for a rollback. A run
+already going keeps the agent it started with, but it re-reads its hooks and its
+tool files as it goes — so rolling back underneath a long turn can change how
+the rest of that turn behaves.
+</Warning>
+
+## Going back only here
+
+If the change is fine in general and wrong for one machine — you want to
+reproduce something, or keep one machine steady while the other moves — the
+machine can be pinned to an older version instead of the harness being rolled
+back. Ask for it in those words: *"pin this machine to version 4 and leave the
+rest alone."* Nothing is published and no other machine moves.
+
+## When to start a fresh machine instead
+
+Rolling back fixes the agent. It does not fix the computer. Start a new machine
+when the problem is the machine:
+
+- **The disk is gone.** *"The files this machine kept are not on the runner any
+  more."* There is no button that brings it back and no amount of retrying helps.
+- **The machine will not start** for any reason that is not your plan's machine
+  limit.
+- **The disk has filled up with something you cannot untangle**, and starting
+  clean is cheaper than archaeology.
+
+A new machine on the same harness is a fresh computer with the same agent: it
+checks out the same published version and knows nothing your old machine wrote
+down. Copy what you need off the old one first — see
+[Files](/inside/files) — because deleting a machine deletes its disk.
+
+[Troubleshooting](/troubleshooting) has the exact wording of each of those
+refusals and what causes them.
+
+## When it is not the change
+
+Two failures look like a bad edit and are not:
+
+- **A run refused because a usage window is full.** The agent stops mid-task and
+  says when the window resets. Nothing about it changed. See
+  [When a limit is reached](/account/limits).
+- **A tool that lost its credential.** A connected server whose token expired
+  fails inside the run rather than at the start, and says so in the tool's own
+  words. Reconnect it under [Connections](/app/connections).
+
+<CardGroup cols={2}>
+  <Card title="Versions" icon="clock-rotate-left" href="/inside/versions">
+    Reading the history and going back, step by step.
+  </Card>
+  <Card title="Troubleshooting" icon="triangle-exclamation" href="/troubleshooting">
+    Every failure the product actually produces, quoted.
+  </Card>
+</CardGroup>

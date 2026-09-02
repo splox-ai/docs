@@ -1,69 +1,116 @@
 ---
 title: "Tutorials"
-description: "Five things to build end to end, each one finishing with something that works"
+description: "Five things people ask their agent for, each done end to end by asking"
 ---
 
-Each of these is a whole job done once, start to finish, on a real account. You
-type the message, the agent does the work, and at the end there is a file, a
-tool, a running program or a script on your laptop that talks to the API.
+Nobody writes the agent's code here. You say what you want, the agent does the
+work — including editing its own [harness](/concepts/harness) and publishing a
+version of it — and you check what came back. These five pages are that skill,
+worked through five times on a real account: **what was said, what the agent
+did, what showed up on the screen, and how it was checked afterwards.**
 
-They were all performed exactly as written before they were published — the
-transcripts, the timings and the screenshots come from those runs, on an account
-like yours.
+Where a page shows Python, it is the code the agent wrote when it was asked, kept
+so you can see what happened. It is evidence, not homework.
 
 <CardGroup cols={2}>
   <Card title="Your first real result" icon="file-lines" href="/tutorials/first-result">
-    Ask for a job that ends in a file, watch the tool calls, then find the file from a different chat. No code. **15 minutes.**
+    Ask for a job that ends in a file. Then find the file from a second chat, take it off the machine, and look at it yourself.
   </Card>
   <Card title="A tool of your own" icon="wrench" href="/tutorials/custom-tool">
-    Write a Python function into your harness, publish it with a push, and watch the agent call it by name. **20 minutes.**
+    Ask for an ability your agent does not have. It writes the tool, tests it, wires it in and publishes a version of itself.
   </Card>
   <Card title="A job that runs every day" icon="clock" href="/tutorials/nightly-job">
-    A program that wakes on a schedule, hands work to an agent, and leaves the result on disk. **30 minutes.**
+    Ask for a briefing every morning. The agent writes the program, starts it, and it keeps running after the chat ends.
   </Card>
   <Card title="A Telegram bot" icon="paper-plane" href="/tutorials/telegram-bot">
-    The same shape with a different trigger: a message from outside answered by your agent. **30 minutes.**
+    The same shape with a different trigger — and the one failure worth knowing about, as it actually happened.
   </Card>
   <Card title="Drive a run from your own code" icon="code" href="/tutorials/api-run">
-    Create a run over HTTP, stream its events, read its outputs. **10 minutes.**
+    The one page for a reader holding an API key: create a run over HTTP, stream its events, read its outputs.
   </Card>
 </CardGroup>
 
+## The shape they all have
+
+Every page follows the same four beats, because that is what using this product
+is:
+
+1. **You ask** — in your own words, for the outcome you want, not for the code.
+2. **It does the work** — and you watch the tool calls, which are the agent
+   writing and running code on [its machine](/concepts/machine).
+3. **You check** — the file is there, the version number went up, the process is
+   running, the second chat sees it. Checking is a message, not a console.
+4. **You undo it if you were wrong** — also a message. Every page ends with one.
+
 ## What you need
 
-**An account and the machine it came with.** Signing up gives you both, plus a
-harness copied from the assistant starter. Nothing to install for the first three.
+**An account and the machine that came with it.** Signing up gives you both, plus
+a harness copied from the assistant starter. There is nothing to install.
 
-**A paid plan for one of them.** The API tutorial needs an API key, and minting
-one is refused on a free account. Everything else works on any plan.
+**A stopped machine is fine.** Sending a message in a chat that runs on it starts
+it. You never have to press **Start** first.
 
-**A Telegram account** for the bot — you create the bot itself with
-[@BotFather](https://t.me/botfather), which takes about a minute.
+**A paid plan for one of the five.** [Drive a run from your own
+code](/tutorials/api-run) needs an API key, and minting one is refused on a free
+account. The other four work on any plan.
 
-**Under a dollar of usage, all five together.** The runs behind these pages cost
-between $0.015 and $0.15 each, and the whole set came to about seventy cents. See
-[Usage](/account/usage).
+**A Telegram account for the bot** — the token comes from
+[@BotFather](https://t.me/botfather), and that is one of the few steps here your
+agent cannot do for you.
+
+**Patience, and some of your plan's usage window.** Asking for a file back is a
+minute. Asking your agent to rewrite its own harness — read the tree, write the
+code, test it, publish it — is a run that thinks for the better part of an hour
+and costs accordingly. Two of the pages here are that kind. A plan meters usage
+over a rolling five-hour window, and a day of this can reach the end of it:
+
+```text
+You have used your 5-hour limit. It frees up at 18:22 UTC.
+```
+
+That is a refused run, not a lost one — what was already published stays
+published. [Usage](/account/usage) shows where you are in the window.
+
+## What cannot be done by asking
+
+Worth knowing before you start, because these are the places where you have to
+get up and do something:
+
+- **Anything that needs a human identity somewhere else.** Registering a Telegram
+  bot, approving an OAuth consent screen, accepting terms in somebody else's
+  product. The agent can use the credential once it exists; it cannot be you.
+- **Minting an API key.** It is done with your browser session, on a paid plan.
+  See [API keys](/account/api-keys).
+- **Paying.** Plans, top-ups and limits are yours. See [Billing](/account/billing).
+
+Everything else on these pages — writing files, writing tools, publishing
+versions, starting long-running programs, checking any of it — is a sentence in a
+chat.
+
+## Reading the machine yourself
+
+You do not have to take the agent's word for it. In a chat, the inspector panel
+on the right offers **Open in VS Code** and an **SSH** command for the machine
+this chat runs on, good for an hour. That is how you read what the agent wrote —
+the harness, the files, the logs — without asking it anything. See
+[The chat](/app/chat).
 
 ## The order they are in
 
-They stand alone, but they are written to be read in the order above, and two of
-them share a thread: the tool you write in
-[A tool of your own](/tutorials/custom-tool) keeps a spending ledger on the
-machine, and [A job that runs every day](/tutorials/nightly-job) is the program
-that writes a briefing about it every morning. Doing them in that order means the
-second one has something real to work on.
+They stand alone, and the first one is the one to start with — it is the shortest
+and it teaches the habit the rest depend on: the work lands on a machine, and you
+check the machine.
 
-## What they are not
-
-They are not a tour of the API surface or a reference for the harness. Each page
-is one worked case with the reasoning kept short; when you want the whole
-mechanism, every tutorial ends with the pages that have it:
-[Concepts](/concepts/overview) for the words,
-[Changing what your agent is](/build/overview) for the harness,
-[API](/api/introduction) for the endpoints.
+After that, [A tool of your own](/tutorials/custom-tool) and [A job that runs
+every day](/tutorials/nightly-job) are the same act seen twice — the agent editing
+its own harness and publishing a version of itself — once for an ability, once
+for something that runs without you. Read either first. The Telegram page is the
+job page with a different trigger, plus the failure that catches everybody.
 
 <Note>
-Timings are the wall clock of an unhurried human, not the agent's. The machine's
-own part of every tutorial on this page adds up to about six minutes of run time;
-the rest is you reading, typing and looking at what came back.
+These pages are not a reference. When you want the whole mechanism rather than one
+worked case, the pages that have it are [Concepts](/concepts/overview) for the
+words, [Changing what your agent is](/reference/overview) for the harness, and
+[API](/api/introduction) for the endpoints. Those pages are written for your agent
+to read as much as for you — hand it the URL and it will.
 </Note>

@@ -3,6 +3,14 @@ title: "Tools"
 description: "A tool is a Python function the agent imports and calls in code"
 ---
 
+<Info>
+**Reference for your agent.** The precise shape of things — signatures, fields,
+rules — written so an agent can read it and act. You do not need to: ask your
+agent for what you want in words, and if it needs this page, hand it the URL or
+use *Copy page*. What to ask for, and how to check it, is in [Ask](/ask/overview);
+how to see what changed is in [Look inside](/inside/overview).
+</Info>
+
 A tool of your harness is a Python file in `tools/`, and it runs inside the
 sandbox of whoever is talking to the harness rather than on the platform.
 
@@ -344,7 +352,7 @@ not change what the entry addresses, so an agent widened later is the same tool
 with a longer reach.
 
 Nothing else rides on an entry — no approval policy, no compaction setting. What a
-call may do is decided by [`hooks/tools.py`](/build/hooks), which sees the call by
+call may do is decided by [`hooks/tools.py`](/reference/hooks), which sees the call by
 name with its arguments before it runs.
 
 A tool used by two agents is written out in both declarations, and each agent's

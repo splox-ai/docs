@@ -58,7 +58,7 @@ project, shared as a public URL, or deleted. → [Chat](/app/chat)
 A Python file at `programs/<name>/hooks/<point>.py` that answers one point of the
 run loop — context, model, tools, guard, memory, errors, stop and the rest. Hooks
 are how a run is shaped without touching the agent, and they belong to the
-program whose directory they sit in. → [Hooks](/build/hooks)
+program whose directory they sit in. → [Hooks](/reference/hooks)
 
 ## Tool
 
@@ -67,7 +67,7 @@ emits. Platform packages arrive projected at `tools/<service>/<tool>.py`, a
 connected MCP server appears the same way, and a file you write at
 `tools/<name>.py` in the harness becomes tools named `<file>__<function>`. What a
 turn may call is decided by the agent's `tools=[…]`, the account's system-tools
-switch and `hooks/tools.py`. → [Tools](/build/tools) · [Tool catalog](/tools/overview)
+switch and `hooks/tools.py`. → [Tools](/reference/tools) · [Tool catalog](/tools/overview)
 
 ## Skill
 
@@ -75,7 +75,7 @@ A folder with a `SKILL.md` that the agent reads when the task calls for it. The
 description in its frontmatter is the whole selection mechanism — it is what the
 model sees when deciding whether this skill is relevant — and the body is the
 instructions it follows once it opens the file. Skills come from the library or
-from your own harness. → [Skills](/build/skills)
+from your own harness. → [Skills](/reference/skills)
 
 ## Starter
 
@@ -92,7 +92,7 @@ Publishing is a push to `main`, which is checked before it becomes a version:
 files in places a harness has no room for, a tree with no program, tools that
 would not import, two tool files that would be shown under one name, an eval case
 naming a grader that is not there. A machine runs `main` unless you pin it to a
-ref. → [Publishing a version](/build/versions)
+ref. → [Publishing a version](/inside/versions)
 
 ## Window
 
@@ -125,7 +125,7 @@ sub-agent spawned with `workspace="landing-ui"` gets a git worktree of its own a
 `/home/daytona/workspace-landing-ui`, on a branch of that name, so no two agents
 ever write the same tree. The files are at that path the moment the sub-agent
 finishes — there is nothing to fetch and nothing to serialize. →
-[Sub-agents](/build/subagents)
+[Sub-agents](/reference/subagents)
 
 <CardGroup cols={2}>
   <Card title="How it fits together" icon="diagram-project" href="/concepts/overview">

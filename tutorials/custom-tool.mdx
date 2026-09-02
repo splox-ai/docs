@@ -1,224 +1,208 @@
 ---
 title: "A tool of your own"
-description: "Write a Python function into your harness, publish it, and watch the agent call it by name"
+description: "Ask your agent for an ability it does not have, and watch it write the tool into its own harness, test it, and publish it"
 ---
 
-Twenty minutes. At the end your agent has a tool nobody else has — a Python
-function in your [harness](/concepts/harness), offered to the model by name, with
-a docstring that tells it what the tool refuses to do.
+Your agent can do a great many things out of the box, and none of them are
+*remembering the call you had with Anna*. A [tool](/reference/tools) is how an
+ability that is specific to you gets added — a Python function in your agent's
+own [harness](/concepts/harness), offered to the model by name.
 
-The tool here is a spending ledger, because it is short enough to read in one
-screen and it keeps state on the machine. The mechanics are the same for anything
-else.
+You do not write the function. You describe the ability, and the agent writes it,
+tries it, fixes what it got wrong, and publishes a new version of itself.
 
-## The file
+## What you say
 
-A tool is a file in `tools/` at the top of your harness. One file, one group of
-tools, no registration anywhere:
+One message, in an ordinary chat:
+
+```text
+I want to be able to tell you "log a call with Anna about the renewal" and have
+you keep it, so that later — in a new chat, next week — I can ask "what were the
+last calls with Anna" and get them back. Give yourself a tool for that, keep the
+data on this machine, and publish it when it works. Tell me which version that
+made.
+```
+
+Read that again for what is *not* in it. No file names, no function signatures,
+no mention of JSON or CSV. What it does contain is the four things that decide
+whether the tool comes out right:
+
+| | |
+|---|---|
+| **What you will say to it** | "log a call with Anna about the renewal" — the phrasing the tool has to recognise |
+| **What you will ask it later** | "the last calls with Anna" — which is what makes it a *log* rather than a note |
+| **Where the data lives** | on this machine, so it outlives the chat |
+| **That it gets published** | otherwise it is a file in a sandbox, not an ability |
+
+## What came back
+
+The agent read the tools its harness already had, took `tools/notes.py` as the
+house pattern for "keep data on this machine", and wrote a new file with three
+functions: **`calls__log`**, **`calls__recent`**, **`calls__forget`**. The store
+is one append-only JSONL file at `~/.calls/calls.jsonl`. It added the file to the
+Assistant's tool list, added one line to the Assistant's prompt so the model
+reaches for it unprompted, wrote a test case into the harness, committed, and
+pushed.
+
+Three functions, not one, and the third is `forget` — because an append-only log
+that cannot be corrected is a log people stop trusting. Nothing in the message
+asked for that. This is the part you get for describing an ability instead of a
+function.
+
+<Accordion title="The tool it wrote, as the model sees it">
+
+A tool file is plain Python. The platform derives the tool's description from the
+first line of the docstring and its arguments from the type hints, so the
+docstring is not a comment — it is the contract the model reads before calling.
 
 ```python
-# tools/expenses.py
-"""What was spent, kept on this machine as one CSV."""
+def log(contact: str, about: str, when: str = "", notes: str = "") -> str:
+    """Log a phone call with a client: who, what it was about, when — appended to the call log this machine keeps, so it is still there in a new chat next week.
 
-import csv
-from datetime import date
-from pathlib import Path
-from typing import Literal
-
-LEDGER = Path.home() / "expenses.csv"
-
-
-def add(amount: float, category: Literal["travel", "food", "software", "hardware"], note: str = "") -> str:
-    """Record one expense in dollars against a category, appending a row to the ledger this machine keeps.
+    The log is append-only: logging the same person twice is two calls, which
+    is what you want. Say who it was with the way you say it everywhere else
+    ("Anna", "Anna Smith") — recent() matches on part of the name, so one
+    consistent spelling per person keeps their history in one place.
 
     Args:
-        amount: The amount in dollars, e.g. 12.50 — not cents.
-        category: Which budget it comes out of.
-        note: What it was for, in a few words.
+        contact: Who the call was with — a person or company, e.g. "Anna".
+        about: What the call was about, in one line, e.g. "renewal terms for Q4".
+        when: When the call happened: an ISO date like 2026-09-01, or with the
+            time, like 2026-09-01T15:04. Empty means the call just happened.
+        notes: Whatever is worth keeping from the call — decisions, numbers, next steps.
     """
-    if amount <= 0:
-        raise ValueError("amount is in dollars and must be positive; a refund is not an expense")
-    fresh = not LEDGER.exists()
-    with LEDGER.open("a", newline="", encoding="utf-8") as ledger:
-        row = csv.writer(ledger)
-        if fresh:
-            row.writerow(["date", "amount", "category", "note"])
-        row.writerow([date.today().isoformat(), f"{amount:.2f}", category, note])
-    return f"recorded ${amount:.2f} against {category}"
-
-
-def report() -> dict:
-    """Total the ledger by category: what was spent on each, how many entries, and the grand total.
-
-    Returns an empty report rather than failing when nothing has been recorded yet.
-    """
-    if not LEDGER.exists():
-        return {"total": 0.0, "categories": {}, "entries": 0}
-    totals: dict[str, float] = {}
-    entries = 0
-    with LEDGER.open(newline="", encoding="utf-8") as ledger:
-        for line in csv.DictReader(ledger):
-            totals[line["category"]] = round(totals.get(line["category"], 0.0) + float(line["amount"]), 2)
-            entries += 1
-    return {"total": round(sum(totals.values()), 2), "categories": totals, "entries": entries}
+    contact = contact.strip()
+    about = about.strip()
+    if not contact:
+        raise ValueError("contact is who the call was with — e.g. contact='Anna Smith'")
+    if not about:
+        raise ValueError(
+            "about is what the call was about, in one line — e.g. about='renewal terms for Q4'"
+        )
 ```
 
-Every part of that signature is doing work. The **type hints** become the schema
-the model is offered. The **first line of each docstring** is the description it
-reads. The `Args:` block describes the parameters. `Literal[...]` becomes an
-enum, so "categories" is a closed set rather than a hope.
+Those `ValueError`s are not defensive programming. A tool that raises goes back
+to the model as text, so the message is an instruction to whoever misused it —
+and whoever misused it is the model, which will read it and call again correctly.
+The same file refuses an unparseable date rather than silently logging today:
 
-## Put it in the harness
+> `when must be an ISO date, like 2026-09-01 or 2026-09-01T15:04 — %r is not one.`
+> `Leave when empty to log the call as happening now.`
 
-Your harness is checked out on the machine at `~/harness`, and the agent is
-sitting in it. The quickest way in is to paste the file into a chat:
+</Accordion>
 
-````text
-Add a tool to this harness and publish it.
+<Accordion title="Wiring it in — the one line that makes it exist">
 
-1. Write this file to ~/harness/tools/expenses.py, exactly as it is here:
+A file in `tools/` is nothing until an agent is given it. That is one line in
+`programs/splox/main.py`:
 
 ```python
-<the file above>
+tools=["system:compute", "tools/files.py", "tools/notes.py", "tools/calls.py"],
 ```
 
-2. In ~/harness/programs/splox/main.py, add "tools/expenses.py" to the
-   Assistant's tools list. Change nothing else.
-3. Commit and push to origin main.
+The agent edited that line itself. See [Tools](/reference/tools) for the naming rule
+that turns `log` in `calls.py` into `calls__log` at the model.
 
-Then tell me which version number the push created.
-````
+</Accordion>
 
-<Frame caption="Thirty-eight seconds: two files written, one commit, one push, version 2">
-  <img src="/images/tutorials/custom-tool-publish.png" alt="A Splox chat where the agent has written a tool, pushed it and reported version 2" />
-</Frame>
+## It tested itself, and found its own bug
 
-That second step is the one people forget. A file in `tools/` is not a tool
-anybody has until an agent names it:
+Before pushing, the agent ran the platform's own schema deriver over the file —
+the same code the tool server runs — and confirmed what the model would be shown:
+`contact` and `about` required, `when` and `notes` optional with defaults. Then
+it exercised every path against a throwaway home directory.
 
-```python
-tools=["system:compute", "tools/files.py", "tools/expenses.py"],
-```
+Two of its own test assertions turned out to be wrong rather than the tool, which
+it worked out and said so. One real bug it did find and fix: `forget()` reported
+the deleted call as `00:00: kickoff`, which reads like nonsense. It rewrote the
+message.
 
-The push **is** the publish. It goes through the platform's git proxy, which
-validates the tree — a tool file that does not import is refused here, with the
-interpreter's own error — and answers with the new version:
+It also left a test behind in the harness, and the second scenario in it is the
+whole point of the tool:
 
-```
-remote: published version 2
-```
+> The call log: one conversation, two turns — log a call, then read it back in a
+> second run. The second scenario is the one that matters: it passes only if what
+> the first run logged is still on this machine's disk when the next run asks for
+> it.
 
 <Note>
-There is no clone-it-to-your-laptop step. Git over HTTPS is authenticated by the
-run's own token, which lives on the machine, so `git push` works in the sandbox
-with nothing to configure and does not work anywhere else. See
-[Versions](/build/versions).
+Evals run against the **published** version, not your working copy. The agent
+discovered this by trying it the other way round: publish first, then run the
+case against the new version. See [Evals](/reference/evals).
 </Note>
 
-## What the model is offered
+## Publishing, on a machine somebody else is also using
 
-Name, description, schema. Nothing else, and all three come out of the file:
+The push is the publish. It goes through the platform's git proxy, which loads
+the tree and refuses it if a file does not import — so a broken tool cannot
+become a version.
 
-```json
-{
-  "name": "expenses__add",
-  "description": "Record one expense in dollars against a category, appending a row to the ledger this machine keeps.",
-  "input_schema": {
-    "type": "object",
-    "properties": {
-      "amount": {"type": "number", "description": "The amount in dollars, e.g. 12.50 — not cents."},
-      "category": {"type": "string", "enum": ["travel", "food", "software", "hardware"], "description": "Which budget it comes out of."},
-      "note": {"type": "string", "description": "What it was for, in a few words.", "default": ""}
-    },
-    "required": ["amount", "category"]
-  }
-}
-```
+This particular push was refused, and the reason is worth reading:
 
-The name is the file stem and the function joined by **two underscores**:
-`expenses.py` + `add` → `expenses__add`. Two, not a dot, because a provider
-rejects the whole request over one tool name that fails `^[a-zA-Z0-9_-]{1,128}$`.
-
-## Use it
-
-Start a new chat — the catalog is asked once per run, so the next run is the one
-that sees the new tool — and give it work in your own words:
-
-```text
-Log these three expenses: 24.50 for lunch with the team, 19 for the taxi to the
-airport, 120 for the JetBrains license. Then give me the totals by category.
-```
-
-<Frame caption="Four calls in fourteen seconds: three adds, one report, and the table it built from them">
-  <img src="/images/tutorials/custom-tool-calls.png" alt="A Splox turn showing three Expenses Add tool calls and one Expenses Report" />
+<Frame caption="The push is refused, and the agent works out why: a second agent is committing to the same harness">
+  <img src="/images/tutorials/custom-tool-publish.png" alt="A Splox chat where the agent diagnoses a refused push caused by a concurrent agent's commit" />
 </Frame>
 
-The transcript of those four calls, with what went in and what came back:
+Two rules surfaced at once. The tree takes **programs, tools, evals and root
+docs** — a root `.gitignore` is refused, and one had been added by somebody else's
+commit. And the agent's own commit had already reached the remote, carried there
+by that other agent's successful push a minute earlier.
 
-```
-expenses__add    {"amount": 24.5, "category": "food", "note": "Lunch with the team"}
-                 -> "recorded $24.50 against food"
-expenses__add    {"amount": 19, "category": "travel", "note": "Taxi to the airport"}
-                 -> "recorded $19.00 against travel"
-expenses__add    {"amount": 120, "category": "software", "note": "JetBrains license"}
-                 -> "recorded $120.00 against software"
-expenses__report {}
-                 -> {"total": 163.5, "categories": {"software": 120.0, "travel": 19.0, "food": 24.5}, "entries": 3}
-```
-
-Nothing in the message said "software" or "travel". The enum did that: the model
-had four categories to choose from and put each expense in one. The ledger is now
-`/home/daytona/expenses.csv` on the machine, where the next chat — and any
-program you write — can read it.
-
-## The error message is the interface too
-
-Ask for something the tool refuses:
+The version history bears that out. The tool went up inside a version whose
+message is about something else entirely:
 
 ```text
-Now log a refund of -40 against software.
+ 9  c2d05bd  Keep pycache out of git with a program-local .gitignore
+10  380bbb3  telegram: answer messages with the harness's Assistant, one Splox conversation per chat
+11  e5a7189  telegram: drop a compiled file committed by mistake, ignore __pycache__ within the program
 ```
-
-The call is made, the `ValueError` is raised, and it comes back as the tool
-result — not as a crashed run:
-
-```
-expenses__add {"amount": -40, "category": "software", "note": "Refund"}
-              -> "ValueError: amount is in dollars and must be positive; a refund is not an expense"
-```
-
-The model read that sentence and stopped trying to add a negative expense. This
-is why a raised exception with a useful message is the cheapest teaching a tool
-can do: the model is told what to do instead, in the same turn, for the cost of
-one failed call.
 
 <Warning>
-Watch what happened next in that run, though: the agent opened
-`~/harness/tools/expenses.py`, saw that the ledger is an ordinary CSV, and
-appended the refund row with a shell command. **A rule inside a tool is not a
-fence around an agent that also has a shell.** If a constraint has to hold, it
-belongs in [`hooks/tools.py`](/build/hooks), which sees every call by name with
-its arguments before it runs — or the agent must not be given `system:compute` at
-all.
+A harness is a git repository, and a machine you share is a repository you share.
+If two agents work on the same harness at once, one of them is rebasing onto the
+other. It resolves the way git always resolves, and nothing is lost — but do not
+expect the version number you were promised to be the version number you get, or
+its message to describe your change.
 </Warning>
 
-## Changing it afterwards
+<Note>
+There is no version history screen in the app. Ask your agent — it reads the
+list from the platform and tells you which number carried what. See
+[Versions](/inside/versions).
+</Note>
 
-The body of a tool is re-read on the very next call: edit
-`~/harness/tools/expenses.py` in the sandbox and the next call runs the new code,
-with no restart and no publish. A changed **signature or description** reaches the
-model on the next run, because the catalog is asked once per run.
+## What you have now
 
-Publish when the change should reach a new chat, another machine, or anybody
-else.
+A published version of your agent with an ability nobody else's agent has. From
+the next run onwards the model is offered `calls__log`, `calls__recent` and
+`calls__forget` by name, alongside its built-in tools, and the data sits on the
+machine rather than in a conversation — which is what makes the answer to "what
+were the last calls with Anna" survive the chat you asked it in.
+
+That last claim is the one to check yourself, and checking it is one message in a
+**new** chat:
+
+```text
+What were the last calls with Anna?
+```
+
+If the log is doing its job, the answer comes back from the file rather than from
+the conversation — because the new chat has no conversation to remember.
+
+<Note>
+The **Tools** screen in the app lists MCP servers and system tools. A tool that
+lives in your harness does not appear there — it is part of your agent, not a
+connection. Ask your agent what tools it has and it will read its own
+`main.py` and tell you.
+</Note>
 
 ## Next
 
 <CardGroup cols={2}>
-  <Card title="How tools work" icon="wrench" href="/build/tools">
-    Classes with state, `scope`, `ctx`, dependencies, narrowing an entry to two tools, and what a tool may return.
+  <Card title="A job that runs every day" icon="clock" href="/tutorials/nightly-job">
+    The same publish-a-version loop, applied to something that runs without you.
   </Card>
-  <Card title="A program that runs on its own" icon="clock" href="/tutorials/nightly-job">
-    The same harness, a directory that wakes on a schedule and leaves a file behind.
+  <Card title="Tools" icon="wrench" href="/reference/tools">
+    The reference: how a file becomes a tool, what the docstring must carry, what an error does.
   </Card>
 </CardGroup>

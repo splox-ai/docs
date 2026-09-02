@@ -1,17 +1,25 @@
 ---
 title: "Drive a run from your own code"
-description: "Create a run over HTTP, follow its events as they happen, and read what it produced"
+description: "For a system that has to start runs on its own: create one over HTTP, follow its events, read what it produced"
 ---
 
-Ten minutes and one file. At the end you have a script that starts a run on your
-machine, prints every event as it arrives, and hands you the answer — the same
-run the app would have made, from your own terminal.
+Every other page here is a conversation: you ask, the agent works, you check.
+This one is different, and it is the only one that is. It is for the case where
+**something other than a person starts the run** — your backend, a webhook, a CI
+job, a cron on a server you own — and there is nobody there to type.
 
-It is written against raw HTTP with nothing but the standard library, and there
-is a reason for that: **the published SDKs cannot start a run today.** All three
-omit `machine_id`, which the API requires, so `runs.create` answers `422`. Every
-other call in the SDKs works; run creation is the hole, and this page routes
-around it. See [Runs](/api/runs).
+You will need an API key, and you will be reading HTTP. If what you actually want
+is a job that runs on a schedule, or a bot that answers messages, you do not need
+any of this: that lives in your harness as a
+[program](/tutorials/nightly-job), and you get it by asking.
+
+<Warning>
+**No published SDK can create a run today.** The API requires `machine_id`, and
+Python `0.5.4`, Node `0.5.4` and Go `v2.0.0` all omit it — `runs.create` answers
+`422 validation_failed` with `/machine_id: machine_id is required`. Every other
+call in all three works. Until they ship it, create runs over raw HTTP as below.
+See [Runs](/api/runs).
+</Warning>
 
 ## What you need
 
@@ -22,11 +30,20 @@ session, and it needs a paid plan.
 curl -s -X POST "https://splox.io/api/v1/api-tokens" \
   -H "Cookie: session=$SESSION" \
   -H "Content-Type: application/json" \
-  -d '{"name": "run-script", "duration_minutes": 120}'
+  -d '{"name": "run-script", "duration_minutes": 240}'
 ```
 
 ```json
-{"token":"<shown once — copy it now>","name":"run-script","expires_at":"2026-09-02T12:28:38Z","expires_in":7200,"scope":"api"}
+{
+  "token": "<shown once — copy it now>",
+  "name": "run-script",
+  "expires_at": "2026-09-02T17:25:09Z",
+  "expires_in": 14400,
+  "scope": "api",
+  "endpoint": "https://splox.io/api/v1/chat/completions",
+  "rate_limit": "10 requests per second",
+  "max_concurrent_requests": 10
+}
 ```
 
 ```bash
@@ -39,7 +56,7 @@ A key lives an hour unless `duration_minutes` says otherwise, up to a year, and
 the plaintext is shown once. [API keys](/account/api-keys).
 </Warning>
 
-Check it before you build on it:
+Check it before building on it:
 
 ```bash
 curl -s "$SPLOX_HOST/api/v2/harnesses" -H "Authorization: Bearer $SPLOX_API_KEY"
@@ -50,6 +67,8 @@ curl -s "$SPLOX_HOST/api/v2/harnesses" -H "Authorization: Bearer $SPLOX_API_KEY"
 ```
 
 ## The script
+
+Standard library only, so there is nothing to install and nothing to blame.
 
 ```python
 #!/usr/bin/env python3
@@ -144,9 +163,9 @@ print(f"{usage['total_tokens']} tokens, {usage['tool_calls']} tool calls, ${usag
 python3 run.py
 ```
 
-```
+```text
 machine My Agent: running
-run_01M1GRYWWSE5RRFPBKS11MAD4V queued on 371758e, chat chat_01M1GRYWWCEJRBBPMABFDR0D4S
+run_01M1H69AS2FPJAVAGY535MWCVA queued on 2677a1a, chat chat_01M1H69ARCFRAV88TRJ756EKP1
   1  run.created
   2  run.status_changed   running
   3  message.created      user
@@ -159,24 +178,41 @@ run_01M1GRYWWSE5RRFPBKS11MAD4V queued on 371758e, chat chat_01M1GRYWWCEJRBBPMABF
  10  message.created      tool
  11  hook.called          context.build
  12  hook.called          model.choose
- 13  hook.called          stop.done
- 14  message.created      assistant
- 15  output.created       final_message
- 16  run.status_changed   succeeded
+ 13  hook.called          errors.on
+ 14  run.status_changed   running
+ 15  hook.called          context.build
+ 16  hook.called          model.choose
+ 17  hook.called          stop.done
+ 18  message.created      assistant
+ 19  output.created       final_message
+ 20  run.status_changed   succeeded
 
 final_message: 12
 
-17755 tokens, 1 tool calls, $0.014515
+18606 tokens, 1 tool calls, $0.032582
 ```
 
-Ten seconds, sixteen events. Read the middle of that list and you can see the
-turn happening: the model answers with a tool call (8), the tool result comes
-back (10), the model is asked again (11–13) and this time it answers with text
-(14), which becomes the run's output (15).
+Read the middle of that list and the turn is visible: the model answers with a
+tool call (8), the tool result comes back (10), the model is asked again — and at
+13 the provider failed. `errors.on` is the harness's own error hook catching it
+and saying retry; the run went back to `running` (14), was asked again (15–17),
+answered with text (18), and that answer became the run's output (19).
+
+Nothing in your code has to know about that retry, which is why you follow
+`run.status_changed` rather than counting events.
+
+<Warning>
+Honesty about that run: the SSE connection dropped at event 16 while the stand
+was having a bad afternoon, and the script fell over on the next request with a
+`522`. The events above are the run's journal, read back afterwards from the same
+endpoint as JSON pages — which is the point of the third section below. A script
+you rely on hands the last `sequence` back as `Last-Event-ID` and continues
+instead of dying.
+</Warning>
 
 ## The three things this page is really about
 
-**A run happens on a machine.** `machine_id` is required, and it is not optional
+**A run happens on a machine.** `machine_id` is required, and it is not
 politeness: the filesystem the agent writes to and the shell it opens belong to a
 machine, and the platform will not guess which one. Leave it out and you get
 
@@ -194,20 +230,20 @@ machine, and the platform will not guess which one. Leave it out and you get
 **v1 and v2 spell ids differently.** `GET /v1/machines` is the only machine
 listing there is and it answers with raw uuids; `POST /v2/runs` wants the `m_…`
 form and refuses a uuid. The encoding is not a lookup — it is the same 128 bits in
-Crockford base32 — which is why four lines of `public_id` above are the whole
-conversion. If you already depend on the Python SDK, `splox.encode_id("m", uuid)`
-does the same thing.
+Crockford base32 — which is why four lines of `public_id` are the whole
+conversion. With the Python SDK installed, `splox.encode_id("m", uuid)` does the
+same thing.
 
 **The stream is a journal, not a firehose.** Every event has a `sequence` and a
 cursor, and the same endpoint serves the same events as JSON pages. If the
 connection drops, hand the last cursor back as `Last-Event-ID` and continue where
-you were. [Streaming](/api/streaming) covers resuming, the heartbeat, and how the
-stream ends.
+you were — worth having, because a dropped SSE connection is the normal failure
+of this endpoint. [Streaming](/api/streaming).
 
 ## Where the run went
 
-It is a chat, on the same machine, with the same history as anything you type
-into the app — open `/c/<chat uuid>` and it is all there:
+It is a chat, on the same machine, with the same history as anything typed into
+the app — open `/c/<chat uuid>` and it is all there:
 
 <Frame caption="The run this script created, opened in the app: one tool call, one answer">
   <img src="/images/tutorials/api-run-chat.png" alt="A Splox chat created over the API, showing a wc -l tool call and the answer 12" />
@@ -217,14 +253,15 @@ into the app — open `/c/<chat uuid>` and it is all there:
 The URL takes the chat's uuid, while the API answers with `chat_01M1G…`. They are
 the same value in two encodings — decode the base32 back to a uuid and the page
 opens. A chat created this way is **not** listed in the sidebar's Recent, which
-only shows chats a person started.
+only shows chats a person started. If your system creates runs, keep the ids: it
+is the only way back to them from the app.
 </Note>
 
 ## Continuing the conversation
 
 Pass `chat_id` on the next create and the run joins that chat instead of starting
-one — same machine, same history, so a follow-up question that only makes sense in
-context works:
+one — same machine, same history, so a follow-up that only makes sense in context
+works:
 
 ```python
 run = call("POST", "/api/v2/runs", {

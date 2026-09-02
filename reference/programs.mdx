@@ -3,6 +3,14 @@ title: "Programs"
 description: "A directory with a main.py that declares agents and says who answers a message"
 ---
 
+<Info>
+**Reference for your agent.** The precise shape of things — signatures, fields,
+rules — written so an agent can read it and act. You do not need to: ask your
+agent for what you want in words, and if it needs this page, hand it the URL or
+use *Copy page*. What to ask for, and how to check it, is in [Ask](/ask/overview);
+how to see what changed is in [Look inside](/inside/overview).
+</Info>
+
 A harness is programs. A program is a directory under `programs/` with a
 `main.py` at its top, and that file declares the agents:
 
@@ -90,7 +98,7 @@ program still working.
 
 There is exactly one place a point can live: no tree-wide `hooks/` above the
 programs, and nothing under an individual agent. A program that keeps none of
-them runs every point on the platform's own answer. See [Hooks](/build/hooks).
+them runs every point on the platform's own answer. See [Hooks](/reference/hooks).
 
 ## Adding a second program
 
@@ -126,7 +134,7 @@ that `chat_id` back on a later call to continue the same conversation.
 The other keywords are `schema=` (a shape the answer has to match), `workspace=`
 (a git worktree of its own), `attempts=` (replace a failed agent with a fresh
 one) and `destination_number=` (make the run a phone call). A keyword `agent()`
-does not know is refused where it is written. [Sub-agents](/build/subagents)
+does not know is refused where it is written. [Sub-agents](/reference/subagents)
 covers all of them.
 
 A script that is not a program — the kind an agent writes in its sandbox on the
@@ -208,7 +216,7 @@ the program calls an agent, that run is in the chat list too, with its whole
 conversation, so a program that logs its inputs and an agent run that records its
 own reasoning together say what happened.
 
-<Card title="Worked examples" icon="code" href="/build/patterns">
+<Card title="Worked examples" icon="code" href="/reference/patterns">
   A triage router, a nightly job, a bot that answers from outside a chat, and a
   fan-out over many items — all as programs.
 </Card>

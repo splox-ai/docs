@@ -1,0 +1,309 @@
+---
+title: "Versions: what changed, and going back"
+description: "Which version your machine runs, what changed in it, who changed it and why, and how to undo it — by asking"
+---
+
+Your agent edits itself. When it publishes those edits, that is a **version**:
+numbered, dated, kept forever, never rewritten. So the two questions that matter
+after your agent has changed — *what did it do?* and *can I undo it?* — have
+short answers, and you get both by asking in the chat.
+
+Nothing on this page needs a terminal.
+
+## Ask it
+
+> **Which version of yourself is this machine running, and what changed in the
+> last one? Say it in plain English — I do not read code.**
+
+That question, asked on the machine these pages were written against, came back
+with this (trimmed; it also named the commit and the time it was published):
+
+> **What the last update added:** a new automatic helper called the **mailer** —
+> essentially an email butler. In plain terms:
+>
+> - It keeps an eye on this machine's email inbox, checking roughly every 20
+>   seconds.
+> - When a new message arrives, it hands it to an assistant (the "Responder"),
+>   which figures out an appropriate reply — and if the message asks it to
+>   actually do something or look something up, it has the tools to do so before
+>   answering.
+> - It sends that reply back to whoever wrote in.
+> - Every message it handles gets written down as one line in a simple
+>   human-readable log file, so you can see later what came in and what was
+>   answered.
+>
+> For context, the update before that added the **notes tool** (the ability to
+> write, read, and list notes by topic that stick around between conversations),
+> and before that a fix so the Telegram bot reads its secret token when needed
+> rather than once at startup.
+
+<Frame caption="The same answer in the chat. It opened its own history to write it — the chip at the top is the command it ran.">
+  <img src="/images/inside/versions-answer.png" alt="A Splox chat answering which version the machine runs and what the last one changed" />
+</Frame>
+
+That is the whole skill. Your agent can read its own history — it is on the same
+machine — so it can tell you what it did, in the register you asked for.
+
+Questions that work as well as that one:
+
+- *What have you changed about yourself today?*
+- *What did version 5 change, and what does it mean for what you do?*
+- *Show me the last five versions with one line each.*
+- *Was that always true, or did you change it?*
+
+## What a version is
+
+Everything about your agent at one moment: its prompt, its model, its tools, the
+programs it runs, the rules it works under. Numbered from 1. The list only grows
+— publishing again never edits or replaces an earlier one.
+
+This is the real history of an ordinary account that was set up in the morning
+and asked for a handful of things during the day:
+
+| # | What was published | When |
+| --- | --- | --- |
+| 1 | `created from starters/assistant at c151b87…` | 07:04 |
+| 2 | Add expenses tool (ledger add/report) to Assistant | 10:04 |
+| 3 | Add nightly briefing program | 10:10 |
+| 4 | Add telegram bot program | 10:18 |
+| 5 | telegram: read bot token inside call(), not at import time | 10:47 |
+| 6 | Add notes tool: write/read/list notes by subject | 13:29 |
+| 7 | `Revert "Add expenses tool (ledger add/report) to Assistant"` | 14:22 |
+
+Version 1 is always the same shape and is worth understanding: an agent never
+starts empty, so version 1 is the day it was copied from a
+[starter](/app/starters), and that line is the only record of where it came
+from. Everything after it is somebody asking for something.
+
+Read the same list yourself with one request:
+
+```bash
+curl -s -H "Cookie: session=$SESSION" \
+  https://splox.io/api/v1/harnesses/$HARNESS_ID/versions
+```
+
+```json
+{"versions": [
+  {"number": 7,
+   "commit": "a29e4d46e69c54f7b3eef10e2c55261420d43f5c",
+   "message": "Revert \"Add expenses tool (ledger add/report) to Assistant\"\n\nThis reverts commit 88d560d22aa2b2ff5fc13ab0f50f679851a607ed.\n",
+   "created_at": "2026-09-02T14:22:11Z"}
+]}
+```
+
+## Which version this machine is running
+
+Three answers, and they are not the same answer.
+
+**Ask.** The fastest, and the only one that also tells you what is in it.
+
+**The Machines screen.** The card under your machine's name reads
+`Runs My Agent @ main`. `main` means *the latest published version* — the machine
+does not sit on a number, it follows the harness, and picks up each publish on
+its next chat. See [Machines](/app/machines).
+
+**The run record, if you need to be exact.** Every run writes down the precise
+tree it executed, so a conversation from last week is readable at the version it
+actually ran:
+
+```json
+{
+  "id": "run_01M1H6MED6EX8RG3150FF0ZNS6",
+  "harness_id": "h_5V125BR7R4AA189NRYAB3DQC6D",
+  "harness_commit": "2677a1abaf1804a7dc9dfd9f06b134bbb7698609",
+  "status": "succeeded"
+}
+```
+
+That is the honest answer to *"which version gave me that reply"*, and it is why
+the number in a conversation from Tuesday still means something on Friday.
+
+<Note>
+There is a gap those answers can disagree across, and the screenshot above is
+sitting in it. Your agent edits its files on the machine and only *publishes*
+when the change is worth keeping, so between an edit and a publish the machine is
+running something no version number names — which is why the answer above names a
+commit, `9a1dab2`, rather than a number: at that moment the checkout was one
+unpublished change ahead of version 6. The gap is deliberate, and it is what lets
+you try a change in one message and keep talking. Ask for the change to be
+published and it closes.
+</Note>
+
+## Who changed it, and why
+
+**Why** is the message on the version — the line in the table above. Those lines
+are written by your agent when it publishes, which is why they read like a
+changelog rather than like `update main.py`.
+
+**Who** is your agent, publishing on your behalf. Under the covers the author is
+whatever name it committed under — `splox <harness@splox.io>` for most of the
+list above, `assistant <assistant@splox.local>` for one of them — and none of
+those are separate people. If more than one person can talk to this agent, the
+version message is where you say so; ask for it: *"when you publish, say who
+asked for the change."*
+
+## Reading a change without reading code
+
+Do not open the diff. Ask two questions about it instead:
+
+> *What did version 5 change?*
+
+> *What will you do differently because of it?*
+
+The second one is the one that matters, and it is the one a diff does not answer.
+The change behind version 5 above is one file, twenty lines added and nine
+removed — unreadable if you do not write Python, and completely readable as
+*"the Telegram bot used to break at startup if it could not see its token; now it
+reads it when it sends a message."*
+
+If you want to see the change itself, it is there — the diff, the file, the tree
+of any version — and [VS Code and SSH](/inside/vscode-and-ssh) is how you look.
+But asking is not a lesser way of reading it.
+
+## Going back
+
+Say it in the chat, naming the change rather than a number if that is easier:
+
+> Go back to how you were before the ledger.
+
+> That last change was wrong. Undo it and publish.
+
+What happens: your agent publishes **a new version whose contents are the old
+one**. Going back is a step forward in the list. That is version 7 in the table
+above — somebody asked *"take the expenses tool back out of my agent and publish
+that"*, and what the history recorded was:
+
+```
+Revert "Add expenses tool (ledger add/report) to Assistant"
+
+This reverts commit 88d560d22aa2b2ff5fc13ab0f50f679851a607ed.
+```
+
+Version 2 is still version 2. Version 7 is a new version that carries everything
+published since, minus the one thing that was undone:
+
+```
+programs/splox/main.py     1 line changed   the tool taken off the agent's list
+tools/expenses.py         43 lines gone     the tool itself
+programs/mailer/          192 lines added   work that was sitting in the checkout
+```
+
+The list only grows, nothing is deleted, and the version you rolled back from is
+still there if half of it turns out to have been right.
+
+<Warning>
+Look at that third line. A publish carries **everything the machine has**, not
+only the change you asked about — the mailer was work in progress on the same
+machine, and it went out with the rollback. If somebody else has been asking your
+agent for things, or you left something half-finished, ask what is about to be
+published before you ask for it to be published: *"what else would go out with
+that?"*
+</Warning>
+
+Two things a rollback does not touch:
+
+- **Files.** Everything the agent wrote to the machine stays written; a rollback
+  changes who the agent is, not what it did. See [Files](/inside/files).
+- **Programs already running.** A bot or a nightly job keeps running the code it
+  was started with until somebody restarts it. Ask for that too.
+
+## What going back does to a conversation in flight
+
+| Where | When it takes effect |
+| --- | --- |
+| The chat you are in | Your next message. The agent is asked who it is at the start of every turn. |
+| A turn already running | It keeps the agent it started with. A publish never interrupts a run. |
+| Another chat on this machine | Its next message, the same way. |
+| A new chat | It opens on the new version. |
+| Another machine of yours | Its next chat. |
+
+<Warning>
+Let the turn in front of you finish before asking for a rollback. A run already
+going keeps the agent it started with, but it re-reads its hook files and its
+tool files as it goes — so rolling back underneath a long turn can change how the
+rest of that turn behaves.
+</Warning>
+
+## Going back on one machine only
+
+If the change is right in general and wrong here — you want to reproduce
+something, or hold one machine still while the other moves on — a machine can be
+pointed at an older version instead. Nothing is published and no other machine
+moves:
+
+```bash
+curl -s -X PATCH -H "Cookie: session=$SESSION" -H 'Content-Type: application/json' \
+  -d '{"harness_ref":"versions/4"}' \
+  https://splox.io/api/v1/machines/$MACHINE_ID
+```
+
+An empty `harness_ref` puts it back on `main`. Ask for it in words —
+*"pin this machine to version 4 and leave the rest alone"* — and your agent makes
+that call.
+
+<Warning>
+The ref is not checked against the repository when it is set. `versions/99` on a
+harness with seven versions is accepted, and the failure only shows up when the
+machine tries to check that tree out.
+</Warning>
+
+## The exact shape of it
+
+For an agent reading this page, and for anyone who wants the mechanism rather
+than the gesture.
+
+A harness is a git repository, and the version history is git's:
+
+```
+refs/heads/main        the current version — what a new chat opens on
+refs/versions/N        one publish, N decimal from 1, never moved, never deleted
+refs/drafts/<uuid>     unpublished work, staged by the git proxy on the way to a publish
+```
+
+```
+371758ecf28e8240192e4731080a7436fb492a09 refs/versions/1
+88d560d22aa2b2ff5fc13ab0f50f679851a607ed refs/versions/2
+e3f6d06e37a8457fd113b79130e07cf47e8f0dc4 refs/versions/3
+ca4a049df43e1b40f3d0526d9660ef94c487f692 refs/versions/4
+326d287e6d33880dfb07858502f6f787127aa95b refs/versions/5
+2677a1abaf1804a7dc9dfd9f06b134bbb7698609 refs/versions/6
+a29e4d46e69c54f7b3eef10e2c55261420d43f5c refs/versions/7
+```
+
+A version number is a label for people; the thing that names a tree is the
+**commit**, and the commit is what a run records. Publishing is `git push origin
+main` from the checkout — the push *is* the publish, it goes through the
+platform's gate, and a tree that is not a valid harness is refused with every
+problem named at once. [Publishing a version](/inside/versions) is the full
+reference; [Troubleshooting](/troubleshooting) quotes the refusals.
+
+<Accordion title="What the agent runs when you ask it to go back">
+Both of these end in a push, which is what makes the new version. Neither is
+something you have to type.
+
+```bash
+cd ~/harness
+
+# Undo one change, keeping everything since:
+git revert 326d287
+git push origin main
+
+# Or restore a whole tree, when several changes have to go at once:
+git read-tree -u --reset refs/versions/4
+git commit -m "Restore version 4: the token change broke the morning job"
+git push origin main
+```
+
+`read-tree -u --reset` sets the working tree to that exact tree and leaves `HEAD`
+where it is, so the commit that follows is a new version whose contents are
+byte-for-byte version 4's. That is the mechanism behind "the list only grows".
+</Accordion>
+
+<CardGroup cols={2}>
+  <Card title="When a change makes it worse" icon="triangle-exclamation" href="/inside/when-it-goes-wrong">
+    Spotting it, saying it, and when to start a fresh machine instead.
+  </Card>
+  <Card title="What is on the machine" icon="server" href="/inside/overview">
+    The files a version is made of, and which one your request touched.
+  </Card>
+</CardGroup>

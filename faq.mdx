@@ -32,7 +32,7 @@ They stay. `/home/daytona` is the agent's home and everything under it survives 
 stop, a restart and the end of a chat — files, checkouts, installed packages, a
 database a program wrote. The read-only root is the exception: `/work`, `/data`
 and `/app` do not exist.
-→ [Memory and what persists](/build/memory)
+→ [Memory and what persists](/reference/memory)
 
 ## Can I have more than one machine?
 
@@ -57,7 +57,7 @@ asks `main.py` who an agent is at the moment it needs to know. Publishing
 (`git push origin main`) makes a numbered version, which is what a *new* chat and
 any other machine on that harness pick up. So: try it in place, publish when it
 is right.
-→ [Publishing a version](/build/versions)
+→ [Publishing a version](/inside/versions)
 
 ## What is a starter, and what happens when I copy one?
 
@@ -73,7 +73,7 @@ Because a tool here is a Python function it imports, so one block of code can
 call four tools, loop over the results and print only the answer — instead of
 four round trips through the model with every intermediate result pasted back
 into the context. It is cheaper, faster and easier to read afterwards.
-→ [Tools](/build/tools)
+→ [Tools](/reference/tools)
 
 ## How do I connect Gmail, Linear or Notion?
 
@@ -103,7 +103,7 @@ provider rather than by us.
 Yes — that is a program in the harness, started once and left running. It
 survives the turn that started it, the end of the chat and the next day; it dies
 only when the machine does. Write it so that starting it twice is harmless.
-→ [Programs](/build/programs) · [Patterns](/build/patterns)
+→ [Programs](/reference/programs) · [Patterns](/reference/patterns)
 
 ## Can I drive an agent from my own code?
 

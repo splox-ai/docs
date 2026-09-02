@@ -1,6 +1,6 @@
 ---
 title: "Splox"
-description: "An agent that has its own computer, keeps its files, and does the work"
+description: "An agent that has its own computer, keeps its files, and changes itself when you ask"
 ---
 
 You get an agent that has a computer. Not a chat window with plugins attached: a
@@ -17,62 +17,51 @@ That transcript is a real one. The agent wrote `/home/daytona/notes/first-run.md
 on its own filesystem and listed the directory afterwards. Open a new chat
 tomorrow and the file is still there, because the machine is still there.
 
-## Who the agent is, is code
+## It changes itself when you ask
 
-Every agent is declared in a Python file that lives in a git repository of its
-own — the **harness**. This is the agent from the screenshot above, with its
-prompt written inline instead of read from a file:
+Who the agent is — what it is told, which model it thinks with, which tools it
+has, what runs on its machine at night — is not a settings page. It is a small
+git repository on the machine, the **harness**, and the agent edits it.
 
-```python programs/splox/main.py
-from splox import agent
+You do not write that code. You say what you want:
 
-assistant = agent(
-    "Assistant",
-    system_prompt="You have a Linux machine. Do the work, then say what you did.",
-    model="kimi-k3",
-    provider="splox",
-    tools=["system:compute"],
-    skills=["system:agent-browser", "system:memory"],
-    max_iterations=1000,
-)
+- "Give yourself a tool that logs my expenses."
+- "Answer me in Telegram, not just here."
+- "Every morning, leave me a briefing on the machine."
+- "Be shorter. Stop asking before you run things."
 
+The agent edits its harness, pushes it, and the push is a **version**. The next
+turn runs the new version. Every version is kept, every change is readable, and
+any version can come back — which is the thing that makes an agent that
+rewrites itself something you can live with. [Ask](/ask/overview) is what to ask
+for; [Look inside](/inside/versions) is how you see what it did and go back.
 
-def handle(msg):
-    return assistant
-```
-
-Edit a line and the next message reads the new one. Nothing is parsed at publish
-time, frozen into a run, or migrated afterwards: the platform asks `main.py` who
-an agent is at the moment it needs to know. Push the file and every later chat
-opens on the new version.
-
-That is the shape of the whole product. The agent has a computer, the computer
-has a checkout of the harness at `~/harness`, and the agent can read and edit
-that checkout like any other code — including with your help, in the chat.
+<Frame caption="Asked for a tool, in words: the agent wrote it, tested it, and published version 6">
+  <img src="/images/ask/publish-in-chat.png" alt="A Splox chat where the agent describes writing a tool, testing it and publishing version 6" />
+</Frame>
 
 ## What it is not
 
 - **Not a chatbot.** It has a shell, a filesystem, a package manager, a real
   browser, and it starts programs that keep running after the tab closes.
-- **Not a workflow canvas.** There are no nodes and no edges. Branching is an
-  `if` in a Python file you own. If you used the old Splox, [what
+- **Not a workflow canvas.** There are no nodes and no edges to draw. If the
+  agent needs a branch, it writes one. If you used the old Splox, [what
   changed](/what-changed) is the map from that vocabulary to this one.
 - **Not a sandbox that resets.** The disk survives. A stopped machine keeps its
   files and comes back where it left off.
-- **Not tools as JSON calls.** A tool is a Python function the agent imports and
-  calls in code, so one turn can chain five of them, filter the middle result and
-  print only the answer. See [Tools](/build/tools).
+- **Not something you configure.** There is a form for almost nothing. The
+  configuration is the conversation, and the record of it is the version history.
 
 ## Who it is for
 
-People who want an outcome and are willing to describe it once: a report
-compiled from four sources, a repository audited, a scraper written and left
-running, a mailbox watched. And people who want to shape how the agent works —
-its prompt, its model, its tools, the points of its turn — by writing code rather
-than filling in a form.
+People who want an outcome and are willing to describe it once: a report compiled
+from four sources, a repository audited, a scraper written and left running, a
+mailbox watched, a bot that answers in their place.
 
-You do not have to be the second kind to use it. The account you sign up with
-already has a working agent and a machine to run it on.
+You can look at what the agent wrote — the machine opens in VS Code and over SSH,
+and the harness is ordinary Python — and sometimes you will want to. That is
+[looking inside](/inside/overview), and it is optional. The account you sign up
+with already has a working agent and a machine to run it on.
 
 ## Your first hour
 
@@ -87,15 +76,15 @@ already has a working agent and a machine to run it on.
     document, a script. Then open a new chat and ask it to read what it wrote.
     The point of the machine is the second half of that sentence.
   </Step>
+  <Step title="Ask it to change">
+    "Give yourself a tool for X", "answer me in Telegram", "be shorter". Watch it
+    edit its own harness and publish a version. Then ask what version it is on.
+    [Ask](/ask/overview).
+  </Step>
   <Step title="Read the vocabulary">
     Six words carry the rest of this documentation: machine, harness, program,
     agent, run, chat. [Concepts](/concepts/overview) is one page that fits them
     together.
-  </Step>
-  <Step title="Change who the agent is">
-    Ask the agent to open `~/harness`, edit the prompt or add a tool, and push.
-    The next turn runs what you wrote. [Changing what your agent
-    is](/build/overview).
   </Step>
 </Steps>
 
@@ -103,13 +92,13 @@ already has a working agent and a machine to run it on.
   <Card title="Quickstart" icon="play" href="/quickstart">
     Sign in and get a first result out of the machine.
   </Card>
-  <Card title="Concepts" icon="diagram-project" href="/concepts/overview">
-    Machine, harness, program, agent, run, chat — and how they fit.
+  <Card title="Ask" icon="comments" href="/ask/overview">
+    A tool, a bot, a schedule, a different manner — what to say and what happens.
   </Card>
-  <Card title="Build" icon="code" href="/build/overview">
-    Edit the harness: programs, agents, hooks, tools, skills.
+  <Card title="Look inside" icon="magnifying-glass" href="/inside/overview">
+    What is on the machine, which version it runs, how to go back.
   </Card>
-  <Card title="API" icon="terminal" href="/api/introduction">
-    Start runs and read their events from your own code.
+  <Card title="Reference" icon="book" href="/reference/overview">
+    The exact shape of the harness, for your agent to read.
   </Card>
 </CardGroup>

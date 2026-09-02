@@ -1,0 +1,161 @@
+---
+title: "Connect a service"
+description: "Asking for access to Linear, Gmail or Notion — what the agent does, where you have to click Authorize, and where the credential ends up"
+---
+
+"Get into my Linear" is the one ask your agent cannot finish on its own. It can
+find out what is connectable, it can tell you exactly which entry to open, and it
+can wire the result into itself — but the step in the middle, where somebody
+proves they are you, is yours.
+
+That step is one screen: **Tools → Browse**, pick the service, press **Connect**.
+
+<Warning>
+Say which kind of access you mean, because that sentence has two readings and the
+agent picks the wrong one. Asked exactly `Get into my Linear.`, the agent on the
+account this page was written from read it as a browser task: it opened the
+agent-browser skill, started a desktop session and navigated to
+`https://linear.app/login`, saying *"Opening Linear on the desktop browser —
+that's where sign-ins belong."* That is a real thing it can do, and it is not
+what was wanted.
+
+The two asks that are not ambiguous:
+
+```text
+Connect the Linear MCP server so you have its tools.
+Log into linear.app in your browser and read my open issues.
+```
+
+The first is this page. The second is the browser, and it needs your Linear
+password, in a live desktop session you watch.
+</Warning>
+
+## What the agent can do alone
+
+Three things, and they are the useful ones.
+
+- **Tell you what is already connected.** It asks the platform, because nothing in
+  its own repository lists them. The answer includes the platform's own packages
+  and every server you have connected.
+- **Tell you what a connected server can do.** The Telegram Bot server on the
+  account this page was written from exposes 68 tools; the agent reads their names
+  and descriptions before it decides which to reach for.
+- **Give itself the tools.** The connected server has an id, and a line of the
+  agent's own declaration names it. That is a change to the harness like any
+  other, so it publishes as a version.
+
+What it cannot do is hold your Linear password or click through Linear's consent
+screen. The catalog has 83 entries and 54 of them are OAuth: for those, the
+browser has to be yours.
+
+## What you do
+
+<Steps>
+  <Step title="Open Tools → Browse">
+    The catalog. Each card carries the two things that decide what connecting
+    feels like: `oauth` or `manual` for the credential, `http` or `sse` for how
+    Splox talks to the server.
+  </Step>
+  <Step title="Pick the service and press Connect">
+    For an OAuth server there is one field, and it is only a label:
+
+    <Frame caption="Linear: a name for the connection, and a redirect to Linear to authorize">
+      <img src="/images/ask/connect-oauth.png" alt="The Splox connect page for the Linear MCP server" />
+    </Frame>
+
+    The page says it plainly — *You will be redirected to Linear to authorize
+    access. We never see your password.* Gmail (as **Google Workspace**) and
+    Notion work the same way.
+
+    For a `manual` server there is no redirect. The form asks for exactly the
+    headers that server authenticates with, named one by one:
+
+    <Frame caption="Telegram Bot: manual auth, so the form asks for the one header the server wants">
+      <img src="/images/ask/connect-manual.png" alt="The Splox connect page for the Telegram Bot MCP server, asking for X-bot-token" />
+    </Frame>
+  </Step>
+  <Step title="Tell the agent it is done">
+    It shows up under **Your MCP servers** with a status of *connected*.
+
+    <Frame caption="The server after connecting: on the account, with its credential held by the platform">
+      <img src="/images/ask/mcp-connected.png" alt="A connected MCP server card on the Splox Tools screen" />
+    </Frame>
+
+    Now the ask the agent can finish: "I connected Linear — give yourself its
+    tools." It looks the server up, reads what it exposes, adds the id to its own
+    declaration and publishes.
+  </Step>
+</Steps>
+
+## Where the credential ends up
+
+Not in your harness. The platform holds it, attached to your account, and uses it
+when a run reaches that server. What the harness carries is the server's id — a
+uuid that means nothing without the account it belongs to.
+
+That matters in three ways worth knowing:
+
+- **The harness is safe to read and to share.** A version of it never contains a
+  token. Someone reading your repository sees `"01a06250-80ad-7e53-91b3-…"` and
+  learns only that an agent uses a server you connected.
+- **Disconnecting is one gesture.** The bin icon on the card removes the server
+  and its credential. Anything pointed at it then fails, so an agent naming that
+  id has to be pointed somewhere else — another ask.
+- **It is per account, not per agent.** Connecting once makes the server
+  available to every agent you have; which agents actually get it is the `tools`
+  list in each declaration, and an agent is only ever offered what its own line
+  names.
+
+<Note>
+This is a different screen from **Connections**, which is for model provider keys
+and environment secrets. Rule of thumb: a service your agent should *call* goes on
+Tools; a key your agent's *own code* reads from the environment goes on
+Connections → Secrets. See [Connections](/app/connections).
+</Note>
+
+## When the catalog does not have it
+
+**Add MCP server** takes a name, a URL, a transport and whatever headers the
+server authenticates with. It then behaves like any other entry: it appears under
+Your MCP servers, it gets an id, and an agent gets it by naming that id. The
+details are on [Your own MCP servers](/tools/custom).
+
+If the service has no MCP server at all, the answer is usually not a connection.
+The agent has a shell, a real browser and a package manager, so "read my Linear
+issues" can also be an ask for a tool of its own that calls Linear's HTTP API with
+a token you put in Connections → Secrets. That is [Give it a
+tool](/ask/new-tool), and it is the right shape when the thing you want is
+narrow.
+
+## How to check it worked
+
+- **The card says *connected*** and, on the wire, `has_credential: true`. A server
+  with a credential that has expired says so on the same card.
+- **Ask the agent to use it.** One call is a better check than any status field —
+  "ask Linear who I am" costs a few seconds and either works or gives you the
+  provider's own error.
+- **The version list** shows the publish that gave the agent the tools. If it is
+  not there, the agent edited its checkout but did not push, and a new chat will
+  not have it. See [Versions](/inside/versions).
+
+## How to undo it
+
+Two independent things, and you can do either without the other.
+
+| What you want | What to do |
+| --- | --- |
+| The agent should stop using it | Ask. "Take the Linear tools off yourself." One line out of the declaration, one version. |
+| The service should stop being reachable at all | The bin icon on the card. The credential goes with it, for every agent on the account. |
+
+Removing the connection while an agent still names its id does not break the
+publish — the id is just a string in a list — but calls to it fail at the moment
+they are made. Do both, in whichever order, and the loose end is gone.
+
+<CardGroup cols={2}>
+  <Card title="The catalog" icon="grid" href="/tools/catalog">
+    What is in it, and what each entry's fields mean.
+  </Card>
+  <Card title="Your own MCP servers" icon="plug" href="/tools/custom">
+    Adding a server the catalog does not carry.
+  </Card>
+</CardGroup>

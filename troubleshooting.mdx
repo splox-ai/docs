@@ -161,7 +161,7 @@ reads as a pass, so it is refused instead.
 
 Your work is not lost when a publish is refused: the draft keeps the tree you
 pushed. Fix the files and push main again. [Publishing a
-version](/build/versions) covers the whole loop.
+version](/inside/versions) covers the whole loop.
 
 ## A program that stopped when the machine did
 
@@ -191,7 +191,7 @@ setsid nohup python3 ~/harness/programs/telegram/main.py > /tmp/telegram.log 2>&
 The durable fix is in the program, not in the platform: write the loop so that
 starting it twice is harmless and starting it after a stop picks up where it
 left off — state in a file it re-reads on start — and "has it stopped?" stops
-being a question anybody has to answer. [Programs](/build/programs) shows the
+being a question anybody has to answer. [Programs](/reference/programs) shows the
 shape.
 
 ## An agent that cannot find a file it wrote
@@ -216,7 +216,7 @@ sub-agent finishes; merging them onto the main line is a git command:
 git -C /home/daytona/workspace merge landing-ui
 ```
 
-[Sub-agents](/build/subagents) explains why the split exists.
+[Sub-agents](/reference/subagents) explains why the split exists.
 
 **It wrote outside the home directory.** The sandbox root is read-only, so
 `/work`, `/data` and `/app` are not there and never were:

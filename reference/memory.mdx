@@ -3,6 +3,14 @@ title: "Memory and what persists"
 description: "Four places a fact can live between runs, and how a harness keeps notes"
 ---
 
+<Info>
+**Reference for your agent.** The precise shape of things — signatures, fields,
+rules — written so an agent can read it and act. You do not need to: ask your
+agent for what you want in words, and if it needs this page, hand it the URL or
+use *Copy page*. What to ask for, and how to check it, is in [Ask](/ask/overview);
+how to see what changed is in [Look inside](/inside/overview).
+</Info>
+
 An agent on Splox forgets less than a chatbot does, because most of what it knows
 is not in a context window. It is in a file on a machine that is still there
 tomorrow.
@@ -112,7 +120,7 @@ def write(subject: str, body: str) -> str:
     return f"wrote {len(body)} characters to {path}"
 ```
 
-See [Tools](/build/tools) for what the model is shown of that.
+See [Tools](/reference/tools) for what the model is shown of that.
 
 ## t.store — the harness's own key-value
 
@@ -192,7 +200,7 @@ Leaving it out does not turn summarizing off: the platform's own one-line prompt
 runs instead.
 
 The starter puts the same thing in a file so it can be edited without touching
-`main.py`, through the [`memory.summarize`](/build/hooks) hook:
+`main.py`, through the [`memory.summarize`](/reference/hooks) hook:
 
 ```python
 # programs/splox/hooks/memory.py

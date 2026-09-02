@@ -3,6 +3,14 @@ title: "Hooks"
 description: "The ten points of a turn, what each one is handed, and what it may answer"
 ---
 
+<Info>
+**Reference for your agent.** The precise shape of things — signatures, fields,
+rules — written so an agent can read it and act. You do not need to: ask your
+agent for what you want in words, and if it needs this page, hand it the URL or
+use *Copy page*. What to ask for, and how to check it, is in [Ask](/ask/overview);
+how to see what changed is in [Look inside](/inside/overview).
+</Info>
+
 A hook is a Python function in your harness that answers a question the turn loop
 would otherwise answer itself. There are ten of them, one per decision the loop
 makes on its way through a turn, and they live in the program's own `hooks/` as

@@ -1,0 +1,52 @@
+---
+title: "Reference"
+description: "The exact shape of a harness — programs, agents, hooks, tools, skills, memory, evals — written for your agent to read"
+---
+
+<Info>
+**This section is for your agent.** Everything in it is precise on purpose:
+signatures, file layouts, the rules the platform enforces. You do not need to
+read it to use Splox. When you ask your agent for something and it needs a fact
+from here, hand it the page — every page has *Copy page* in the top-right, and
+the URL alone is enough for an agent with a browser.
+
+What to ask for is in [Ask](/ask/overview). How to see what changed, and go
+back, is in [Look inside](/inside/overview).
+</Info>
+
+A harness is a git repository checked out on the machine at `~/harness`. The
+platform reads it at the moment it needs to know something — who an agent is,
+what a hook does, which tools exist — and never keeps a parsed copy. That is why
+a change is live the moment a file is saved, and why a push is a version.
+
+What is in it:
+
+| Path | What it declares | Page |
+|---|---|---|
+| `programs/<name>/main.py` | A program: its agents, and `handle(msg)` for the one that answers a chat | [Programs](/reference/programs) |
+| `agent(...)` in that file | Prompt, model, provider, tools, skills, limits | [Agents](/reference/agents) |
+| `programs/<name>/hooks/<point>.py` | What the loop does at one point of a turn | [Hooks](/reference/hooks) |
+| `tools/<file>.py` | Functions offered to the model by name, schema from the signature | [Tools](/reference/tools) |
+| `skills/<name>/SKILL.md` | A procedure the agent reads when a task matches its description | [Skills](/reference/skills) |
+| `~/memory/` on the machine, not in git | What the agent keeps between chats | [Memory](/reference/memory) |
+| `evals/cases`, `evals/graders` | How a version is checked against the last one | [Evals](/reference/evals) |
+
+Two things the reference assumes throughout: a program that calls other agents
+does so with the shape in [Sub-agents](/reference/subagents), and the worked
+examples for a router, a nightly job and a fan-out are in
+[Patterns](/reference/patterns).
+
+<CardGroup cols={2}>
+  <Card title="Programs" icon="folder" href="/reference/programs">
+    What the platform reads out of `main.py`, what it never opens, and how a program calls its agents.
+  </Card>
+  <Card title="Agents" icon="robot" href="/reference/agents">
+    Every parameter of `agent(...)`, what a run inherits, and what a sub-agent does not.
+  </Card>
+  <Card title="Hooks" icon="anchor" href="/reference/hooks">
+    The points of a turn, what each receives, what each may return.
+  </Card>
+  <Card title="Tools" icon="wrench" href="/reference/tools">
+    A function becomes a tool: naming, schema, errors, what the model is shown.
+  </Card>
+</CardGroup>

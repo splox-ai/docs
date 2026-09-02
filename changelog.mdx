@@ -24,7 +24,7 @@ gets now is an agent with its own Linux machine.
   the answer, so an edit lands on the next turn. [Program](/concepts/program).
 - **Hooks instead of forks.** A turn has named points — context, model, tools,
   guard, memory, errors, stop — and `programs/<name>/hooks/<point>.py` answers
-  one of them. [Hooks](/build/hooks).
+  one of them. [Hooks](/reference/hooks).
 - **Tools the agent imports.** A tool is a Python function in
   `tools/<service>/<tool>.py`; the agent chains several in one script instead of
   paying for a JSON round trip each. MCP servers arrive the same way.

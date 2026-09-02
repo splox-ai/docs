@@ -18,21 +18,21 @@ rename — most of these are a different mechanism that does the same job.
 | Workflow | **Harness** — a git repository with a version history | [Harness](/concepts/harness) |
 | The canvas | `programs/<name>/main.py`, Python you edit | [Programs](/concepts/program) |
 | Agent node | `agent("Name", system_prompt=…, model=…, tools=[…])` | [Agents](/concepts/agent) |
-| Entry node | `handle(msg)` in `programs/splox/main.py` | [Programs](/build/programs) |
-| Tool node | a Python function in `tools/`, imported and called in code | [Tools](/build/tools) |
-| Switch node, conditional edge | `if` | [Programs](/build/programs) |
-| Parallel edges | `parallel(...)` and `Pool` over sub-agent runs | [Sub-agents](/build/subagents) |
-| Merge node | the code after those calls return | [Sub-agents](/build/subagents) |
-| Error edge | `hooks/errors.py` — `on(t, err)` answers a provider that failed | [Hooks](/build/hooks) |
-| Tool edge | `tools=[…]` on the agent; `hooks/tools.py` sees every call | [Hooks](/build/hooks) |
-| Variable mappings | ordinary Python variables, and the prompt you hand a sub-agent | [Sub-agents](/build/subagents) |
-| Node lifecycle | the turn loop and its ten hook points | [Hooks](/build/hooks) |
-| Workflow version | a harness version: `refs/versions/N`, published by pushing | [Versions](/build/versions) |
+| Entry node | `handle(msg)` in `programs/splox/main.py` | [Programs](/reference/programs) |
+| Tool node | a Python function in `tools/`, imported and called in code | [Tools](/reference/tools) |
+| Switch node, conditional edge | `if` | [Programs](/reference/programs) |
+| Parallel edges | `parallel(...)` and `Pool` over sub-agent runs | [Sub-agents](/reference/subagents) |
+| Merge node | the code after those calls return | [Sub-agents](/reference/subagents) |
+| Error edge | `hooks/errors.py` — `on(t, err)` answers a provider that failed | [Hooks](/reference/hooks) |
+| Tool edge | `tools=[…]` on the agent; `hooks/tools.py` sees every call | [Hooks](/reference/hooks) |
+| Variable mappings | ordinary Python variables, and the prompt you hand a sub-agent | [Sub-agents](/reference/subagents) |
+| Node lifecycle | the turn loop and its ten hook points | [Hooks](/reference/hooks) |
+| Workflow version | a harness version: `refs/versions/N`, published by pushing | [Versions](/inside/versions) |
 | Execution tree | the run tree: `GET /v2/runs/{run_id}/tree` | [Runs](/api/runs) |
 | Run a workflow | `POST /v2/runs` | [Runs](/api/runs) |
-| Trigger webhook | a program in the harness that listens, started on the machine | [Patterns](/build/patterns) |
-| Memory instance | files on the machine, and the window's own compaction | [Memory](/build/memory) |
-| MCP connection | **Connections**; a connected server shows up as a tool package | [Tools](/build/tools) |
+| Trigger webhook | a program in the harness that listens, started on the machine | [Patterns](/reference/patterns) |
+| Memory instance | files on the machine, and the window's own compaction | [Memory](/reference/memory) |
+| MCP connection | **Connections**; a connected server shows up as a tool package | [Tools](/reference/tools) |
 | Provider pages | **Connections**, and `provider=` or `text_llm_endpoint_id=` on the agent | [Models](/concepts/model) |
 | `chat.splox.io`, `app.splox.io` | one app | — |
 
@@ -89,7 +89,7 @@ resumable — and its README is the thing to read before building anything simil
     Machine, harness, program, agent, run, chat. [Concepts](/concepts/overview).
   </Step>
   <Step title="Port the one workflow you actually miss">
-    Write it as a program. [Patterns](/build/patterns) has four shapes to copy: a
+    Write it as a program. [Patterns](/reference/patterns) has four shapes to copy: a
     router, a bot, a nightly job and a fan-out.
   </Step>
 </Steps>
